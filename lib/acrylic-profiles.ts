@@ -5,6 +5,21 @@ import type { FootShape } from "./configurator";
 export const handleRise = 0.6;
 export const handleOverlap = 0.28;
 export const footFloor = 0.015;
+export const footHoleRadius = 0.03;
+export const footPanelGap = 0.01;
+
+export function footMountLayout(length: number, angle: number, thickness: number) {
+  const radians = angle * Math.PI / 180;
+  const caseY = thickness + 0.12;
+  return [-1, 1].map(end => {
+    const caseZ = end * length * 0.29;
+    return {
+      caseY, caseZ,
+      x: -caseZ * Math.cos(radians) - caseY * Math.sin(radians),
+      y: caseLift(length, angle) + caseY * Math.cos(radians) - caseZ * Math.sin(radians) - footFloor,
+    };
+  });
+}
 
 export function caseLift(length: number, angle: number) {
   return angle > 0 ? Math.sin(angle * Math.PI / 180) * length / 2 + 0.08 : 0.035;
@@ -14,9 +29,10 @@ export function createFootProfile(length: number, angle: number, thickness: numb
   const radians = angle * Math.PI / 180;
   const half = length * Math.cos(radians) * 0.43;
   const center = caseLift(length, angle) - footFloor;
-  // After the mesh rotates around Y, local X is -Z. This top edge touches
-  // the underside of the tilted case along the entire support.
+  // Local X is -Z in the assembled preview. The body stays below the base;
+  // the upper flange overlaps the outside of the case wall for through-bolts.
   const top = (x: number) => center + x * Math.tan(radians);
+  const flange = thickness + 0.24;
   const band = Math.max(thickness * 1.5, 0.06);
   const shape = new Shape();
 
@@ -38,6 +54,8 @@ export function createFootProfile(length: number, angle: number, thickness: numb
   }
 
   shape.lineTo(half, top(half));
+  shape.lineTo(half - flange * Math.sin(radians), top(half) + flange * Math.cos(radians));
+  shape.lineTo(-half - flange * Math.sin(radians), top(-half) + flange * Math.cos(radians));
   shape.lineTo(-half, top(-half));
   shape.closePath();
 
@@ -54,6 +72,11 @@ export function createFootProfile(length: number, angle: number, thickness: numb
       window.closePath();
       shape.holes.push(window);
     }
+  }
+  for (const mount of footMountLayout(length, angle, thickness)) {
+    const hole = new Path();
+    hole.absarc(mount.x, mount.y, footHoleRadius, 0, Math.PI * 2, true);
+    shape.holes.push(hole);
   }
   return shape;
 }

@@ -38,6 +38,7 @@ export function ConfigurationPanel({ config, onChange }: Props) {
         <div className="segmented-control foot-shape-control">{footShapes.map(shape => <button key={shape.value} className={`segment ${config.footShape === shape.value ? "segment-active" : ""}`} aria-pressed={config.footShape === shape.value} title={shape.description} onClick={() => onChange({ footShape: shape.value })}>{shape.label}</button>)}</div>
       </fieldset>
       <p className="control-note" id="foot-shape-note">{config.angle === 0 ? "Choose an angle to add two acrylic feet." : footShapes.find(shape => shape.value === config.footShape)?.description}</p>
+      {config.angle > 0 && <p className="control-note">Two removable bolts per foot, with washers and locknuts. No glue.</p>}
     </section>
     <section className="control-section hardware-section"><SectionTitle number="04">The details</SectionTitle>
       <div className="inline-field"><label htmlFor="handle">Acrylic handle</label><button id="handle" role="switch" aria-checked={config.handle} aria-label="Acrylic handle" aria-describedby="handle-note" className={`toggle ${config.handle ? "toggle-on" : ""}`} onClick={() => onChange({ handle: !config.handle })}><span>{config.handle ? <Plus size={10} /> : <Minus size={10} />}</span></button></div>

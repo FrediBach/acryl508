@@ -49,5 +49,11 @@ test("accessory exports count only installed sheets while retaining the foot pre
     assert.equal(exported.configuration.footShape, footShape);
     assert.equal(exported.configuration.handle, handle);
     assert.deepEqual(exported.outerDimensions, caseDimensions(defaultConfiguration));
+    if (angle) {
+      assert.equal(exported.footAttachment.boltsPerFoot, 2);
+      assert.equal(exported.footAttachment.boltCount, 4);
+      assert.equal(exported.footAttachment.locknutCount, 4);
+      assert.equal(exported.footAttachment.adhesive, false);
+    } else assert.equal(exported.footAttachment, null);
   }
 });

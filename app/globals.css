@@ -46,6 +46,8 @@
   --signal: #ed6028;
   --signal-soft: #ed602813;
   --on-signal: #211c15;
+  --button-signal: #c44718;
+  --on-button-signal: #ffffff;
   --grid: #60675211;
   --selection: #292c26;
   --selection-text: #fafbf5;
@@ -106,7 +108,8 @@
 .button:hover { filter: brightness(1.08); }
 .button:active { transform: translateY(1px); }
 .button-dark { background: var(--selection); color: var(--selection-text); }
-.button-orange { background: var(--signal); color: var(--on-signal); }
+.button-orange { background: var(--button-signal); color: var(--on-button-signal); }
+.button-orange:hover { background: #b83f14; filter: none; }
 .icon-button { width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center; border-radius: 3px; color: var(--muted-foreground); flex-shrink: 0; }
 .icon-button:hover { background: var(--surface); color: var(--foreground); }
 .workspace { flex: 1; min-height: 0; width: 100%; max-width: 1720px; margin: 0 auto; padding: 16px 28px; }
@@ -123,16 +126,11 @@
 .stage-material { color: var(--muted-foreground); font-size: 8px; letter-spacing: .7px; }
 .stage-material > span { padding: 0 8px; color: var(--faint); }
 .stage-watermark { position: absolute; top: 75px; left: 24px; font-size: clamp(62px, 8.4vw, 122px); font-weight: 500; line-height: 1; letter-spacing: -9px; opacity: .05; pointer-events: none; }
-.canvas-wrap { position: absolute; inset: 25px 18px 60px; cursor: grab; touch-action: none; }
+.canvas-wrap { position: absolute; inset: 0; cursor: grab; touch-action: none; }
 .canvas-wrap:active { cursor: grabbing; }
 .stage-side-tools { position: absolute; top: 50%; right: 20px; transform: translateY(-50%); display: flex; flex-direction: column; gap: 3px; padding: 5px; background: var(--overlay); border: 1px solid var(--strong-border); border-radius: 4px; backdrop-filter: blur(12px); }
 .stage-side-tools > span { border-top: 1px solid var(--border); margin: 3px 4px; }
 .stage-side-tools .tool-active { color: var(--signal); background: var(--signal-soft); }
-.stage-annotation { position: absolute; left: 8%; bottom: 25%; display: flex; align-items: flex-start; gap: 12px; pointer-events: none; }
-.annotation-line { height: 1px; width: 31px; background: var(--muted-foreground); margin-top: 5px; position: relative; opacity: .6; }
-.annotation-line::before { content: ""; position: absolute; left: -3px; top: -2px; width: 5px; height: 5px; border: 1px solid var(--muted-foreground); border-radius: 50%; background: var(--stage); }
-.stage-annotation > div { display: grid; gap: 5px; font-size: 8px; letter-spacing: .7px; color: var(--muted-foreground); font-family: var(--font-geist-mono), monospace; }
-.stage-annotation > div > span:last-child { font-family: var(--font-geist-sans), sans-serif; letter-spacing: 0; font-size: 10px; opacity: .85; }
 .stage-bottom { position: absolute; bottom: 51px; left: 26px; right: 26px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .view-control { display: inline-flex; border: 1px solid var(--strong-border); border-radius: 3px; padding: 3px; background: var(--overlay); }
 .view-control button { display: inline-flex; gap: 6px; align-items: center; padding: 7px 9px; font-size: 9px; color: var(--muted-foreground); border-radius: 2px; }
@@ -260,7 +258,6 @@
   .stage-material { display: none; }
   .stage-dimensions { display: none; }
   .stage-bottom { left: 20px; }
-  .stage-annotation { left: 22px; bottom: 25%; }
   .stage-side-tools { right: 12px; }
   .swatch-list { gap: 9px; }
   .hardware-note { flex-wrap: wrap; }
@@ -292,16 +289,12 @@
   .configurator-grid { height: auto; display: flex; flex-direction: column; overflow: visible; }
   .preview-column { display: contents; }
   .preview-stage { min-height: 405px; flex: none; order: 0; border-radius: 3px 3px 0 0; }
-  .canvas-wrap { inset: 0 0 55px; }
   .stage-watermark { top: 67px; font-size: 85px; letter-spacing: -6px; }
   .stage-material { display: block; font-size: 7px; }
   .stage-topline { inset: 20px 18px auto; }
   .model-label { font-size: 7px; gap: 6px; }
   .stage-side-tools { right: 10px; gap: 0; padding: 3px; }
   .stage-side-tools .icon-button { width: 29px; height: 30px; }
-  .stage-annotation { bottom: 105px; left: 24px; }
-  .stage-annotation > div { font-size: 7px; }
-  .stage-annotation > div > span:last-child { font-size: 8px; }
   .stage-bottom { bottom: 45px; left: 18px; right: 18px; }
   .stage-caption { padding: 0 16px; }
   .stage-caption > span:last-child { font-size: 6px; }

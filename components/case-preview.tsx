@@ -5,7 +5,7 @@ import { Canvas, useThree } from "@react-three/fiber";
 import { Path, Shape, Vector3, type MeshPhysicalMaterialParameters } from "three";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { caseDimensions, type CaseConfiguration } from "@/lib/configurator";
-import { caseLift, createFootProfile, createHandleProfile, footFloor, handleLayout, handleRise } from "@/lib/acrylic-profiles";
+import { caseLift, createFootProfile, createHandleProfile, footFloor, footHoleRadius, footMountLayout, footPanelGap, handleLayout, handleRise } from "@/lib/acrylic-profiles";
 
 export type CameraView = "perspective" | "front" | "top";
 type Props = { config: CaseConfiguration; dark: boolean; view: CameraView; resetKey: number; exploded: boolean; modules: boolean };
@@ -24,6 +24,30 @@ function Screw({ position, side = false, rear = false }: { position: [number, nu
   return <group position={position} rotation={rear ? [-Math.PI / 2, 0, 0] : side ? [0, 0, -Math.sign(position[0]) * Math.PI / 2] : [0, 0, 0]}>
     <mesh><cylinderGeometry args={[0.035, 0.035, 0.027, 20]} /><meshStandardMaterial color="#252628" metalness={0.72} roughness={0.3} /></mesh>
     <mesh position={[0, 0.014, 0]}><cylinderGeometry args={[0.014, 0.014, 0.002, 6]} /><meshStandardMaterial color="#050606" roughness={0.85} /></mesh>
+  </group>;
+}
+function Washer({ x, radius = 0.055, thickness = 0.01 }: { x: number; radius?: number; thickness?: number }) {
+  const shape = useMemo(() => {
+    const profile = new Shape();
+    profile.absarc(0, 0, radius, 0, Math.PI * 2, false);
+    hole(profile, 0, 0, 0.017);
+    return profile;
+  }, [radius]);
+  const args = useMemo(() => [shape, { depth: thickness, bevelEnabled: false, curveSegments: 16 }] as const, [shape, thickness]);
+  return <mesh position={[x - thickness / 2, 0, 0]} rotation={[0, Math.PI / 2, 0]}><extrudeGeometry args={args} /><meshStandardMaterial color="#484b47" roughness={0.85} /></mesh>;
+}
+function FootFastener({ side, width, thickness, y, z, explode }: { side: number; width: number; thickness: number; y: number; z: number; explode: number }) {
+  const footInner = width / 2 + footPanelGap + explode * 2;
+  const footOuter = footInner + thickness;
+  const boltStart = width / 2 - thickness - 0.05 + explode * 3;
+  const boltEnd = width / 2 + footPanelGap + thickness + 0.01 + explode * 3;
+  return <group position={[0, y, z]}>
+    <mesh position={[side * (boltStart + boltEnd) / 2, 0, 0]} rotation={[0, 0, Math.PI / 2]}><cylinderGeometry args={[0.015, 0.015, boltEnd - boltStart, 16]} /><meshStandardMaterial color="#36383a" metalness={0.8} roughness={0.3} /></mesh>
+    <Screw side position={[side * (boltEnd + 0.014), 0, 0]} />
+    <Washer x={side * (footOuter + 0.005 + explode * 0.5)} />
+    <Washer x={side * (width / 2 - thickness - 0.005 + explode * 0.5)} />
+    <Washer x={side * (width / 2 + footPanelGap / 2 + explode * 1.5)} radius={0.047} thickness={footPanelGap} />
+    <mesh position={[side * (width / 2 - thickness - 0.028 + explode * 0.25), 0, 0]} rotation={[0, 0, Math.PI / 2]}><cylinderGeometry args={[0.032, 0.032, 0.036, 6]} /><meshStandardMaterial color="#252628" metalness={0.72} roughness={0.35} /></mesh>
   </group>;
 }
 function Rail({ width, y, z }: { width: number; y: number; z: number }) {
@@ -50,6 +74,7 @@ function AcrylicCase({ config, exploded, modules }: Pick<Props, "config" | "expl
   const a = config.angle * Math.PI / 180;
   const lift = caseLift(l, config.angle);
   const explode = exploded ? 0.4 : 0;
+  const footMounts = useMemo(() => footMountLayout(l, config.angle, t), [l, config.angle, t]);
   const acrylic = useMemo<MeshPhysicalMaterialParameters>(() => ({ color: config.tint.color, metalness: 0, roughness: 0.13, transmission: 0.88, thickness: t * 2, ior: 1.49, clearcoat: 1, clearcoatRoughness: 0.07, envMapIntensity: 1.25, attenuationColor: config.tint.color, attenuationDistance: 0.7 }), [config.tint.color, t]);
   const base = useMemo(() => {
     const shape = rectangularShape(w, l);
@@ -73,8 +98,9 @@ function AcrylicCase({ config, exploded, modules }: Pick<Props, "config" | "expl
     for (let row = 0; row < config.rows; row++) for (const end of [-1, 1]) {
       hole(shape, -l / 2 + t + (row + 0.5) * 1.3335 + end * 0.6125, (h - t) / 2 - 0.07, 0.019);
     }
+    if (config.angle > 0) for (const mount of footMounts) hole(shape, -mount.caseZ, mount.caseY - t - (h - t) / 2, footHoleRadius);
     return shape;
-  }, [l, h, t, config.rows]);
+  }, [l, h, t, config.rows, config.angle, footMounts]);
   const footShape = useMemo(() => createFootProfile(l, config.angle, t, config.footShape), [l, config.angle, t, config.footShape]);
   const handleShape = useMemo(() => createHandleProfile(w - 2 * t), [w, t]);
   const handle = handleLayout(w - 2 * t);
@@ -89,7 +115,10 @@ function AcrylicCase({ config, exploded, modules }: Pick<Props, "config" | "expl
   const handleArgs = useMemo(() => [handleShape, { depth: t, bevelEnabled: false, curveSegments: 16 }] as const, [handleShape, t]);
   const rearArgs = useMemo(() => [rearShape, { depth: t, bevelEnabled: false, curveSegments: 12 }] as const, [rearShape, t]);
   return <group>
-    {config.angle > 0 && [-1, 1].map(side => <mesh key={side} castShadow position={[side * (w / 2 - t / 2 + explode) - t / 2, footFloor, 0]} rotation={[0, Math.PI / 2, 0]}><extrudeGeometry args={footArgs} /><meshPhysicalMaterial {...acrylic} /><Edges color={config.tint.color} threshold={30} /></mesh>)}
+    {config.angle > 0 && [-1, 1].map(side => <group key={side}>
+      <mesh castShadow position={[side * (w / 2 + t / 2 + footPanelGap + explode * 2) - t / 2, footFloor, 0]} rotation={[0, Math.PI / 2, 0]}><extrudeGeometry args={footArgs} /><meshPhysicalMaterial {...acrylic} /><Edges color={config.tint.color} threshold={30} /></mesh>
+      {footMounts.map((mount, index) => <FootFastener key={index} side={side} width={w} thickness={t} y={footFloor + mount.y} z={-mount.x} explode={explode} />)}
+    </group>)}
     <group rotation={[a, 0, 0]} position={[0, lift, 0]}>
       <mesh position={[0, -explode, 0]} rotation={[-Math.PI / 2, 0, 0]}><extrudeGeometry args={baseArgs} /><meshPhysicalMaterial {...acrylic} /><Edges color={config.tint.color} threshold={35} /></mesh>
       {[-1, 1].map(side => <group key={side}>
