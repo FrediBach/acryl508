@@ -1,6 +1,6 @@
 import { ChevronDown, Minus, Plus, Trash2 } from "lucide-react";
 import { useId, type CSSProperties } from "react";
-import { ventDensities, ventStyles, type CaseConfiguration } from "@/lib/configurator";
+import { ventCoverages, ventDensities, ventLayouts, ventMixes, ventStyles, type CaseConfiguration } from "@/lib/configurator";
 import { defaultVentLayer, maxVentLayers, normalizeVentDesign, ventPresets, ventTargets, ventWaveforms, type VentDesign, type VentLayer } from "@/lib/vent-design";
 import { outlinePath, polygonBounds } from "@/lib/custom-cutouts";
 import type { CasePanels } from "@/lib/case-panels";
@@ -21,8 +21,15 @@ export function VentControls({ config, panels, onChange }: { config: CaseConfigu
     <fieldset className="vent-options" disabled={!config.vents} aria-describedby="vent-note">
       <legend className="sr-only">Bottom vent options</legend>
       <div className="inline-field"><label htmlFor="vent-style">Opening shape</label><div className="select-wrap"><select id="vent-style" value={config.ventStyle} onChange={event => onChange({ ventStyle: event.target.value as CaseConfiguration["ventStyle"] })}>{ventStyles.map(style => <option key={style.value} value={style.value}>{style.label}</option>)}</select><ChevronDown size={12} /></div></div>
+      {config.ventStyle === "mixed" && <div className="inline-field"><label htmlFor="vent-mix">Alternate</label><div className="select-wrap"><select id="vent-mix" value={config.ventMix ?? "checkerboard"} onChange={event => onChange({ ventMix: event.target.value as CaseConfiguration["ventMix"] })}>{ventMixes.map(mix => <option key={mix.value} value={mix.value}>{mix.label}</option>)}</select><ChevronDown size={12} /></div></div>}
+      <div className="field-heading"><span id="vent-layout-label">Row layout</span></div>
+      <div className="segmented-control vent-two-options" role="group" aria-labelledby="vent-layout-label">{ventLayouts.map(option => <button key={option.value} className={`segment ${(config.ventLayout ?? "aligned") === option.value ? "segment-active" : ""}`} aria-pressed={(config.ventLayout ?? "aligned") === option.value} onClick={() => onChange({ ventLayout: option.value })}>{option.label}</button>)}</div>
+      <div className="field-heading"><span id="vent-coverage-label">Coverage</span></div>
+      <div className="segmented-control vent-two-options" role="group" aria-labelledby="vent-coverage-label">{ventCoverages.map(option => <button key={option.value} className={`segment ${(config.ventCoverage ?? "bands") === option.value ? "segment-active" : ""}`} aria-pressed={(config.ventCoverage ?? "bands") === option.value} onClick={() => onChange({ ventCoverage: option.value })}>{option.label}</button>)}</div>
+      <p className="control-note">Staggered rows offset every second row by half a spacing. Full field fills the usable base, keeping the border and a narrow centre strip.</p>
       <div className="field-heading"><span id="vent-density-label">Vent density</span></div>
       <div className="segmented-control" role="group" aria-labelledby="vent-density-label">{ventDensities.map(density => <button key={density.value} className={`segment ${config.ventDensity === density.value ? "segment-active" : ""}`} aria-pressed={config.ventDensity === density.value} onClick={() => onChange({ ventDensity: density.value })}>{density.label}</button>)}</div>
+      <div className="vent-presets" role="group" aria-label="Perforation starting points"><button onClick={() => onChange({ ventStyle: "round", ventLayout: "staggered", ventCoverage: "field", ventDensity: "low", ventDesign: normalizeVentDesign() })}>Spaced dots</button><button onClick={() => onChange({ ventStyle: "mixed", ventLayout: "staggered", ventCoverage: "field", ventMix: "checkerboard", ventDensity: "low", ventDesign: normalizeVentDesign() })}>Dots & slits</button></div>
       <div className="field-heading"><span id="vent-presets-label">Pattern starting points</span><span className="field-note">{selectedPreset?.label ?? "Custom"}</span></div>
       <div className="vent-presets" role="group" aria-labelledby="vent-presets-label">{ventPresets.map(preset => <button key={preset.id} aria-pressed={selectedPreset?.id === preset.id} onClick={() => onChange({ ventDesign: normalizeVentDesign(preset.design) })}>{preset.label}</button>)}</div>
       <EffectRange label="Base length / size" value={design.size} min={0} max={100} unit="%" onChange={size => update({ size })} />

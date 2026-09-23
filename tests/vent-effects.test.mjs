@@ -17,7 +17,7 @@ function assertClearance(layout, width, length, thickness) {
   assert.ok(openings.length > 0, "supported cases retain vents");
   for (let i = 0; i < openings.length; i++) {
     const a = openings[i];
-    assert.ok(Object.values(a).every(Number.isFinite));
+    assert.ok([a.x, a.y, a.width, a.height].every(Number.isFinite));
     assert.ok(a.width >= 0.034 - epsilon && a.height >= a.width - epsilon);
     assert.ok(usableHalf - Math.abs(a.x) - a.width / 2 >= edgeMargin - epsilon, "side border");
     assert.ok(length / 2 - Math.abs(a.y) - a.height / 2 >= edgeMargin - epsilon, "end border");

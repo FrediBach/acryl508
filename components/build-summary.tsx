@@ -16,6 +16,7 @@ export function BuildSummary({ config, onExportJson, onExportSvg }: { config: Ca
         <div><dt>Side margin</dt><dd>{sidePanelMargin(config).toFixed(1)} mm</dd></div>
         <div><dt>Feet</dt><dd>{config.angle ? `${footShapes.find(shape => shape.value === config.footShape)?.label} · ${config.angle}°` : "None · flat base"}</dd></div>
         <div><dt>Bottom vents</dt><dd>{config.vents ? `${ventStyles.find(style => style.value === config.ventStyle)?.label} · ${config.ventDensity}` : "None"}</dd></div>
+        {config.vents && <div><dt>Vent layout</dt><dd>{config.ventLayout === "staggered" ? "Staggered" : "Aligned"} · {config.ventCoverage === "field" ? "full field" : "two bands"}</dd></div>}
         {config.vents && config.ventDesign?.layers.length > 0 && <div><dt>Vent effects</dt><dd>{config.ventDesign.layers.length} layers · {config.ventDesign.size}% base size</dd></div>}
         <div><dt>Custom cutouts</dt><dd>{config.cutouts.length || "None"}</dd></div>
       </dl>

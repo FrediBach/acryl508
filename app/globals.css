@@ -205,6 +205,7 @@
 #vent-note { margin-bottom: 14px; }
 .vent-options:disabled { opacity: .45; }
 .vent-options:disabled button, .vent-options:disabled select { cursor: not-allowed; }
+.vent-two-options { grid-template-columns: repeat(2, 1fr); }
 .vent-controls { margin-bottom: 16px; }
 .vent-presets { display: flex; flex-wrap: wrap; gap: 5px; margin: 9px 0 14px; }
 .vent-presets button { font-size: 9px; padding: 5px 8px; border: 1px solid var(--border); border-radius: 3px; }

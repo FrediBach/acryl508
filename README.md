@@ -58,13 +58,22 @@ reuse the stacked-panel brand mark.
 ## Bottom ventilation
 
 Bottom ventilation in **The details** offers long slits, short slits, round
-holes or hexagonal holes at low, medium or high density. Patterns occupy two
-bands with a solid centre strip and perimeter. Switching ventilation off keeps
+holes, hexagonal holes or mixed dots and slits at low, medium or high density.
+Choose aligned or staggered rows, and two bands or a full field across the
+usable base. Both retain a solid centre strip and perimeter. Switching ventilation off keeps
 the selected options for later. The preview, custom-cutout editor and SVG
 export share the same panel geometry; JSON includes `ventStyle` and
 `ventDensity`. Older configurations without these fields use long slits at
 medium density. The default case retains the original pattern; compact cases
 and dense patterns now adapt to the sheet thickness guardrails.
+
+**Spaced dots** sets up a sparse staggered full field, inspired by perforated
+sheet. **Dots & slits** alternates round holes and short rounded slots. Change
+the alternation to every opening, by row or by column. Staggered rows shorten
+at the edges to stay inside the border. The existing size and position effects
+work with both shapes and layouts; choosing an effect preset preserves the
+layout, coverage, density and alternation. JSON stores `ventLayout`,
+`ventCoverage` and `ventMix`; missing fields use the original aligned bands.
 
 The pattern editor includes Regular, Wave, Ripple, Weave and Organic starting
 points and up to three editable effect layers. Sine, triangle, radial ripple,

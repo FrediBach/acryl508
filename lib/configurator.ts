@@ -6,12 +6,16 @@ export type AcrylicTint = { id: string; label: string; color: string };
 export type Busboard = "none" | "sinusoda" | "trolley";
 export type FootShape = "wedge" | "arch" | "sled";
 export type RackUnit = 1 | 3;
-export type VentStyle = "long-slits" | "short-slits" | "round" | "hexagonal";
+export type VentStyle = "long-slits" | "short-slits" | "round" | "hexagonal" | "mixed";
 export type VentDensity = "low" | "medium" | "high";
+export type VentLayout = "aligned" | "staggered";
+export type VentCoverage = "bands" | "field";
+export type VentMix = "checkerboard" | "rows" | "columns";
 export type CaseConfiguration = {
   hp: number; rows: number; rowUnits: RackUnit[]; depth: number; thickness: number; sideMarginRatio: number;
   tint: AcrylicTint; angle: number; vents: boolean; busboard: Busboard;
   ventStyle: VentStyle; ventDensity: VentDensity;
+  ventLayout: VentLayout; ventCoverage: VentCoverage; ventMix: VentMix;
   ventDesign: VentDesign;
   handle: boolean; footShape: FootShape;
   cutouts: CustomCutout[];
@@ -38,6 +42,16 @@ export const ventStyles: { value: VentStyle; label: string }[] = [
   { value: "short-slits", label: "Short slits" },
   { value: "round", label: "Round holes" },
   { value: "hexagonal", label: "Hexagonal holes" },
+  { value: "mixed", label: "Dots & slits" },
+];
+export const ventLayouts: { value: VentLayout; label: string }[] = [
+  { value: "aligned", label: "Aligned" }, { value: "staggered", label: "Staggered" },
+];
+export const ventCoverages: { value: VentCoverage; label: string }[] = [
+  { value: "bands", label: "Two bands" }, { value: "field", label: "Full field" },
+];
+export const ventMixes: { value: VentMix; label: string }[] = [
+  { value: "checkerboard", label: "Every opening" }, { value: "rows", label: "By row" }, { value: "columns", label: "By column" },
 ];
 export const ventDensities: { value: VentDensity; label: string }[] = [
   { value: "low", label: "Low" }, { value: "medium", label: "Medium" }, { value: "high", label: "High" },
@@ -46,6 +60,7 @@ export const defaultConfiguration: CaseConfiguration = {
   hp: 84, rows: 1, rowUnits: [3], depth: 75, thickness: 5, sideMarginRatio: 2, tint: acrylicTints[1], angle: 0, vents: true, busboard: "none",
   handle: false, footShape: "wedge", cutouts: [], ventStyle: "long-slits", ventDensity: "medium",
   ventDesign: defaultVentDesign,
+  ventLayout: "aligned", ventCoverage: "bands", ventMix: "checkerboard",
 };
 // `rows` remains in the exported format for backwards compatibility. A mismatched
 // legacy `rows` value is interpreted as that many 3U rows.
@@ -87,9 +102,10 @@ export function caseDimensions(config: CaseConfiguration) {
 export function configurationExport(config: CaseConfiguration, cutoutReports: CutoutReport[] = [], resolvedPanels: Partial<Record<CutoutSide, MultiPolygon>> = {}) {
   return {
     product: "Acryl508", version: 5, units: "mm", status: "design-concept",
-    configuration: { ...config, ventDesign: normalizeVentDesign(config.ventDesign), material: "GS cast acrylic", fasteners: "Black socket-head screws", assembly: "Mechanical; no glue" },
+    configuration: { ...config, ventLayout: config.ventLayout ?? "aligned", ventCoverage: config.ventCoverage ?? "bands", ventMix: config.ventMix ?? "checkerboard", ventDesign: normalizeVentDesign(config.ventDesign), material: "GS cast acrylic", fasteners: "Black socket-head screws", assembly: "Mechanical; no glue" },
     ventilation: {
       minimumWebMm: Math.max(3, config.thickness), borderMm: Math.max(8, 2 * config.thickness),
+      coverage: "Two bands or a full field with a solid centre strip. Staggered rows are offset by half a column pitch and shortened at the borders. Mixed openings alternate round dots and short slits by opening, row or column.",
       effects: "Up to three deterministic fields, summed by target, then constrained to separate cells. Size is bounded and positions use the remaining room in each cell.",
       customCutouts: "Omit vents within one minimum web of each bottom custom-cutout polygon bounding box.",
       status: "Geometry guardrails only; strength, thermal performance and laser tolerances require prototype validation. Custom cuts can independently weaken the panel.",

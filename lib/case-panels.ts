@@ -18,7 +18,7 @@ export function createCasePanels(config: CaseConfiguration) {
   const base = panels.base;
   const exclusions = (config.cutouts ?? []).filter(cutout => cutout.side === "bottom").flatMap(cutout => placedCutout(cutout).map(polygon =>
     polygonBounds(mapPolygons([polygon], (x, y) => [-x / 100, y / 100]))));
-  const ventilation = createBottomVentLayout(w, innerLength, config.ventStyle, config.ventDensity, { thickness: t, design: config.ventDesign, exclusions });
+  const ventilation = createBottomVentLayout(w, innerLength, config.ventStyle, config.ventDensity, { thickness: t, design: config.ventDesign, exclusions, layout: config.ventLayout, coverage: config.ventCoverage, mix: config.ventMix });
   if (config.vents) base.holes.push(...ventilation.paths);
   const side = panels.side;
   for (const row of rackRowLayout(config)) for (const end of [-1, 1]) {
