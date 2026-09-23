@@ -22,7 +22,7 @@ This starter does not use `wrangler.jsonc`.
 
 - responsive configurator shell under `app/`
 - interactive Three.js case preview with ordered, mix-and-match 1U/3U rows and live dimension and tint controls
-- interlocking case panels retained by rail-end screws, plus removable acrylic feet and handle
+- interlocking case panels retained by rail-end screws, with stance and handles integral to the side panels
 - adjustable side-panel retaining margins from the original 2× sheet thickness to a guarded near-flush 1× profile
 - bottom ventilation with long slits, short slits, round or hexagonal holes, and three densities
 - full-size SVG sheet export with named panel groups, slots, holes, vents, and custom cutouts
@@ -89,8 +89,25 @@ border. Density is reduced when needed. Vents near the bounding box of each
 custom bottom cutout are omitted with a message; imported shapes may therefore
 reserve extra material. These are geometry limits, not certified structural,
 thermal or laser-cutting limits. Custom cutouts can still independently weaken
-the panel and need review. JSON version 5 includes the full `ventDesign` and
+the panel and need review. JSON version 6 includes the full `ventDesign` and
 the guardrail policy.
+
+## Stance and handles
+
+The side panels extend down to form the selected wedge, arch or sled stance.
+Their contact edges lie on the same horizontal floor at 10°, 20° or 30°;
+flat mode keeps the rectangular lower edge. Slots and rail holes remain in the
+same enclosure coordinates. No separate feet, grip sheets or attachment bolts
+are needed: every configuration has five acrylic panels.
+
+Enable integrated handles to extend one or both sides above the rim. Auto
+uses one left-side grip up to 84 HP and below 6U, and a pair for wider or taller
+racks. One side / Both sides overrides this choice. Short 1U sides flare above
+the rim to retain a 98 mm wide, 34 mm high hand opening. Switching handles off
+preserves the layout preference. Preview, cutout editor and SVG share the same
+outlines. JSON version 6 records the resolved grip count and integral stance;
+legacy `handle` and `footShape` settings remain supported. Grip strength,
+loaded stability and fabrication tolerances still require prototype validation.
 
 ## Custom cutouts
 
@@ -114,14 +131,14 @@ are removed, even if an island is larger than the remaining frame. Warnings
 report removed pieces, cuts outside the panel, and panels with no material left.
 Use stencil lettering when enclosed centres should remain attached.
 
-JSON version 5 includes the ordered 1U/3U row layout, adjustable side-panel margin, each cutout's source metadata, normalized outlines,
+JSON version 6 includes the ordered 1U/3U row layout, adjustable side-panel margin, each cutout's source metadata, normalized outlines,
 placement, and width, plus removal reports and the resolved panel outlines in
 millimetres. It remains a design specification requiring fabrication validation.
 Font copyrights and distribution licences are retained in the bundled JSON
 assets under `public/fonts/`.
 
-The SVG export places every enclosure sheet and each selected acrylic accessory
-in one full-size, millimetre-based document. Parts are separate named groups and
+The SVG export places all five enclosure sheets, including the integral stance
+and grip outlines, in one full-size, millimetre-based document. Parts are separate named groups and
 include the resolved slots, mounting holes, ventilation, and custom cutouts. The
 paths are concept vectors, not production-ready cutting files; apply verified
 kerf, tolerances, corner relief, and hardware clearances before fabrication.

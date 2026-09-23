@@ -1,6 +1,6 @@
 import { ArrowDown, ArrowUp, Check, ChevronDown, Minus, Plus, Trash2 } from "lucide-react";
 import { useState, type CSSProperties, type ReactNode } from "react";
-import { acrylicTints, busboards, footShapes, maxRackUnits, maxSideMarginRatio, minSideMarginRatio, rackFormatLabel, rackRows, sidePanelMargin, totalRackUnits, type CaseConfiguration, type RackUnit } from "@/lib/configurator";
+import { acrylicTints, busboards, footShapes, handleCount, maxRackUnits, maxSideMarginRatio, minSideMarginRatio, rackFormatLabel, rackRows, sidePanelMargin, totalRackUnits, type CaseConfiguration, type RackUnit } from "@/lib/configurator";
 
 import { CutoutControls } from "@/components/cutout-controls";
 import { VentControls } from "@/components/vent-controls";
@@ -65,17 +65,18 @@ export function ConfigurationPanel({ config, panels, onChange, onCutoutAction }:
       <div className="inline-field"><label htmlFor="thickness">Sheet thickness</label><div className="select-wrap"><select id="thickness" value={config.thickness} onChange={event => onChange({ thickness: Number(event.target.value) })}>{[3, 4, 5, 6].map(value => <option key={value} value={value}>{value} mm</option>)}</select><ChevronDown size={12} /></div></div>
     </section>
     <section className="control-section"><SectionTitle number="03">Stance</SectionTitle>
-      <div className="segmented-control stance-control" role="group" aria-label="Foot angle">{[0, 10, 20, 30].map(angle => <button key={angle} className={`segment ${config.angle === angle ? "segment-active" : ""}`} aria-pressed={config.angle === angle} onClick={() => onChange({ angle })}>{angle === 0 ? "No feet" : `${angle}°`}</button>)}</div>
+      <div className="segmented-control stance-control" role="group" aria-label="Stance angle">{[0, 10, 20, 30].map(angle => <button key={angle} className={`segment ${config.angle === angle ? "segment-active" : ""}`} aria-pressed={config.angle === angle} onClick={() => onChange({ angle })}>{angle === 0 ? "Flat" : `${angle}°`}</button>)}</div>
       <fieldset className="foot-shape-field" disabled={config.angle === 0} aria-describedby="foot-shape-note">
-        <legend>Foot shape <span className="field-note">Acrylic sheet</span></legend>
+        <legend>Side profile <span className="field-note">One continuous sheet</span></legend>
         <div className="segmented-control foot-shape-control">{footShapes.map(shape => <button key={shape.value} className={`segment ${config.footShape === shape.value ? "segment-active" : ""}`} aria-pressed={config.footShape === shape.value} title={shape.description} onClick={() => onChange({ footShape: shape.value })}>{shape.label}</button>)}</div>
       </fieldset>
-      <p className="control-note" id="foot-shape-note">{config.angle === 0 ? "Choose an angle to add two acrylic feet." : footShapes.find(shape => shape.value === config.footShape)?.description}</p>
-      {config.angle > 0 && <p className="control-note">Two removable bolts per foot, with washers and locknuts. No glue.</p>}
+      <p className="control-note" id="foot-shape-note">{config.angle === 0 ? "Choose an angle to shape the side panels into the stance." : footShapes.find(shape => shape.value === config.footShape)?.description}</p>
+      {config.angle > 0 && <p className="control-note">The sides extend to the floor. Five panels, with no extra stance hardware.</p>}
     </section>
     <section className="control-section hardware-section"><SectionTitle number="04">The details</SectionTitle>
-      <div className="inline-field"><label htmlFor="handle">Acrylic handle</label><button id="handle" role="switch" aria-checked={config.handle} aria-label="Acrylic handle" aria-describedby="handle-note" className={`toggle ${config.handle ? "toggle-on" : ""}`} onClick={() => onChange({ handle: !config.handle })}><span>{config.handle ? <Plus size={10} /> : <Minus size={10} />}</span></button></div>
-      <p className="control-note handle-note" id="handle-note">Rear-mounted grip · same tint and sheet thickness.</p>
+      <div className="inline-field"><label htmlFor="handle">Integrated handles</label><button id="handle" role="switch" aria-checked={config.handle} aria-label="Integrated handles" aria-describedby="handle-note" className={`toggle ${config.handle ? "toggle-on" : ""}`} onClick={() => onChange({ handle: !config.handle })}><span>{config.handle ? <Plus size={10} /> : <Minus size={10} />}</span></button></div>
+      {config.handle && <div className="segmented-control" role="group" aria-label="Handle layout">{([{ value: "auto", label: "Auto" }, { value: "single", label: "One side" }, { value: "pair", label: "Both sides" }] as const).map(option => <button key={option.value} className={`segment ${(config.handleMode ?? "auto") === option.value ? "segment-active" : ""}`} aria-pressed={(config.handleMode ?? "auto") === option.value} onClick={() => onChange({ handleMode: option.value })}>{option.label}</button>)}</div>}
+      <p className="control-note handle-note" id="handle-note">{config.handle ? `${handleCount(config) === 2 ? "A grip in each side panel" : "One grip in the left side panel"}. ` : "Grips cut into extended side panels. "}Auto pairs the handles above 84 HP or from 6U.</p>
       <VentControls config={config} panels={panels} onChange={onChange} />
       <div className="inline-field"><label htmlFor="busboard">Busboard</label><div className="select-wrap board-select"><select id="busboard" value={config.busboard} onChange={event => onChange({ busboard: event.target.value as CaseConfiguration["busboard"] })}>{Object.entries(busboards).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select><ChevronDown size={12} /></div></div>
       {config.busboard !== "none" && <p className="control-note board-note">Layout concept. Exact board fit and hole patterns need verification.</p>}

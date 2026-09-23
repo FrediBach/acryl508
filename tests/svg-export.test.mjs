@@ -29,7 +29,7 @@ test("SVG export lays out every enclosure sheet at millimetre scale", () => {
   assert.doesNotMatch(svg, /panel-foot|panel-handle/);
 });
 
-test("SVG export includes accessories and resolved custom cutouts", () => {
+test("SVG export integrates stance and handles into side sheets alongside resolved cutouts", () => {
   const cutout = {
     id: "square", name: "Square", side: "front",
     source: { kind: "svg", fileName: "square.svg" },
@@ -38,8 +38,12 @@ test("SVG export includes accessories and resolved custom cutouts", () => {
   };
   const config = { ...defaultConfiguration, rows: 2, rowUnits: [1, 3], angle: 20, handle: true, cutouts: [cutout] };
   const svg = configurationSvg(config, createCasePanels(config));
-  assert.equal((svg.match(/<g id="panel-/g) ?? []).length, 8);
-  for (const id of ["foot-left", "foot-right", "handle"]) assert.match(group(svg, id), /<path d="M/);
+  assert.equal((svg.match(/<g id="panel-/g) ?? []).length, 5);
+  assert.doesNotMatch(svg, /panel-foot|panel-handle/);
+  const height = caseDimensions(config).height;
+  assert.ok(pathBounds(group(svg, "left")).height > height + 70);
+  assert.ok(pathBounds(group(svg, "right")).height > height);
+  assert.ok(pathBounds(group(svg, "left")).height > pathBounds(group(svg, "right")).height + 69.99);
   assert.ok((group(svg, "front").match(/\bM/g) ?? []).length >= 2, "front sheet includes the custom cutout loop");
   assert.match(svg, /Acryl508 1U \+ 3U \/ 84HP panel layout/);
 });

@@ -1,6 +1,6 @@
 import { Path, type Shape } from "three";
-import { caseDimensions, rackRowLayout, sidePanelMargin, type CaseConfiguration } from "./configurator";
-import { footHoleRadius, footMountLayout, handleLayout } from "./acrylic-profiles";
+import { caseDimensions, handleCount, rackRowLayout, sidePanelMargin, type CaseConfiguration } from "./configurator";
+import { createSideProfile } from "./acrylic-profiles";
 import { createPanelProfiles } from "./panel-joints";
 import { createBottomVentLayout } from "./bottom-vents";
 import { cutoutSides, mapPolygons, placedCutout, polygonBounds, polygonsToShapes, shapesToPolygons, subtractCutouts, type CutoutSide } from "./custom-cutouts";
@@ -24,11 +24,10 @@ export function createCasePanels(config: CaseConfiguration) {
   for (const row of rackRowLayout(config)) for (const end of [-1, 1]) {
     hole(side, row.center / 100 + end * row.railOffset / 100, h - 0.07, 0.019);
   }
-  if (config.angle > 0) for (const mount of footMountLayout(l, config.angle, t, edgeMargin)) hole(side, -mount.caseZ, mount.caseY, footHoleRadius);
-  const rear = panels.end.clone();
-  const handle = handleLayout(w - 2 * t);
-  if (config.handle) for (const direction of [-1, 1]) hole(rear, direction * handle.mountX, h + handle.mountY, 0.022);
-  const originals = { front: panels.end, rear, left: side, right: side, bottom: base };
+  const grips = handleCount(config);
+  const left = createSideProfile(side, l, h, t, config.angle, config.footShape, grips > 0);
+  const right = createSideProfile(side, l, h, t, config.angle, config.footShape, grips === 2);
+  const originals = { front: panels.end, rear: panels.end, left, right, bottom: base };
   const faces = Object.fromEntries(cutoutSides.map(({ value }) => {
     // Each editor face is viewed from outside, centred in millimetres, Y up.
     // Mirror the back/left/underside so lettering reads correctly on the case.

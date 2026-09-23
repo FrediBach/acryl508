@@ -1,110 +1,84 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
 import test from "node:test";
-import { ExtrudeGeometry, ShapeUtils, Vector2 } from "three";
-import ts from "typescript";
+import { ExtrudeGeometry, ShapeUtils } from "three";
+import { loadTypescript } from "./load-typescript.mjs";
 
-const source = await readFile(new URL("../lib/acrylic-profiles.ts", import.meta.url), "utf8");
-const compiled = ts.transpileModule(source, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext } }).outputText.replace('"three"', JSON.stringify(import.meta.resolve("three")));
-const { caseLift, createFootProfile, createHandleProfile, footFloor, footHoleRadius, footMountLayout, handleLayout, handleRise, handleOverlap } = await import(`data:text/javascript;base64,${Buffer.from(compiled).toString("base64")}`);
+const { caseLift, createSideProfile, footFloor, handleRise } = await loadTypescript("../lib/acrylic-profiles.ts");
+const { createPanelProfiles } = await loadTypescript("../lib/panel-joints.ts");
+const { createCasePanels } = await loadTypescript("../lib/case-panels.ts");
+const { caseDimensions, defaultConfiguration, handleCount } = await loadTypescript("../lib/configurator.ts");
+const near = (actual, expected, epsilon = 1e-8) => assert.ok(Math.abs(actual - expected) < epsilon, `${actual} != ${expected}`);
 
-function extrude(profile, thickness) {
+function checkExtrusion(profile, thickness) {
+  const points = profile.extractPoints(24);
+  const area = Math.abs(ShapeUtils.area(points.shape)) - points.holes.reduce((sum, hole) => sum + Math.abs(ShapeUtils.area(hole)), 0);
   const geometry = new ExtrudeGeometry(profile, { depth: thickness, bevelEnabled: false, curveSegments: 24 });
   try {
-    assert.ok(geometry.getAttribute("position").count > 0);
-    assert.ok(geometry.getAttribute("position").array.every(Number.isFinite));
+    const positions = geometry.getAttribute("position");
+    assert.ok(positions.array.every(Number.isFinite));
+    let capArea = 0;
+    for (let i = 0; i < positions.count; i += 3) {
+      if ([0, 1, 2].every(offset => positions.getZ(i + offset) === 0)) {
+        const ax = positions.getX(i), ay = positions.getY(i);
+        const bx = positions.getX(i + 1), by = positions.getY(i + 1);
+        const cx = positions.getX(i + 2), cy = positions.getY(i + 2);
+        capArea += Math.abs((bx - ax) * (cy - ay) - (by - ay) * (cx - ax)) / 2;
+      }
+    }
+    near(capArea, area, 1e-5);
     geometry.computeBoundingBox();
-    assert.ok(Math.abs(geometry.boundingBox.max.z - thickness) < 1e-7);
-    assert.equal(geometry.boundingBox.min.z, 0);
+    near(geometry.boundingBox.max.z, thickness);
+    near(geometry.boundingBox.min.z, 0);
   } finally { geometry.dispose(); }
 }
 
-test("all foot profiles overlap the tilted case and stay above the floor at every stance and sheet thickness", () => {
-  for (const rows of [1, 2, 3]) for (const angle of [10, 20, 30]) for (const thickness of [0.03, 0.04, 0.05, 0.06]) {
-    const length = rows * 1.3335 + 6 * thickness;
-    const radians = angle * Math.PI / 180;
-    const half = length * Math.cos(radians) * 0.43;
-    const top = x => caseLift(length, angle) - footFloor + x * Math.tan(radians);
-    const areas = {};
-    for (const style of ["wedge", "arch", "sled"]) {
-      const profile = createFootProfile(length, angle, thickness, style);
+test("integrated sides sit level, preserve joints and triangulate with open grips at every stance", () => {
+  for (const units of [1, 3, 9]) for (const angle of [0, 10, 20, 30]) for (const thickness of [0.03, 0.06]) for (const ratio of [1, 2]) {
+    const length = units * 0.4445 + 2 * thickness * (1 + ratio), height = 0.5 + thickness * (1 + ratio);
+    const { side } = createPanelProfiles(4.4, length, height, thickness, ratio * thickness);
+    for (const style of ["wedge", "arch", "sled"]) for (const handle of [false, true]) {
+      const profile = createSideProfile(side, length, height, thickness, angle, style, handle);
       const { shape, holes } = profile.extractPoints(24);
-      for (const point of [...shape, ...holes.flat()]) {
-        assert.ok(point.y >= -1e-9);
-        assert.ok(point.y <= top(point.x) + (3 * thickness + 0.24) / Math.cos(radians) + 1e-9);
+      const worldY = point => caseLift(length, angle) + point.y * Math.cos(angle * Math.PI / 180) + point.x * Math.sin(angle * Math.PI / 180);
+      assert.ok(shape.every(point => worldY(point) >= footFloor - 1e-9));
+      if (angle) assert.ok(shape.filter(point => Math.abs(worldY(point) - footFloor) < 1e-9).length >= 2);
+      else assert.ok(shape.every(point => point.y >= 0));
+      near(Math.max(...shape.map(point => point.y)), height + (handle ? handleRise : 0));
+      side.holes.forEach((hole, index) => assert.deepEqual(holes[index], hole.getPoints(24)));
+      if (handle) {
+        const grip = holes[side.holes.length];
+        assert.ok(Math.min(...grip.map(point => point.y)) > height);
+        assert.ok(Math.max(...grip.map(point => point.x)) - Math.min(...grip.map(point => point.x)) >= 0.98 - 1e-9);
+        near(Math.max(...grip.map(point => point.y)) - Math.min(...grip.map(point => point.y)), 0.34);
       }
-      for (const x of [-half, half]) assert.ok(shape.some(point => Math.abs(point.x - x) < 1e-9 && Math.abs(point.y - top(x)) < 1e-9));
-      areas[style] = Math.abs(ShapeUtils.area(shape)) - holes.reduce((total, hole) => total + Math.abs(ShapeUtils.area(hole)), 0);
-      assert.ok(areas[style] > 0);
-      assert.equal(holes.length, style === "sled" ? 3 : 2);
-      extrude(profile, thickness);
-    }
-    assert.ok(areas.arch < areas.wedge);
-    assert.ok(areas.sled < areas.wedge);
-    assert.notEqual(areas.arch, areas.sled);
-  }
-});
-
-function distanceToEdge(point, a, b) {
-  const direction = b.clone().sub(a);
-  const progress = Math.max(0, Math.min(1, point.clone().sub(a).dot(direction) / direction.lengthSq()));
-  return point.distanceTo(a.clone().addScaledVector(direction, progress));
-}
-
-test("foot bolt holes align with side-wall holes and retain material around every joint", () => {
-  for (const rows of [1, 2, 3]) for (const angle of [10, 20, 30]) for (const thickness of [0.03, 0.04, 0.05, 0.06]) {
-    const length = rows * 1.3335 + thickness * 6;
-    const radians = angle * Math.PI / 180;
-    const mounts = footMountLayout(length, angle, thickness);
-    assert.equal(mounts.length, 2);
-    for (const style of ["wedge", "arch", "sled"]) {
-      const { shape, holes } = createFootProfile(length, angle, thickness, style).extractPoints(32);
-      for (const [index, mount] of mounts.entries()) {
-        // Independently rotate the matching side-wall hole into world space.
-        assert.ok(Math.abs(footFloor + mount.y - (caseLift(length, angle) + mount.caseY * Math.cos(radians) - mount.caseZ * Math.sin(radians))) < 1e-9);
-        assert.ok(Math.abs(-mount.x - (mount.caseY * Math.sin(radians) + mount.caseZ * Math.cos(radians))) < 1e-9);
-        assert.ok(mount.caseY - 3 * thickness >= 0.09, "clear of the base slots");
-        assert.ok(0.5 - (mount.caseY - 3 * thickness) >= 0.09, "clear of rails at minimum depth");
-        const center = new Vector2(mount.x, mount.y);
-        const hole = holes[holes.length - 2 + index];
-        for (const point of hole) assert.ok(Math.abs(point.distanceTo(center) - footHoleRadius) < 1e-9);
-        // Check the outline and any foot window, excluding the two bolt holes.
-        for (const outline of [shape, ...holes.slice(0, -2)]) for (let i = 0; i < outline.length - 1; i++) {
-          if (outline[i].equals(outline[i + 1])) continue;
-          assert.ok(distanceToEdge(center, outline[i], outline[i + 1]) >= 0.09 - 1e-9, "hole center stays at least 1.5 hole diameters from an edge");
-        }
-      }
+      checkExtrusion(profile, thickness);
     }
   }
 });
 
-test("handle fits the narrowest case, retains an open grip, and uses the selected sheet thickness", () => {
-  for (const hp of [20, 84, 168]) for (const thickness of [0.03, 0.04, 0.05, 0.06]) {
-    const innerWidth = hp * 0.0508;
-    const profile = createHandleProfile(innerWidth);
-    const { width, mountX, mountY } = handleLayout(innerWidth);
+test("arch and sled remove stance material without cutting into the enclosure", () => {
+  const { side } = createPanelProfiles(4.4, 3, 0.9, 0.05);
+  const profiles = Object.fromEntries(["wedge", "arch", "sled"].map(style => [style, createSideProfile(side, 3, 0.9, 0.05, 20, style, false)]));
+  const area = profile => {
     const { shape, holes } = profile.extractPoints(24);
-    assert.ok(width < innerWidth);
-    assert.equal(holes.length, 3);
-    assert.ok(Math.abs(Math.max(...shape.map(point => point.y)) - handleRise) < 1e-9);
-    assert.ok(Math.abs(Math.min(...shape.map(point => point.y)) + handleOverlap) < 1e-9);
-    assert.ok(Math.min(...holes[0].map(point => point.y)) > 0, "hand opening clears the case rim");
-    for (const point of holes.flat()) {
-      assert.ok(Math.abs(point.x) < width / 2);
-      assert.ok(point.y > -handleOverlap && point.y < handleRise);
-    }
-    assert.ok(mountX > 0 && mountX < width / 2);
-    assert.ok(mountY < 0 && mountY > -handleOverlap);
-    extrude(profile, thickness);
-  }
+    return Math.abs(ShapeUtils.area(shape)) - holes.reduce((sum, hole) => sum + Math.abs(ShapeUtils.area(hole)), 0);
+  };
+  assert.ok(area(profiles.arch) < area(profiles.wedge));
+  assert.ok(area(profiles.sled) < area(profiles.wedge));
+  assert.ok(profiles.sled.holes.at(-1).getPoints().every(point => point.y <= -0.05));
 });
 
-test("foot mounts follow the adjustable side-panel margin", () => {
-  for (const thickness of [0.03, 0.05, 0.06]) for (const ratio of [1, 1.5, 2]) {
-    const edgeMargin = ratio * thickness;
-    const length = 1.3335 + 2 * thickness + 2 * edgeMargin;
-    const mounts = footMountLayout(length, 20, thickness, edgeMargin);
-    for (const mount of mounts) assert.ok(Math.abs(mount.caseY - edgeMargin - thickness - 0.12) < 1e-9);
-    for (const style of ["wedge", "arch", "sled"]) extrude(createFootProfile(length, 20, thickness, style, edgeMargin), thickness);
+test("automatic and explicit handle layouts shape only the selected sides without accessory holes", () => {
+  for (const hp of [20, 84, 85, 168]) for (const rowUnits of [[1], [3], [3, 3]]) for (const handleMode of [undefined, "auto", "single", "pair"]) for (const handle of [false, true]) {
+    const config = { ...defaultConfiguration, hp, rows: rowUnits.length, rowUnits, handleMode, handle, angle: 20, vents: false };
+    const count = !handle ? 0 : handleMode === "single" ? 1 : handleMode === "pair" ? 2 : hp > 84 || rowUnits.length === 2 ? 2 : 1;
+    assert.equal(handleCount(config), count);
+    const panels = createCasePanels(config), height = caseDimensions(config).height / 100;
+    for (const [side, hasHandle] of [["left", count > 0], ["right", count === 2]]) {
+      const shape = panels.faces[side].shapes[0];
+      near(Math.max(...shape.getPoints().map(point => point.y)), height + (hasHandle ? handleRise : 0));
+      assert.equal(shape.holes.length, panels.layout.baseTabs.length + 2 * panels.layout.endTabs.length + rowUnits.length * 2 + Number(hasHandle));
+    }
+    assert.equal(panels.faces.rear.shapes[0].holes.length, 0);
   }
 });

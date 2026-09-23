@@ -1,5 +1,5 @@
 import { ArrowDownToLine } from "lucide-react";
-import { caseDimensions, footShapes, panelCount, rackFormatLabel, sidePanelMargin, ventStyles, type CaseConfiguration } from "@/lib/configurator";
+import { caseDimensions, footShapes, handleCount, panelCount, rackFormatLabel, sidePanelMargin, ventStyles, type CaseConfiguration } from "@/lib/configurator";
 
 export function BuildSummary({ config, onExportJson, onExportSvg }: { config: CaseConfiguration; onExportJson: () => void; onExportSvg: () => void }) {
   const dimensions = caseDimensions(config);
@@ -12,9 +12,9 @@ export function BuildSummary({ config, onExportJson, onExportSvg }: { config: Ca
       <dl className="spec-list">
         <div><dt>Case footprint</dt><dd>{dimensions.width.toFixed(1)} × {dimensions.length.toFixed(1)} <small>mm</small></dd></div>
         <div><dt>Material</dt><dd>{config.thickness} mm GS <span className="spec-color" style={{ background: config.tint.color }} /></dd></div>
-        <div><dt>Construction</dt><dd>{panelCount(config)} panels · {config.handle ? "with handle" : "no handle"}</dd></div>
+        <div><dt>Construction</dt><dd>{panelCount()} panels · {handleCount(config) ? `${handleCount(config)} integral ${handleCount(config) === 1 ? "grip" : "grips"}` : "no handles"}</dd></div>
         <div><dt>Side margin</dt><dd>{sidePanelMargin(config).toFixed(1)} mm</dd></div>
-        <div><dt>Feet</dt><dd>{config.angle ? `${footShapes.find(shape => shape.value === config.footShape)?.label} · ${config.angle}°` : "None · flat base"}</dd></div>
+        <div><dt>Stance</dt><dd>{config.angle ? `${footShapes.find(shape => shape.value === config.footShape)?.label} · ${config.angle}°` : "Flat"}</dd></div>
         <div><dt>Bottom vents</dt><dd>{config.vents ? `${ventStyles.find(style => style.value === config.ventStyle)?.label} · ${config.ventDensity}` : "None"}</dd></div>
         {config.vents && <div><dt>Vent layout</dt><dd>{config.ventLayout === "staggered" ? "Staggered" : "Aligned"} · {config.ventCoverage === "field" ? "full field" : "two bands"}</dd></div>}
         {config.vents && config.ventDesign?.layers.length > 0 && <div><dt>Vent effects</dt><dd>{config.ventDesign.layers.length} layers · {config.ventDesign.size}% base size</dd></div>}

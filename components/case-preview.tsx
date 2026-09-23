@@ -4,8 +4,8 @@ import { ContactShadows, Environment, Lightformer, Line, OrbitControls } from "@
 import { Canvas, useThree } from "@react-three/fiber";
 import { Path, Shape, Vector3, type MeshPhysicalMaterialParameters } from "three";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
-import { caseDimensions, rackRowLayout, sidePanelMargin, type CaseConfiguration } from "@/lib/configurator";
-import { caseLift, createFootProfile, createHandleProfile, footFloor, footMountLayout, footPanelGap, handleLayout, handleRise } from "@/lib/acrylic-profiles";
+import { caseDimensions, rackRowLayout, type CaseConfiguration } from "@/lib/configurator";
+import { caseLift, handleRise } from "@/lib/acrylic-profiles";
 import type { CasePanels } from "@/lib/case-panels";
 import { panelEdgePoints } from "@/lib/panel-edges";
 
@@ -37,20 +37,6 @@ function Washer({ x, radius = 0.055, thickness = 0.01 }: { x: number; radius?: n
   }, [radius]);
   const args = useMemo(() => [shape, { depth: thickness, bevelEnabled: false, curveSegments: 16 }] as const, [shape, thickness]);
   return <mesh position={[x - thickness / 2, 0, 0]} rotation={[0, Math.PI / 2, 0]}><extrudeGeometry args={args} /><meshStandardMaterial color="#484b47" roughness={0.85} /></mesh>;
-}
-function FootFastener({ side, width, thickness, y, z, explode }: { side: number; width: number; thickness: number; y: number; z: number; explode: number }) {
-  const footInner = width / 2 + footPanelGap + explode * 2;
-  const footOuter = footInner + thickness;
-  const boltStart = width / 2 - thickness - 0.05 + explode * 3;
-  const boltEnd = width / 2 + footPanelGap + thickness + 0.01 + explode * 3;
-  return <group position={[0, y, z]}>
-    <mesh position={[side * (boltStart + boltEnd) / 2, 0, 0]} rotation={[0, 0, Math.PI / 2]}><cylinderGeometry args={[0.015, 0.015, boltEnd - boltStart, 16]} /><meshStandardMaterial color="#36383a" metalness={0.8} roughness={0.3} /></mesh>
-    <Screw side position={[side * (boltEnd + 0.014), 0, 0]} />
-    <Washer x={side * (footOuter + 0.005 + explode * 0.5)} />
-    <Washer x={side * (width / 2 - thickness - 0.005 + explode * 0.5)} />
-    <Washer x={side * (width / 2 + footPanelGap / 2 + explode * 1.5)} radius={0.047} thickness={footPanelGap} />
-    <mesh position={[side * (width / 2 - thickness - 0.028 + explode * 0.25), 0, 0]} rotation={[0, 0, Math.PI / 2]}><cylinderGeometry args={[0.032, 0.032, 0.036, 6]} /><meshStandardMaterial color="#252628" metalness={0.72} roughness={0.35} /></mesh>
-  </group>;
 }
 function Rail({ width, y, z }: { width: number; y: number; z: number }) {
   const positions = useMemo(() => Array.from({ length: Math.max(1, Math.floor(width / 0.0508)) }, (_, index) => -width / 2 + 0.0254 + index * 0.0508), [width]);
@@ -84,38 +70,23 @@ function ExampleModules({ width, y, z, units, length }: { width: number; y: numb
 function AcrylicCase({ config, panels, exploded, modules }: Pick<Props, "config" | "panels" | "exploded" | "modules">) {
   const { width, length, height } = caseDimensions(config);
   const w = width * unit, l = length * unit, h = height * unit, t = config.thickness * unit;
-  const edgeMargin = sidePanelMargin(config) * unit;
   const a = config.angle * Math.PI / 180;
   const lift = caseLift(l, config.angle);
   const explode = exploded ? 0.4 : 0;
-  const footMounts = useMemo(() => footMountLayout(l, config.angle, t, edgeMargin), [l, config.angle, t, edgeMargin]);
   const { baseBottom, baseTop, endOuter } = panels.layout;
   const acrylic = useMemo<MeshPhysicalMaterialParameters>(() => ({ color: config.tint.color, metalness: 0, roughness: 0.13, transmission: 0.88, thickness: t * 2, ior: 1.49, clearcoat: 1, clearcoatRoughness: 0.07, envMapIntensity: 1.25, attenuationColor: config.tint.color, attenuationDistance: 0.7 }), [config.tint.color, t]);
-  const footShape = useMemo(() => createFootProfile(l, config.angle, t, config.footShape, edgeMargin), [l, config.angle, t, config.footShape, edgeMargin]);
-  const handleShape = useMemo(() => createHandleProfile(w - 2 * t), [w, t]);
-  const handle = handleLayout(w - 2 * t);
   const baseArgs = useMemo(() => [panels.faces.bottom.shapes, { depth: t, bevelEnabled: false, curveSegments: 8 }] as const, [panels, t]);
   const leftArgs = useMemo(() => [panels.faces.left.shapes, { depth: t, bevelEnabled: false, curveSegments: 12 }] as const, [panels, t]);
   const rightArgs = useMemo(() => [panels.faces.right.shapes, { depth: t, bevelEnabled: false, curveSegments: 12 }] as const, [panels, t]);
-  const footArgs = useMemo(() => [footShape, { depth: t, bevelEnabled: false, curveSegments: 24 }] as const, [footShape, t]);
-  const handleArgs = useMemo(() => [handleShape, { depth: t, bevelEnabled: false, curveSegments: 16 }] as const, [handleShape, t]);
   const rearArgs = useMemo(() => [panels.faces.rear.shapes, { depth: t, bevelEnabled: false, curveSegments: 12 }] as const, [panels, t]);
   const frontArgs = useMemo(() => [panels.faces.front.shapes, { depth: t, bevelEnabled: false }] as const, [panels, t]);
   return <group>
-    {config.angle > 0 && [-1, 1].map(side => <group key={side}>
-      <mesh castShadow position={[side * (w / 2 + t / 2 + footPanelGap + explode * 2) - t / 2, footFloor, 0]} rotation={[0, Math.PI / 2, 0]}><extrudeGeometry args={footArgs} /><meshPhysicalMaterial {...acrylic} /><PanelEdges args={footArgs} color={config.tint.color} threshold={30} /></mesh>
-      {footMounts.map((mount, index) => <FootFastener key={index} side={side} width={w} thickness={t} y={footFloor + mount.y} z={-mount.x} explode={explode} />)}
-    </group>)}
     <group rotation={[a, 0, 0]} position={[0, lift, 0]}>
       <mesh position={[0, baseBottom - explode, 0]} rotation={[-Math.PI / 2, 0, 0]}><extrudeGeometry args={baseArgs} /><meshPhysicalMaterial {...acrylic} /><PanelEdges args={baseArgs} color={config.tint.color} threshold={35} /></mesh>
       {[-1, 1].map(side => <group key={side}>
         <mesh position={[side * (w / 2 - t / 2 + explode) - t / 2, 0, 0]} rotation={[0, Math.PI / 2, 0]}><extrudeGeometry args={side === -1 ? leftArgs : rightArgs} /><meshPhysicalMaterial {...acrylic} /><PanelEdges args={side === -1 ? leftArgs : rightArgs} color={config.tint.color} threshold={35} /></mesh>
         <mesh position={[0, 0, side * (endOuter - t / 2 + explode) - t / 2]}><extrudeGeometry args={side === -1 ? rearArgs : frontArgs} /><meshPhysicalMaterial {...acrylic} /><PanelEdges args={side === -1 ? rearArgs : frontArgs} color={config.tint.color} /></mesh>
       </group>)}
-      {config.handle && <group position={[0, h, -endOuter - t - explode * 2]}>
-        <mesh castShadow><extrudeGeometry args={handleArgs} /><meshPhysicalMaterial {...acrylic} /><PanelEdges args={handleArgs} color={config.tint.color} threshold={35} /></mesh>
-        {[-1, 1].map(side => <Screw key={side} rear position={[side * handle.mountX, handle.mountY, -0.014 - explode * 0.5]} />)}
-      </group>}
       {rackRowLayout(config).map(row => {
         const z = row.center * unit, railOffset = row.railOffset * unit, length = row.length * unit;
         return <group key={row.index}>{[-1, 1].map(end => <group key={end}><Rail width={w - 2 * t} y={h - 0.07 + explode} z={z + end * railOffset} />{[-1, 1].map(side => <RailFastener key={side} side={side} width={w} thickness={t} y={h - 0.07} z={z + end * railOffset} explode={explode} />)}</group>)}{modules && <ExampleModules width={w - 2 * t - 0.02} y={h + explode * 2} z={z} units={row.units} length={length} />}</group>;

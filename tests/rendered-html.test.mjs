@@ -77,7 +77,7 @@ test("export retains the complete configuration and marks unverified board fit",
   for (const [key, value] of Object.entries(config)) assert.deepEqual(exported.configuration[key], value);
   assert.deepEqual(exported.outerDimensions, caseDimensions(config));
   assert.equal(exported.status, "design-concept");
-  assert.equal(exported.version, 5);
+  assert.equal(exported.version, 6);
   assert.equal(exported.units, "mm");
   assert.equal(exported.configuration.material, "GS cast acrylic");
   assert.match(exported.notes.join(" "), /not a cutting template/);
@@ -85,23 +85,23 @@ test("export retains the complete configuration and marks unverified board fit",
   assert.doesNotMatch(configurationExport(defaultConfiguration).notes.join(" "), /requested board family/);
 });
 
-test("accessory exports count only installed sheets while retaining the foot preference", () => {
+test("integral stance and grips keep five sheets and need no attachment hardware", () => {
   assert.equal(defaultConfiguration.handle, false);
   assert.equal(defaultConfiguration.angle, 0);
   for (const { value: footShape } of footShapes) for (const angle of [0, 10, 20, 30]) for (const handle of [false, true]) {
     const config = { ...defaultConfiguration, footShape, angle, handle };
     const exported = JSON.parse(JSON.stringify(configurationExport(config)));
-    const expectedPanels = 5 + (angle ? 2 : 0) + (handle ? 1 : 0);
-    assert.equal(panelCount(config), expectedPanels);
-    assert.deepEqual(exported.acrylicParts, { enclosurePanels: 5, footPanels: angle ? 2 : 0, handlePanels: handle ? 1 : 0, totalPanels: expectedPanels });
+    const expectedPanels = 5;
+    assert.equal(panelCount(), expectedPanels);
+    assert.deepEqual(exported.acrylicParts, { enclosurePanels: 5, footPanels: 0, handlePanels: 0, totalPanels: expectedPanels });
     assert.equal(exported.configuration.footShape, footShape);
     assert.equal(exported.configuration.handle, handle);
     assert.deepEqual(exported.outerDimensions, caseDimensions(defaultConfiguration));
-    if (angle) {
-      assert.equal(exported.footAttachment.boltsPerFoot, 2);
-      assert.equal(exported.footAttachment.boltCount, 4);
-      assert.equal(exported.footAttachment.locknutCount, 4);
-      assert.equal(exported.footAttachment.adhesive, false);
-    } else assert.equal(exported.footAttachment, null);
+    assert.equal(exported.footAttachment, null);
+    assert.equal(exported.stance.angle, angle);
+    assert.equal(exported.stance.shape, footShape);
+    assert.equal(exported.stance.additionalParts, 0);
+    assert.equal(exported.handles.count, handle ? 1 : 0);
+    assert.equal(exported.handles.additionalParts, 0);
   }
 });

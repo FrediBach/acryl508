@@ -1,7 +1,6 @@
 import type { Shape } from "three";
-import { createFootProfile, createHandleProfile } from "./acrylic-profiles";
 import type { CasePanels } from "./case-panels";
-import { caseDimensions, rackFormatLabel, sidePanelMargin, type CaseConfiguration } from "./configurator";
+import { rackFormatLabel, type CaseConfiguration } from "./configurator";
 import { mapPolygons, polygonBounds, shapesToPolygons } from "./custom-cutouts";
 import type { MultiPolygon } from "polygon-clipping";
 
@@ -39,7 +38,7 @@ function part(id: string, label: string, shapes: Shape[], fallback?: MultiPolygo
   return { id, label, polygons: shapes.length ? polygons : [], bounds: polygonBounds(polygons) };
 }
 
-function caseParts(config: CaseConfiguration, panels: CasePanels) {
+function caseParts(panels: CasePanels) {
   const parts: SvgPart[] = [
     part("bottom", "Bottom", panels.faces.bottom.shapes, panels.faces.bottom.original),
     part("front", "Front", panels.faces.front.shapes, panels.faces.front.original),
@@ -47,20 +46,11 @@ function caseParts(config: CaseConfiguration, panels: CasePanels) {
     part("left", "Left side", panels.faces.left.shapes, panels.faces.left.original),
     part("right", "Right side", panels.faces.right.shapes, panels.faces.right.original),
   ];
-  const dimensions = caseDimensions(config);
-  const length = dimensions.length / 100;
-  const thickness = config.thickness / 100;
-  const edgeMargin = sidePanelMargin(config) / 100;
-  if (config.angle > 0) {
-    const foot = createFootProfile(length, config.angle, thickness, config.footShape, edgeMargin);
-    parts.push(part("foot-left", "Left foot", [foot]), part("foot-right", "Right foot", [foot]));
-  }
-  if (config.handle) parts.push(part("handle", "Rear handle", [createHandleProfile(config.hp * 0.0508)]));
   return parts;
 }
 
 export function configurationSvg(config: CaseConfiguration, panels: CasePanels) {
-  const parts = caseParts(config, panels);
+  const parts = caseParts(panels);
   const largestWidth = Math.max(...parts.map(item => item.bounds.width));
   const totalArea = parts.reduce((area, item) => area + item.bounds.width * item.bounds.height, 0);
   const shelfWidth = Math.max(largestWidth, Math.min(1600, Math.sqrt(totalArea) * 1.55));
