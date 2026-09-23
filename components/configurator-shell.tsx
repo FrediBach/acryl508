@@ -9,13 +9,14 @@ import { acrylicTints, configurationExport, defaultConfiguration, rackRows, type
 
 import { createCasePanels } from "@/lib/case-panels";
 import { maxCutouts, type CutoutAction } from "@/lib/custom-cutouts";
+import { configurationSvg } from "@/lib/svg-export";
 
 export function ConfiguratorShell() {
   const [config, setConfig] = useState(defaultConfiguration);
   const panels = useMemo(() => createCasePanels(config), [config]);
   const [dark, setDark] = useState(false);
   const [info, setInfo] = useState<"materials" | "guide" | null>(null);
-  const [exported, setExported] = useState(false);
+  const [exported, setExported] = useState<"JSON" | "SVG" | null>(null);
   const dialog = useRef<HTMLDialogElement>(null);
   const exportTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
@@ -38,17 +39,27 @@ export function ConfiguratorShell() {
     try { localStorage.setItem("acryl508-theme", next ? "dark" : "light"); } catch { /* Theme still works for this visit. */ }
   }
   function openInfo(tab: "materials" | "guide") { setInfo(tab); dialog.current?.showModal(); }
-  function exportDesign() {
-    const resolvedPanels = Object.fromEntries(Object.entries(panels.faces).filter(([side]) => config.cutouts.some(cutout => cutout.side === side)).map(([side, face]) => [side, face.polygons]));
-    const url = URL.createObjectURL(new Blob([JSON.stringify(configurationExport(config, panels.reports, resolvedPanels), null, 2)], { type: "application/json" }));
+  function download(contents: string, type: string, name: string) {
+    const url = URL.createObjectURL(new Blob([contents], { type }));
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = `acryl508-${rackRows(config).map(units => `${units}u`).join("-")}-${config.hp}hp.json`;
+    anchor.download = name;
     anchor.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
-    setExported(true);
+  }
+  function showExported(format: "JSON" | "SVG") {
+    setExported(format);
     if (exportTimer.current) clearTimeout(exportTimer.current);
-    exportTimer.current = setTimeout(() => setExported(false), 4000);
+    exportTimer.current = setTimeout(() => setExported(null), 4000);
+  }
+  function exportDesign() {
+    const resolvedPanels = Object.fromEntries(Object.entries(panels.faces).filter(([side]) => config.cutouts.some(cutout => cutout.side === side)).map(([side, face]) => [side, face.polygons]));
+    download(JSON.stringify(configurationExport(config, panels.reports, resolvedPanels), null, 2), "application/json", `acryl508-${rackRows(config).map(units => `${units}u`).join("-")}-${config.hp}hp.json`);
+    showExported("JSON");
+  }
+  function exportSheets() {
+    download(configurationSvg(config, panels), "image/svg+xml", `acryl508-${rackRows(config).map(units => `${units}u`).join("-")}-${config.hp}hp-sheets.svg`);
+    showExported("SVG");
   }
   function updateConfig(update: Partial<CaseConfiguration>) { setConfig(current => ({ ...current, ...update })); }
   function cutoutAction(action: CutoutAction) {
@@ -61,12 +72,12 @@ export function ConfiguratorShell() {
     <ConfiguratorHeader dark={dark} onThemeChange={toggleTheme} onInfo={openInfo} onExport={exportDesign} />
     <main id="configure" className="workspace">
       <h1 className="sr-only">Acrylic Eurorack case configurator</h1>
-      <div className="configurator-grid"><div className="preview-column"><PreviewStage panels={panels} config={config} dark={dark} /><BuildSummary config={config} onExport={exportDesign} /></div><ConfigurationPanel panels={panels} onCutoutAction={cutoutAction} config={config} onChange={updateConfig} /></div>
+      <div className="configurator-grid"><div className="preview-column"><PreviewStage panels={panels} config={config} dark={dark} /><BuildSummary config={config} onExportJson={exportDesign} onExportSvg={exportSheets} /></div><ConfigurationPanel panels={panels} onCutoutAction={cutoutAction} config={config} onChange={updateConfig} /></div>
     </main>
-    <div className={`export-toast ${exported ? "toast-visible" : ""}`} role="status">{exported && <><Check size={15} />Configuration downloaded as JSON.</>}</div>
+    <div className={`export-toast ${exported ? "toast-visible" : ""}`} role="status">{exported && <><Check size={15} />{exported === "SVG" ? "All sheets downloaded as SVG." : "Configuration downloaded as JSON."}</>}</div>
     <dialog ref={dialog} className="info-dialog" aria-labelledby="dialog-title" onClose={() => setInfo(null)} onClick={event => { if (event.target === event.currentTarget) dialog.current?.close(); }}>
       <div className="dialog-top"><span className="eyebrow">ACRYL508 / FIELD NOTES</span><button className="icon-button" aria-label="Close notes" onClick={() => dialog.current?.close()}><X size={19} /></button></div>
-      {info === "materials" ? <><Layers3 size={29} className="dialog-icon" /><h2 id="dialog-title">Material is the design.</h2><p>Cast acrylic, also known as GS. A single sheet thickness across every panel, with exposed edges and visible connections.</p><div className="material-library">{acrylicTints.map(tint => <button key={tint.id} onClick={() => { updateConfig({ tint }); dialog.current?.close(); }}><span style={{ background: tint.color }} /><strong>{tint.label}</strong><ArrowUpRight size={15} /></button>)}</div><p className="dialog-small">Colours are visual approximations. Select the actual sheet and check a physical sample before fabrication. Extruded (XT) acrylic is outside this design.</p></> : <><h2 id="dialog-title">Simple parts. Thoughtful details.</h2><p>Shape your system around the way you patch. This configurator explores a removable, mechanically assembled GS acrylic enclosure.</p><ol className="build-notes"><li><strong>One material, one thickness.</strong><span>Five enclosure panels, two optional feet, and an optional rear handle with a rounded hand opening. Every acrylic part shares your tint and sheet thickness. The preview includes aluminium rails and black hardware.</span></li><li><strong>Interlock, then secure.</strong><span>Slide the base and front/rear panel tabs into the closed slots of one side panel. Fit the rails, then the second side over the remaining tabs. The rail-end screws retain the sides with load-spreading washers. No glue or extra case-panel screws. To disassemble, support the case, remove the rail screws on one side, and withdraw that side panel.</span></li><li><strong>Find your footing.</strong><span>Choose a 10°, 20° or 30° stance with wedge, arch or sled feet. Each foot overlaps the side wall and attaches with two removable through-bolts, broad washers, isolating spacers and locknuts. No glue or threads cut into acrylic. Exploded view shows the attachment stack. Hole clearances, tightening and loads still need fabrication validation.</span></li><li><strong>Space to breathe.</strong><span>Optional ventilation slots in the bottom panel. The base sits above retaining material, and the side panels extend beyond the end-panel slots. Outer dimensions include these margins; your HP, row spacing and depth above the base stay unchanged.</span></li><li><strong>Power is a considered choice.</strong><span>Sinusoda and Trolley Bus are board-family preferences. The board preview is illustrative; exact dimensions, hole patterns and electrical clearances are not yet validated.</span></li><li><strong>Make it yours.</strong><span>Import a filled SVG or add text using a supplied or imported font. Choose an enclosure side, width, rotation and position for each cutout. The outside view shows the finished panel. After all cuts, only the largest piece attached to the original panel perimeter is kept; loose letter centres and other islands are removed, with a warning.</span></li><li><strong>A specification to build on.</strong><span>Export downloads your dimensions, material, handle and foot choices, panel counts, cutout outlines and loose-part reports as JSON. Dimensions describe the enclosure, excluding the handle and feet. Joint fit, laser kerf, corner relief, screw engagement and loaded retention need prototype testing before fabrication.</span></li></ol><button className="button button-orange" onClick={exportDesign}><ArrowDownToLine size={15} />Export this configuration</button></>}
+      {info === "materials" ? <><Layers3 size={29} className="dialog-icon" /><h2 id="dialog-title">Material is the design.</h2><p>Cast acrylic, also known as GS. A single sheet thickness across every panel, with exposed edges and visible connections.</p><div className="material-library">{acrylicTints.map(tint => <button key={tint.id} onClick={() => { updateConfig({ tint }); dialog.current?.close(); }}><span style={{ background: tint.color }} /><strong>{tint.label}</strong><ArrowUpRight size={15} /></button>)}</div><p className="dialog-small">Colours are visual approximations. Select the actual sheet and check a physical sample before fabrication. Extruded (XT) acrylic is outside this design.</p></> : <><h2 id="dialog-title">Simple parts. Thoughtful details.</h2><p>Shape your system around the way you patch. This configurator explores a removable, mechanically assembled GS acrylic enclosure.</p><ol className="build-notes"><li><strong>One material, one thickness.</strong><span>Five enclosure panels, two optional feet, and an optional rear handle with a rounded hand opening. Every acrylic part shares your tint and sheet thickness. The preview includes aluminium rails and black hardware.</span></li><li><strong>Interlock, then secure.</strong><span>Slide the base and front/rear panel tabs into the closed slots of one side panel. Fit the rails, then the second side over the remaining tabs. The rail-end screws retain the sides with load-spreading washers. No glue or extra case-panel screws. To disassemble, support the case, remove the rail screws on one side, and withdraw that side panel.</span></li><li><strong>Find your footing.</strong><span>Choose a 10°, 20° or 30° stance with wedge, arch or sled feet. Each foot overlaps the side wall and attaches with two removable through-bolts, broad washers, isolating spacers and locknuts. No glue or threads cut into acrylic. Exploded view shows the attachment stack. Hole clearances, tightening and loads still need fabrication validation.</span></li><li><strong>Space to breathe.</strong><span>Optional ventilation slots in the bottom panel. The base sits above retaining material, and the side panels extend beyond the end-panel slots. Outer dimensions include these margins; your HP, row spacing and depth above the base stay unchanged.</span></li><li><strong>Power is a considered choice.</strong><span>Sinusoda and Trolley Bus are board-family preferences. The board preview is illustrative; exact dimensions, hole patterns and electrical clearances are not yet validated.</span></li><li><strong>Make it yours.</strong><span>Import a filled SVG or add text using a supplied or imported font. Choose an enclosure side, width, rotation and position for each cutout. The outside view shows the finished panel. After all cuts, only the largest piece attached to the original panel perimeter is kept; loose letter centres and other islands are removed, with a warning.</span></li><li><strong>A specification to build on.</strong><span>Export JSON for the complete specification, or download one full-size SVG containing every acrylic sheet as a named vector group. Dimensions describe the enclosure, excluding the handle and feet. Joint fit, laser kerf, corner relief, screw engagement and loaded retention need prototype testing before fabrication.</span></li></ol><div className="dialog-actions"><button className="button button-dark" onClick={exportDesign}><ArrowDownToLine size={15} />Export JSON</button><button className="button button-orange" onClick={exportSheets}><ArrowDownToLine size={15} />Export SVG sheets</button></div></>}
     </dialog>
   </div>;
 }

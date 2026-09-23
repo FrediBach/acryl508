@@ -8,6 +8,6 @@ export function ConfiguratorHeader({ dark, onThemeChange, onInfo, onExport }: Pr
       <button className="nav-link" onClick={() => onInfo("materials")}>Material library</button>
       <button className="nav-link" onClick={() => onInfo("guide")}>Build notes <ArrowUpRight size={12} /></button>
     </nav>
-    <div className="header-actions"><button className="icon-button theme-toggle" onClick={onThemeChange} aria-label={`Switch to ${dark ? "light" : "dark"} mode`} title={`Switch to ${dark ? "light" : "dark"} mode`}>{dark ? <Sun size={17} /> : <Moon size={17} />}</button><span className="header-divider" /><button className="button button-dark header-export" onClick={onExport}>Export design <ArrowUpRight size={15} /></button></div>
+    <div className="header-actions"><button className="icon-button theme-toggle" onClick={onThemeChange} aria-label={`Switch to ${dark ? "light" : "dark"} mode`} title={`Switch to ${dark ? "light" : "dark"} mode`}>{dark ? <Sun size={17} /> : <Moon size={17} />}</button><span className="header-divider" /><button className="button button-dark header-export" onClick={onExport}>Export JSON <ArrowUpRight size={15} /></button></div>
   </header>;
 }

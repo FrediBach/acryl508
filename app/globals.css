@@ -251,6 +251,7 @@
 .spec-list dd { display: flex; align-items: center; gap: 7px; font: 9px var(--font-geist-mono), monospace; margin: 0; }
 .spec-list small { font: inherit; color: var(--muted-foreground); }
 .summary-export { white-space: nowrap; font-size: 10px; min-height: 36px; gap: 8px; padding: 0 12px; }
+.summary-actions { display: flex; gap: 7px; }
 .spec-color { width: 8px; height: 8px; border-radius: 1px; }
 .export-toast { position: fixed; bottom: 28px; left: 50%; z-index: 100; transform: translate(-50%, 10px); opacity: 0; pointer-events: none; border-radius: 4px; padding: 13px 19px; background: var(--selection); color: var(--selection-text); display: flex; gap: 9px; align-items: center; font-size: 12px; transition: opacity 200ms, transform 200ms; white-space: nowrap; }
 .toast-visible { opacity: 1; transform: translate(-50%, 0); }
@@ -266,6 +267,7 @@
 .material-library strong { font-weight: 450; }
 .material-library svg { margin-left: auto; color: var(--muted-foreground); }
 .info-dialog .dialog-small { font-size: 11px; }
+.dialog-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .build-notes { list-style: decimal-leading-zero; padding-left: 24px; margin: 24px 0; }
 .build-notes li { padding-left: 8px; margin-top: 20px; font-size: 12px; }
 .build-notes li::marker { font: 10px var(--font-geist-mono), monospace; color: var(--signal); }

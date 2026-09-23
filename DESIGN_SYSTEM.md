@@ -85,8 +85,10 @@ from outside. Width scales both axes uniformly. Numeric controls provide a
 keyboard alternative to pointer placement. Solid fill is retained material;
 dashed orange outlines identify the selected cutout.
 
-The panel geometry is shared by the flat layout, 3D preview, removal reports
-and JSON export. Subtract all cuts together, including existing ventilation
+The panel geometry is shared by the flat layout, 3D preview, removal reports,
+and JSON/SVG exports. The full-size SVG lays out every selected acrylic sheet in
+millimetres as a separate named group without adding visible labels to cutting
+paths. Subtract all cuts together, including existing ventilation
 and mounting holes, before finding disconnected acrylic. Keep the largest
 component sharing an edge with the original panel perimeter. Remove every
 other component, including enclosed font counters, and show persistent, live

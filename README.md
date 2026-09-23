@@ -23,6 +23,7 @@ This starter does not use `wrangler.jsonc`.
 - responsive configurator shell under `app/`
 - interactive Three.js case preview with ordered, mix-and-match 1U/3U rows and live dimension and tint controls
 - interlocking case panels retained by rail-end screws, plus removable acrylic feet and handle
+- full-size SVG sheet export with named panel groups, slots, holes, vents, and custom cutouts
 - SVG and font cutouts with per-panel placement, uniform scaling, rotation, and automatic loose-part removal
 - shadcn component configuration and reusable UI primitives
 - optional hosting bindings declared in `.openai/hosting.json`
@@ -79,6 +80,12 @@ placement, and width, plus removal reports and the resolved panel outlines in
 millimetres. It remains a design specification requiring fabrication validation.
 Font copyrights and distribution licences are retained in the bundled JSON
 assets under `public/fonts/`.
+
+The SVG export places every enclosure sheet and each selected acrylic accessory
+in one full-size, millimetre-based document. Parts are separate named groups and
+include the resolved slots, mounting holes, ventilation, and custom cutouts. The
+paths are concept vectors, not production-ready cutting files; apply verified
+kerf, tolerances, corner relief, and hardware clearances before fabrication.
 
 ## Learn More
 

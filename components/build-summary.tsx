@@ -1,7 +1,7 @@
 import { ArrowDownToLine } from "lucide-react";
 import { caseDimensions, footShapes, panelCount, rackFormatLabel, type CaseConfiguration } from "@/lib/configurator";
 
-export function BuildSummary({ config, onExport }: { config: CaseConfiguration; onExport: () => void }) {
+export function BuildSummary({ config, onExportJson, onExportSvg }: { config: CaseConfiguration; onExportJson: () => void; onExportSvg: () => void }) {
   const dimensions = caseDimensions(config);
   return (
     <section className="summary-panel" aria-label="Design summary">
@@ -16,9 +16,10 @@ export function BuildSummary({ config, onExport }: { config: CaseConfiguration; 
         <div><dt>Feet</dt><dd>{config.angle ? `${footShapes.find(shape => shape.value === config.footShape)?.label} · ${config.angle}°` : "None · flat base"}</dd></div>
         <div><dt>Custom cutouts</dt><dd>{config.cutouts.length || "None"}</dd></div>
       </dl>
-      <button className="button button-orange summary-export" onClick={onExport} aria-label="Export configuration as JSON">
-        <ArrowDownToLine size={15} />Export JSON
-      </button>
+      <div className="summary-actions">
+        <button className="button button-dark summary-export" onClick={onExportJson} aria-label="Export configuration as JSON"><ArrowDownToLine size={15} />JSON</button>
+        <button className="button button-orange summary-export" onClick={onExportSvg} aria-label="Export all sheets as SVG"><ArrowDownToLine size={15} />SVG sheets</button>
+      </div>
     </section>
   );
 }
