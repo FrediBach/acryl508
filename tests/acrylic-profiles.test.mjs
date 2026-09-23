@@ -98,3 +98,13 @@ test("handle fits the narrowest case, retains an open grip, and uses the selecte
     extrude(profile, thickness);
   }
 });
+
+test("foot mounts follow the adjustable side-panel margin", () => {
+  for (const thickness of [0.03, 0.05, 0.06]) for (const ratio of [1, 1.5, 2]) {
+    const edgeMargin = ratio * thickness;
+    const length = 1.3335 + 2 * thickness + 2 * edgeMargin;
+    const mounts = footMountLayout(length, 20, thickness, edgeMargin);
+    for (const mount of mounts) assert.ok(Math.abs(mount.caseY - edgeMargin - thickness - 0.12) < 1e-9);
+    for (const style of ["wedge", "arch", "sled"]) extrude(createFootProfile(length, 20, thickness, style, edgeMargin), thickness);
+  }
+});

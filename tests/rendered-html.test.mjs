@@ -5,7 +5,7 @@ import ts from "typescript";
 
 const source = await readFile(new URL("../lib/configurator.ts", import.meta.url), "utf8");
 const compiled = ts.transpileModule(source, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext } }).outputText;
-const { caseDimensions, configurationExport, defaultConfiguration, acrylicTints, footShapes, panelCount, rackRowLayout, rackRows, totalRackUnits } = await import(`data:text/javascript;base64,${Buffer.from(compiled).toString("base64")}`);
+const { caseDimensions, configurationExport, defaultConfiguration, acrylicTints, footShapes, panelCount, rackRowLayout, rackRows, sidePanelMargin, totalRackUnits } = await import(`data:text/javascript;base64,${Buffer.from(compiled).toString("base64")}`);
 
 test("build produces the worker, client manifest and social card", async () => {
   await Promise.all(["../dist/server/index.js", "../dist/client/vinext-client-entry-manifest.json", "../dist/client/og.png"].map(path => access(new URL(path, import.meta.url))));
@@ -42,6 +42,22 @@ test("mixed 1U and 3U rows preserve order and drive dimensions and rail placemen
   assert.equal(exported.panelAssembly.railEndScrewCount, 16);
 });
 
+test("side panel margin moves from the original profile to the guarded near-flush profile", () => {
+  const original = { ...defaultConfiguration, sideMarginRatio: 2 };
+  const nearFlush = { ...defaultConfiguration, sideMarginRatio: 1 };
+  assert.equal(sidePanelMargin(original), original.thickness * 2);
+  assert.equal(sidePanelMargin(nearFlush), nearFlush.thickness);
+  assert.equal(sidePanelMargin({ ...nearFlush, sideMarginRatio: 0 }), nearFlush.thickness);
+  assert.equal(sidePanelMargin({ ...nearFlush, sideMarginRatio: 99 }), nearFlush.thickness * 2);
+  assert.equal(caseDimensions(original).length - caseDimensions(nearFlush).length, original.thickness * 2);
+  assert.equal(caseDimensions(original).height - caseDimensions(nearFlush).height, original.thickness);
+  const exported = configurationExport(nearFlush);
+  assert.equal(exported.panelAssembly.baseUndersideHeight, nearFlush.thickness);
+  assert.equal(exported.panelAssembly.endRetainingMargin, nearFlush.thickness);
+  assert.equal(exported.panelAssembly.slotCenterToEdge, nearFlush.thickness * 1.5);
+  assert.equal(exported.panelAssembly.minimumSlotCenterToEdge, nearFlush.thickness * 1.5);
+});
+
 test("case panels are retained by the rail screws without additional panel fasteners or adhesive", () => {
   for (const rows of [1, 2, 3]) for (const thickness of [3, 4, 5, 6]) {
     const config = { ...defaultConfiguration, rows, thickness };
@@ -63,6 +79,7 @@ test("export retains the complete configuration and marks unverified board fit",
   for (const [key, value] of Object.entries(config)) assert.deepEqual(exported.configuration[key], value);
   assert.deepEqual(exported.outerDimensions, caseDimensions(config));
   assert.equal(exported.status, "design-concept");
+  assert.equal(exported.version, 4);
   assert.equal(exported.units, "mm");
   assert.equal(exported.configuration.material, "GS cast acrylic");
   assert.match(exported.notes.join(" "), /not a cutting template/);

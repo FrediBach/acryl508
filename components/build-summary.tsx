@@ -1,5 +1,5 @@
 import { ArrowDownToLine } from "lucide-react";
-import { caseDimensions, footShapes, panelCount, rackFormatLabel, type CaseConfiguration } from "@/lib/configurator";
+import { caseDimensions, footShapes, panelCount, rackFormatLabel, sidePanelMargin, type CaseConfiguration } from "@/lib/configurator";
 
 export function BuildSummary({ config, onExportJson, onExportSvg }: { config: CaseConfiguration; onExportJson: () => void; onExportSvg: () => void }) {
   const dimensions = caseDimensions(config);
@@ -13,6 +13,7 @@ export function BuildSummary({ config, onExportJson, onExportSvg }: { config: Ca
         <div><dt>Case footprint</dt><dd>{dimensions.width.toFixed(1)} × {dimensions.length.toFixed(1)} <small>mm</small></dd></div>
         <div><dt>Material</dt><dd>{config.thickness} mm GS <span className="spec-color" style={{ background: config.tint.color }} /></dd></div>
         <div><dt>Construction</dt><dd>{panelCount(config)} panels · {config.handle ? "with handle" : "no handle"}</dd></div>
+        <div><dt>Side margin</dt><dd>{sidePanelMargin(config).toFixed(1)} mm</dd></div>
         <div><dt>Feet</dt><dd>{config.angle ? `${footShapes.find(shape => shape.value === config.footShape)?.label} · ${config.angle}°` : "None · flat base"}</dd></div>
         <div><dt>Custom cutouts</dt><dd>{config.cutouts.length || "None"}</dd></div>
       </dl>

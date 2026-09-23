@@ -13,14 +13,14 @@ function bands(start: number, end: number, thickness: number, pitch: number): Ba
 }
 
 // Nominal geometry in preview units (1 = 100 mm), not compensated cutting paths.
-// Two sheet thicknesses remain outside each closed slot as retaining material.
-export function panelJointLayout(width: number, length: number, height: number, thickness: number) {
+// The configured edge margin remains outside each closed slot as retaining material.
+export function panelJointLayout(width: number, length: number, height: number, thickness: number, edgeMargin = 2 * thickness) {
   const innerWidth = width - 2 * thickness;
-  const innerLength = length - 6 * thickness;
+  const innerLength = length - 2 * thickness - 2 * edgeMargin;
   return {
     innerWidth, innerLength,
-    baseBottom: 2 * thickness,
-    baseTop: 3 * thickness,
+    baseBottom: edgeMargin,
+    baseTop: edgeMargin + thickness,
     endCenter: innerLength / 2 + thickness / 2,
     endOuter: innerLength / 2 + thickness,
     baseTabs: bands(-innerLength / 2, innerLength / 2, thickness, 0.6),
@@ -61,8 +61,8 @@ function slot(shape: Shape, left: number, bottom: number, right: number, top: nu
   shape.holes.push(path);
 }
 
-export function createPanelProfiles(width: number, length: number, height: number, thickness: number) {
-  const layout = panelJointLayout(width, length, height, thickness);
+export function createPanelProfiles(width: number, length: number, height: number, thickness: number, edgeMargin = 2 * thickness) {
+  const layout = panelJointLayout(width, length, height, thickness, edgeMargin);
   const base = tabbedProfile(layout.innerWidth, -layout.innerLength / 2, layout.innerLength / 2, layout.baseTabs, thickness);
   const end = tabbedProfile(layout.innerWidth, 0, height, layout.endTabs, thickness);
   const side = new Shape();

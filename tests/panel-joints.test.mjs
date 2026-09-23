@@ -82,3 +82,24 @@ test("tabbed sheets triangulate without filling slots or changing sheet thicknes
     }
   }
 });
+
+test("adjustable edge margins preserve the inner rack and a closed acrylic web", () => {
+  for (const thickness of [0.03, 0.05, 0.06]) for (const ratio of [1, 1.4, 2]) {
+    const edgeMargin = ratio * thickness;
+    const innerLength = 1.3335 + 0.4445;
+    const depth = 0.75;
+    const length = innerLength + 2 * thickness + 2 * edgeMargin;
+    const height = depth + thickness + edgeMargin;
+    const { side, layout } = createPanelProfiles(4.4, length, height, thickness, edgeMargin);
+    near(layout.innerLength, innerLength);
+    near(layout.baseBottom, edgeMargin);
+    near(layout.baseTop, edgeMargin + thickness);
+    near(height - layout.baseTop, depth);
+    const slots = side.holes.map(hole => bounds(hole.getPoints()));
+    for (const slotBounds of slots) {
+      assert.ok(slotBounds.left >= -length / 2 + edgeMargin - 1e-9);
+      assert.ok(slotBounds.right <= length / 2 - edgeMargin + 1e-9);
+      assert.ok(slotBounds.bottom >= edgeMargin - 1e-9);
+    }
+  }
+});

@@ -1,7 +1,7 @@
 import type { Shape } from "three";
 import { createFootProfile, createHandleProfile } from "./acrylic-profiles";
 import type { CasePanels } from "./case-panels";
-import { caseDimensions, rackFormatLabel, type CaseConfiguration } from "./configurator";
+import { caseDimensions, rackFormatLabel, sidePanelMargin, type CaseConfiguration } from "./configurator";
 import { mapPolygons, polygonBounds, shapesToPolygons } from "./custom-cutouts";
 import type { MultiPolygon } from "polygon-clipping";
 
@@ -50,8 +50,9 @@ function caseParts(config: CaseConfiguration, panels: CasePanels) {
   const dimensions = caseDimensions(config);
   const length = dimensions.length / 100;
   const thickness = config.thickness / 100;
+  const edgeMargin = sidePanelMargin(config) / 100;
   if (config.angle > 0) {
-    const foot = createFootProfile(length, config.angle, thickness, config.footShape);
+    const foot = createFootProfile(length, config.angle, thickness, config.footShape, edgeMargin);
     parts.push(part("foot-left", "Left foot", [foot]), part("foot-right", "Right foot", [foot]));
   }
   if (config.handle) parts.push(part("handle", "Rear handle", [createHandleProfile(config.hp * 0.0508)]));

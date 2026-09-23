@@ -4,7 +4,7 @@ import { ContactShadows, Edges, Environment, Lightformer, OrbitControls } from "
 import { Canvas, useThree } from "@react-three/fiber";
 import { Path, Shape, Vector3, type MeshPhysicalMaterialParameters } from "three";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
-import { caseDimensions, rackRowLayout, type CaseConfiguration } from "@/lib/configurator";
+import { caseDimensions, rackRowLayout, sidePanelMargin, type CaseConfiguration } from "@/lib/configurator";
 import { caseLift, createFootProfile, createHandleProfile, footFloor, footMountLayout, footPanelGap, handleLayout, handleRise } from "@/lib/acrylic-profiles";
 import type { CasePanels } from "@/lib/case-panels";
 
@@ -77,13 +77,14 @@ function ExampleModules({ width, y, z, units, length }: { width: number; y: numb
 function AcrylicCase({ config, panels, exploded, modules }: Pick<Props, "config" | "panels" | "exploded" | "modules">) {
   const { width, length, height } = caseDimensions(config);
   const w = width * unit, l = length * unit, h = height * unit, t = config.thickness * unit;
+  const edgeMargin = sidePanelMargin(config) * unit;
   const a = config.angle * Math.PI / 180;
   const lift = caseLift(l, config.angle);
   const explode = exploded ? 0.4 : 0;
-  const footMounts = useMemo(() => footMountLayout(l, config.angle, t), [l, config.angle, t]);
+  const footMounts = useMemo(() => footMountLayout(l, config.angle, t, edgeMargin), [l, config.angle, t, edgeMargin]);
   const { baseBottom, baseTop, endOuter } = panels.layout;
   const acrylic = useMemo<MeshPhysicalMaterialParameters>(() => ({ color: config.tint.color, metalness: 0, roughness: 0.13, transmission: 0.88, thickness: t * 2, ior: 1.49, clearcoat: 1, clearcoatRoughness: 0.07, envMapIntensity: 1.25, attenuationColor: config.tint.color, attenuationDistance: 0.7 }), [config.tint.color, t]);
-  const footShape = useMemo(() => createFootProfile(l, config.angle, t, config.footShape), [l, config.angle, t, config.footShape]);
+  const footShape = useMemo(() => createFootProfile(l, config.angle, t, config.footShape, edgeMargin), [l, config.angle, t, config.footShape, edgeMargin]);
   const handleShape = useMemo(() => createHandleProfile(w - 2 * t), [w, t]);
   const handle = handleLayout(w - 2 * t);
   const baseArgs = useMemo(() => [panels.faces.bottom.shapes, { depth: t, bevelEnabled: false, curveSegments: 8 }] as const, [panels, t]);

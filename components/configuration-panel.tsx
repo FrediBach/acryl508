@@ -1,6 +1,6 @@
 import { ArrowDown, ArrowUp, Check, ChevronDown, Minus, Plus, Trash2 } from "lucide-react";
 import { useState, type CSSProperties, type ReactNode } from "react";
-import { acrylicTints, busboards, footShapes, maxRackUnits, rackFormatLabel, rackRows, totalRackUnits, type CaseConfiguration, type RackUnit } from "@/lib/configurator";
+import { acrylicTints, busboards, footShapes, maxRackUnits, maxSideMarginRatio, minSideMarginRatio, rackFormatLabel, rackRows, sidePanelMargin, totalRackUnits, type CaseConfiguration, type RackUnit } from "@/lib/configurator";
 
 import { CutoutControls } from "@/components/cutout-controls";
 import type { CasePanels } from "@/lib/case-panels";
@@ -19,6 +19,11 @@ function RangeField({ label, value, min, max, unit, onChange }: { label: string;
     setEditing(false);
   }
   return <div className="range-field"><div className="field-heading"><label htmlFor={`range-${unit}`}>{label}</label><div className="number-field"><input type="number" aria-label={`${label} in ${unit}`} min={min} max={max} step={1} value={editing ? draft : value} inputMode="numeric" onFocus={() => { setDraft(String(value)); setEditing(true); }} onBlur={commitDraft} onKeyDown={event => { if (event.key === "Enter") event.currentTarget.blur(); }} onChange={event => { setDraft(event.target.value); const number = Number(event.target.value); if (event.target.value && Number.isInteger(number) && number >= min && number <= max) onChange(number); }} /><span>{unit}</span></div></div><input id={`range-${unit}`} className="range-input" type="range" min={min} max={max} step={1} value={value} style={{ "--range-progress": `${(value - min) / (max - min) * 100}%` } as CSSProperties} onChange={event => onChange(event.currentTarget.valueAsNumber)} /><div className="range-labels"><span>{min} {unit}</span><span>{max} {unit}</span></div></div>;
+}
+function SideMarginField({ config, onChange }: { config: CaseConfiguration; onChange: (value: number) => void }) {
+  const value = Math.min(maxSideMarginRatio, Math.max(minSideMarginRatio, config.sideMarginRatio ?? maxSideMarginRatio));
+  const margin = sidePanelMargin(config);
+  return <div className="range-field"><div className="field-heading"><label htmlFor="side-margin">Side panel edge margin</label><output className="margin-value" htmlFor="side-margin">{margin.toFixed(1)} mm</output></div><input id="side-margin" className="range-input" type="range" min={minSideMarginRatio} max={maxSideMarginRatio} step={0.1} value={value} aria-describedby="side-margin-note" aria-valuetext={`${margin.toFixed(1)} millimetres`} style={{ "--range-progress": `${(value - minSideMarginRatio) / (maxSideMarginRatio - minSideMarginRatio) * 100}%` } as CSSProperties} onChange={event => onChange(event.currentTarget.valueAsNumber)} /><div className="range-labels"><span>Near flush · {config.thickness} mm</span><span>Original · {config.thickness * 2} mm</span></div><p className="control-note" id="side-margin-note">Material retained beyond the end slots and below the base. The minimum keeps each slot centre 1.5× its width from the sheet edge; fabrication validation is still required.</p></div>;
 }
 export function ConfigurationPanel({ config, panels, onChange, onCutoutAction }: Props) {
   const rows = rackRows(config);
@@ -51,6 +56,7 @@ export function ConfigurationPanel({ config, panels, onChange, onCutoutAction }:
       <RangeField label="Width" value={config.hp} min={20} max={168} unit="HP" onChange={hp => onChange({ hp })} />
       <div className="preset-row"><span>Quick set</span>{[42, 62, 84, 104, 126].map(hp => <button key={hp} onClick={() => onChange({ hp })} aria-pressed={config.hp === hp} className={config.hp === hp ? "preset-active" : ""}>{hp}</button>)}</div>
       <RangeField label="Internal depth" value={config.depth} min={50} max={180} unit="mm" onChange={depth => onChange({ depth })} />
+      <SideMarginField config={config} onChange={sideMarginRatio => onChange({ sideMarginRatio })} />
     </section>
     <section className="control-section" id="materials"><SectionTitle number="02" detail="GS CAST ACRYLIC">Material</SectionTitle>
       <div className="field-heading"><span>Acrylic tint</span><span className="field-note">{config.tint.label}</span></div>

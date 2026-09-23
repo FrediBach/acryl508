@@ -8,9 +8,9 @@ export const footFloor = 0.015;
 export const footHoleRadius = 0.03;
 export const footPanelGap = 0.01;
 
-export function footMountLayout(length: number, angle: number, thickness: number) {
+export function footMountLayout(length: number, angle: number, thickness: number, edgeMargin = 2 * thickness) {
   const radians = angle * Math.PI / 180;
-  const caseY = 3 * thickness + 0.12;
+  const caseY = edgeMargin + thickness + 0.12;
   return [-1, 1].map(end => {
     const caseZ = end * length * 0.29;
     return {
@@ -25,14 +25,14 @@ export function caseLift(length: number, angle: number) {
   return angle > 0 ? Math.sin(angle * Math.PI / 180) * length / 2 + 0.08 : 0.035;
 }
 
-export function createFootProfile(length: number, angle: number, thickness: number, style: FootShape) {
+export function createFootProfile(length: number, angle: number, thickness: number, style: FootShape, edgeMargin = 2 * thickness) {
   const radians = angle * Math.PI / 180;
   const half = length * Math.cos(radians) * 0.43;
   const center = caseLift(length, angle) - footFloor;
   // Local X is -Z in the assembled preview. The body stays below the base;
   // the upper flange overlaps the outside of the case wall for through-bolts.
   const top = (x: number) => center + x * Math.tan(radians);
-  const flange = 3 * thickness + 0.24;
+  const flange = edgeMargin + thickness + 0.24;
   const band = Math.max(thickness * 1.5, 0.06);
   const shape = new Shape();
 
@@ -73,7 +73,7 @@ export function createFootProfile(length: number, angle: number, thickness: numb
       shape.holes.push(window);
     }
   }
-  for (const mount of footMountLayout(length, angle, thickness)) {
+  for (const mount of footMountLayout(length, angle, thickness, edgeMargin)) {
     const hole = new Path();
     hole.absarc(mount.x, mount.y, footHoleRadius, 0, Math.PI * 2, true);
     shape.holes.push(hole);

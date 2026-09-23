@@ -6,7 +6,7 @@ export type Busboard = "none" | "sinusoda" | "trolley";
 export type FootShape = "wedge" | "arch" | "sled";
 export type RackUnit = 1 | 3;
 export type CaseConfiguration = {
-  hp: number; rows: number; rowUnits: RackUnit[]; depth: number; thickness: number;
+  hp: number; rows: number; rowUnits: RackUnit[]; depth: number; thickness: number; sideMarginRatio: number;
   tint: AcrylicTint; angle: number; vents: boolean; busboard: Busboard;
   handle: boolean; footShape: FootShape;
   cutouts: CustomCutout[];
@@ -20,6 +20,8 @@ export const acrylicTints: AcrylicTint[] = [
 ];
 export const maxRackUnits = 9;
 export const rackUnitPitch = 44.45;
+export const minSideMarginRatio = 1;
+export const maxSideMarginRatio = 2;
 export const busboards: Record<Busboard, string> = { none: "No busboard", sinusoda: "Sinusoda", trolley: "Trolley Bus" };
 export const footShapes: { value: FootShape; label: string; description: string }[] = [
   { value: "wedge", label: "Wedge", description: "Solid side supports with a straight profile." },
@@ -27,7 +29,7 @@ export const footShapes: { value: FootShape; label: string; description: string 
   { value: "sled", label: "Sled", description: "A continuous runner with a tapered cutout." },
 ];
 export const defaultConfiguration: CaseConfiguration = {
-  hp: 84, rows: 1, rowUnits: [3], depth: 75, thickness: 5, tint: acrylicTints[1], angle: 0, vents: true, busboard: "none",
+  hp: 84, rows: 1, rowUnits: [3], depth: 75, thickness: 5, sideMarginRatio: 2, tint: acrylicTints[1], angle: 0, vents: true, busboard: "none",
   handle: false, footShape: "wedge", cutouts: [],
 };
 // `rows` remains in the exported format for backwards compatibility. A mismatched
@@ -54,17 +56,22 @@ export function rackRowLayout(config: Pick<CaseConfiguration, "rows" | "rowUnits
     return row;
   });
 }
+export function sidePanelMargin(config: Pick<CaseConfiguration, "thickness" | "sideMarginRatio">) {
+  const ratio = Number.isFinite(config.sideMarginRatio) ? config.sideMarginRatio : maxSideMarginRatio;
+  return config.thickness * Math.min(maxSideMarginRatio, Math.max(minSideMarginRatio, ratio));
+}
 export function panelCount(config: CaseConfiguration) {
   return 5 + (config.angle > 0 ? 2 : 0) + (config.handle ? 1 : 0);
 }
 // All dimensions are millimetres; the preview converts these to scene units.
 export function caseDimensions(config: CaseConfiguration) {
   const rackLength = rackRows(config).reduce((total, units) => total + (units === 3 ? 133.35 : rackUnitPitch), 0);
-  return { width: config.hp * 5.08 + config.thickness * 2, length: rackLength + config.thickness * 6, height: config.depth + config.thickness * 3 };
+  const margin = sidePanelMargin(config);
+  return { width: config.hp * 5.08 + config.thickness * 2, length: rackLength + config.thickness * 2 + margin * 2, height: config.depth + config.thickness + margin };
 }
 export function configurationExport(config: CaseConfiguration, cutoutReports: CutoutReport[] = [], resolvedPanels: Partial<Record<CutoutSide, MultiPolygon>> = {}) {
   return {
-    product: "Acryl508", version: 3, units: "mm", status: "design-concept",
+    product: "Acryl508", version: 4, units: "mm", status: "design-concept",
     configuration: { ...config, material: "GS cast acrylic", fasteners: "Black socket-head screws", assembly: "Mechanical; no glue" },
     outerDimensions: caseDimensions(config),
     customCutouts: {
@@ -79,11 +86,13 @@ export function configurationExport(config: CaseConfiguration, cutoutReports: Cu
       method: "Base and end-panel tabs captured in closed side-panel slots; rail-end screws retain the side panels",
       railCount: rackRows(config).length * 2, railEndScrewCount: rackRows(config).length * 4,
       additionalPanelFasteners: 0, adhesive: false,
-      baseUndersideHeight: config.thickness * 2, endRetainingMargin: config.thickness * 2,
+      baseUndersideHeight: sidePanelMargin(config), endRetainingMargin: sidePanelMargin(config),
+      slotCenterToEdge: sidePanelMargin(config) + config.thickness / 2,
+      minimumSlotCenterToEdge: config.thickness * 1.5,
       disassembly: "Support the case, remove the rail-end screws on one side, withdraw that side panel, then slide the base and end-panel tabs out of the remaining side panel. Feet and handle can stay on their panels.",
       status: "Concept; kerf, sheet tolerances, corner relief, rail threads, screw engagement and loaded retention require fabrication validation",
     },
     footAttachment: config.angle > 0 ? { method: "Overlapping side panels with removable through-bolts", boltsPerFoot: 2, boltCount: 4, washerCount: 8, spacerCount: 4, locknutCount: 4, adhesive: false, status: "Concept; hole clearances, tightening and loads require fabrication validation" } : null,
-    notes: ["Configuration specification only; not a cutting template.", "Outer dimensions describe the enclosure, excluding the optional handle and feet.", "Joint clearances, fasteners, load capacity and rail profiles require fabrication validation.", ...(config.busboard !== "none" ? [busboards[config.busboard] + " is a requested board family. Board dimensions, mounting holes and electrical clearances must be verified against the exact model. The preview is illustrative."] : [])],
+    notes: ["Configuration specification only; not a cutting template.", "Outer dimensions describe the enclosure, excluding the optional handle and feet.", "The minimum side margin uses a 1.5× slot-width centre-to-edge guardrail adapted from acrylic hole guidance; rectangular slots and the complete loaded assembly still require fabrication validation.", "Joint clearances, fasteners, load capacity and rail profiles require fabrication validation.", ...(config.busboard !== "none" ? [busboards[config.busboard] + " is a requested board family. Board dimensions, mounting holes and electrical clearances must be verified against the exact model. The preview is illustrative."] : [])],
   };
 }

@@ -1,5 +1,5 @@
 import { Path, type Shape } from "three";
-import { caseDimensions, rackRowLayout, type CaseConfiguration } from "./configurator";
+import { caseDimensions, rackRowLayout, sidePanelMargin, type CaseConfiguration } from "./configurator";
 import { footHoleRadius, footMountLayout, handleLayout } from "./acrylic-profiles";
 import { createPanelProfiles } from "./panel-joints";
 import { cutoutSides, mapPolygons, polygonsToShapes, shapesToPolygons, subtractCutouts, type CutoutSide } from "./custom-cutouts";
@@ -11,7 +11,8 @@ function hole(shape: Shape, x: number, y: number, radius: number) {
 export function createCasePanels(config: CaseConfiguration) {
   const dimensions = caseDimensions(config);
   const w = dimensions.width / 100, l = dimensions.length / 100, h = dimensions.height / 100, t = config.thickness / 100;
-  const panels = createPanelProfiles(w, l, h, t);
+  const edgeMargin = sidePanelMargin(config) / 100;
+  const panels = createPanelProfiles(w, l, h, t, edgeMargin);
   const { innerLength } = panels.layout;
   const base = panels.base;
   if (config.vents) {
@@ -31,7 +32,7 @@ export function createCasePanels(config: CaseConfiguration) {
   for (const row of rackRowLayout(config)) for (const end of [-1, 1]) {
     hole(side, row.center / 100 + end * row.railOffset / 100, h - 0.07, 0.019);
   }
-  if (config.angle > 0) for (const mount of footMountLayout(l, config.angle, t)) hole(side, -mount.caseZ, mount.caseY, footHoleRadius);
+  if (config.angle > 0) for (const mount of footMountLayout(l, config.angle, t, edgeMargin)) hole(side, -mount.caseZ, mount.caseY, footHoleRadius);
   const rear = panels.end.clone();
   const handle = handleLayout(w - 2 * t);
   if (config.handle) for (const direction of [-1, 1]) hole(rear, direction * handle.mountX, h + handle.mountY, 0.022);

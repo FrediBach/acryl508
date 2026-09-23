@@ -48,11 +48,16 @@ glue are part of this concept. Support the case, remove the rail-end screws on
 one side, withdraw that side, then remove the base and end panels. The exploded
 view separates the mating tabs, slots, rails, and hardware for inspection.
 
-Keep two sheet thicknesses of retaining material below the base and beyond each
-end panel. Rows are an ordered rear-to-front mix of 1U and 3U bays. With sheet
+The side-panel retaining margin `m` is adjustable from one to two sheet
+thicknesses below the base and beyond each end-panel slot. The one-thickness
+minimum places the slot centre 1.5 slot widths from the sheet edge, adapting the
+manufacturer's drilled-hole edge-distance guidance as a conservative UI
+guardrail; rectangular slots and loaded retention still require prototype
+validation. Rows are an ordered rear-to-front mix of 1U and 3U bays. With sheet
 thickness `t`, outer dimensions are `HP × 5.08 + 2t` by
-`total rack units × 44.45 + 6t` by `internal depth + 3t` mm. The base underside is at `2t`
-and its inner surface at `3t`. This preserves HP, row spacing, and usable depth.
+`total rack units × 44.45 + 2t + 2m` by `internal depth + t + m` mm. The base
+underside is at `m` and its inner surface at `m + t`. This preserves HP, row
+spacing, and usable depth.
 The feet, handle, and busboard positions follow the revised enclosure geometry.
 Slot widths are nominal sheet thickness, not validated cutting tolerances.
 Laser kerf, actual sheet thickness, internal-corner relief, rail threads, screw
