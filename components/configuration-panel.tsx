@@ -26,11 +26,10 @@ export function ConfigurationPanel({ config, onChange }: Props) {
       <div className="preset-row"><span>Quick set</span>{[42, 62, 84, 104, 126].map(hp => <button key={hp} onClick={() => onChange({ hp })} aria-pressed={config.hp === hp} className={config.hp === hp ? "preset-active" : ""}>{hp}</button>)}</div>
       <RangeField label="Internal depth" value={config.depth} min={50} max={180} unit="mm" onChange={depth => onChange({ depth })} />
     </section>
-    <section className="control-section" id="materials"><SectionTitle number="02" detail="CAST ACRYLIC ONLY">Material</SectionTitle>
+    <section className="control-section" id="materials"><SectionTitle number="02" detail="GS CAST ACRYLIC">Material</SectionTitle>
       <div className="field-heading"><span>Acrylic tint</span><span className="field-note">{config.tint.label}</span></div>
       <div className="swatch-list" aria-label="Acrylic tint">{acrylicTints.map(tint => <button key={tint.id} className={`tint-swatch ${config.tint.id === tint.id ? "tint-swatch-active" : ""}`} style={{ "--swatch": tint.color } as CSSProperties} aria-label={`${tint.label} acrylic`} aria-pressed={config.tint.id === tint.id} title={tint.label} onClick={() => onChange({ tint })}><span className="swatch-surface">{config.tint.id === tint.id && <Check size={18} strokeWidth={1.7} />}</span><span className="swatch-caption">{tint.id === "orange" ? "Orange" : tint.id === "green" ? "Sea glass" : tint.label}</span></button>)}</div>
       <div className="inline-field"><label htmlFor="thickness">Sheet thickness</label><div className="select-wrap"><select id="thickness" value={config.thickness} onChange={event => onChange({ thickness: Number(event.target.value) })}>{[3, 4, 5, 6].map(value => <option key={value} value={value}>{value} mm</option>)}</select><ChevronDown size={12} /></div></div>
-      <p className="control-note">One thickness. Every panel. Always GS.</p>
     </section>
     <section className="control-section"><SectionTitle number="03">Stance</SectionTitle><div className="segmented-control stance-control" aria-label="Leg angle">{[0, 10, 20, 30].map(angle => <button key={angle} className={`segment ${config.angle === angle ? "segment-active" : ""}`} aria-pressed={config.angle === angle} onClick={() => onChange({ angle })}>{angle === 0 ? "No legs" : `${angle}°`}</button>)}</div></section>
     <section className="control-section hardware-section"><SectionTitle number="04">The details</SectionTitle>
