@@ -199,6 +199,33 @@
 .hardware-note > span:last-child { margin-left: auto; color: var(--muted-foreground); font-size: 7px; }
 .hardware-dot { width: 7px; height: 7px; border-radius: 50%; border: 2px solid #52544e; background: #171915; }
 .board-note { color: var(--signal); }
+.cutout-actions { display: flex; gap: 8px; margin-top: 12px; }
+.cutout-button { display: flex; align-items: center; justify-content: center; gap: 6px; flex: 1; min-height: 32px; padding: 5px 8px; border: 1px solid var(--strong-border); border-radius: 3px; font-size: 10px; background: var(--surface); }
+.cutout-button:hover { border-color: var(--signal); color: var(--signal); }
+.cutout-button:disabled, .cutout-list .icon-button:disabled { opacity: .45; cursor: default; }
+.cutout-list { margin-top: 14px; display: grid; gap: 4px; }
+.cutout-list-row { display: flex; align-items: center; gap: 3px; min-width: 0; }
+.cutout-list-row .icon-button { flex-shrink: 0; width: 28px; height: 30px; }
+.cutout-choice { display: flex; flex: 1; align-items: center; gap: 8px; min-width: 0; text-align: left; padding: 9px; border: 1px solid var(--border); border-radius: 3px; font-size: 10px; }
+.cutout-choice > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cutout-choice small { margin-left: auto; font-size: 8px; color: var(--muted-foreground); }
+.cutout-selected { border-color: var(--signal); background: var(--signal-soft); }
+.cutout-editor { border-top: 1px solid var(--border); margin-top: 14px; padding-top: 12px; }
+.cutout-field { display: grid; gap: 6px; margin: 0 0 12px; font-size: 10px; }
+.cutout-field input, .cutout-field select, .cutout-number input { min-width: 0; width: 100%; min-height: 32px; border: 1px solid var(--border); border-radius: 3px; background: var(--background); color: var(--foreground); padding: 5px 8px; font-size: 11px; }
+.cutout-text-editor { border-bottom: 1px solid var(--border); padding-bottom: 12px; margin-bottom: 12px; }
+.cutout-numbers { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.cutout-number { display: grid; gap: 6px; min-width: 0; font-size: 9px; }
+.cutout-number input { font-family: var(--font-geist-mono), monospace; font-size: 10px; }
+.cutout-layout-heading { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin: 15px 0 7px; font: 8px var(--font-geist-mono), monospace; color: var(--muted-foreground); }
+.cutout-layout-heading button { padding: 4px; color: var(--signal); font: inherit; }
+.cutout-layout { width: 100%; height: 140px; display: block; background: var(--background); border: 1px solid var(--border); border-radius: 3px; cursor: crosshair; touch-action: none; }
+.cutout-original { fill: var(--border); }
+.cutout-material { fill: var(--selection); }
+.cutout-outline { fill: none; stroke: var(--signal); stroke-width: 1.5; stroke-dasharray: 4 3; }
+.cutout-warning { display: flex; align-items: flex-start; gap: 7px; margin: 12px 0 0; padding: 9px; font-size: 10px; line-height: 1.5; border: 1px solid var(--signal); border-radius: 3px; background: var(--signal-soft); color: var(--foreground); }
+.cutout-warning > svg { flex-shrink: 0; margin-top: 2px; color: var(--signal); }
+.cutout-warning p { margin: 5px 0 0; }
 .summary-panel { flex-shrink: 0; display: grid; grid-template-columns: 1fr 1.3fr auto; align-items: center; gap: 18px; padding: 15px 22px; background: var(--card); border-top: 1px solid var(--strong-border); }
 .summary-title h2 { margin: 5px 0 0; font-size: 19px; white-space: nowrap; letter-spacing: -.8px; line-height: 1.2; font-weight: 480; }
 .summary-title h2 > span { color: var(--faint); padding: 0 2px; font-weight: 300; }

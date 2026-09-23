@@ -1,3 +1,6 @@
+import type { CustomCutout, CutoutReport, CutoutSide } from "./custom-cutouts";
+import type { MultiPolygon } from "polygon-clipping";
+
 export type AcrylicTint = { id: string; label: string; color: string };
 export type Busboard = "none" | "sinusoda" | "trolley";
 export type FootShape = "wedge" | "arch" | "sled";
@@ -5,6 +8,7 @@ export type CaseConfiguration = {
   hp: number; rows: number; depth: number; thickness: number;
   tint: AcrylicTint; angle: number; vents: boolean; busboard: Busboard;
   handle: boolean; footShape: FootShape;
+  cutouts: CustomCutout[];
 };
 export const acrylicTints: AcrylicTint[] = [
   { id: "clear", label: "Crystal", color: "#cae5e1" },
@@ -22,7 +26,7 @@ export const footShapes: { value: FootShape; label: string; description: string 
 ];
 export const defaultConfiguration: CaseConfiguration = {
   hp: 84, rows: 1, depth: 75, thickness: 5, tint: acrylicTints[1], angle: 0, vents: true, busboard: "none",
-  handle: false, footShape: "wedge",
+  handle: false, footShape: "wedge", cutouts: [],
 };
 export function panelCount(config: CaseConfiguration) {
   return 5 + (config.angle > 0 ? 2 : 0) + (config.handle ? 1 : 0);
@@ -31,11 +35,18 @@ export function panelCount(config: CaseConfiguration) {
 export function caseDimensions(config: CaseConfiguration) {
   return { width: config.hp * 5.08 + config.thickness * 2, length: config.rows * 133.35 + config.thickness * 6, height: config.depth + config.thickness * 3 };
 }
-export function configurationExport(config: CaseConfiguration) {
+export function configurationExport(config: CaseConfiguration, cutoutReports: CutoutReport[] = [], resolvedPanels: Partial<Record<CutoutSide, MultiPolygon>> = {}) {
   return {
-    product: "Acryl508", version: 1, units: "mm", status: "design-concept",
+    product: "Acryl508", version: 2, units: "mm", status: "design-concept",
     configuration: { ...config, material: "GS cast acrylic", fasteners: "Black socket-head screws", assembly: "Mechanical; no glue" },
     outerDimensions: caseDimensions(config),
+    customCutouts: {
+      placement: "Viewed from outside each panel; x/y in mm from panel centre, x right, y up; rotation in degrees counterclockwise; width uniformly scales the normalized outlines. Bottom is viewed from below with rear at the top.",
+      loosePartPolicy: "After all cutouts and existing holes are subtracted, retain only the largest connected acrylic region sharing an edge with the original panel perimeter. Remove all other regions, including enclosed letter centres even when larger than the remaining frame.",
+      reports: cutoutReports,
+      resolvedPanelOutlinesMm: resolvedPanels,
+      outlineStatus: "Sampled outlines for the concept preview; not fabrication-ready cutting paths.",
+    },
     acrylicParts: { enclosurePanels: 5, footPanels: config.angle > 0 ? 2 : 0, handlePanels: config.handle ? 1 : 0, totalPanels: panelCount(config) },
     panelAssembly: {
       method: "Base and end-panel tabs captured in closed side-panel slots; rail-end screws retain the side panels",

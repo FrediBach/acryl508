@@ -5,11 +5,11 @@ import { Canvas, useThree } from "@react-three/fiber";
 import { Path, Shape, Vector3, type MeshPhysicalMaterialParameters } from "three";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { caseDimensions, type CaseConfiguration } from "@/lib/configurator";
-import { caseLift, createFootProfile, createHandleProfile, footFloor, footHoleRadius, footMountLayout, footPanelGap, handleLayout, handleRise } from "@/lib/acrylic-profiles";
-import { createPanelProfiles } from "@/lib/panel-joints";
+import { caseLift, createFootProfile, createHandleProfile, footFloor, footMountLayout, footPanelGap, handleLayout, handleRise } from "@/lib/acrylic-profiles";
+import type { CasePanels } from "@/lib/case-panels";
 
 export type CameraView = "perspective" | "front" | "top";
-type Props = { config: CaseConfiguration; dark: boolean; view: CameraView; resetKey: number; exploded: boolean; modules: boolean };
+type Props = { panels: CasePanels; config: CaseConfiguration; dark: boolean; view: CameraView; resetKey: number; exploded: boolean; modules: boolean };
 const unit = 0.01;
 
 function hole(shape: Shape, x: number, y: number, radius: number) {
@@ -72,54 +72,25 @@ function ExampleModules({ width, y, z }: { width: number; y: number; z: number }
     {[-1, 1].map(side => <Screw key={side} position={[0, 0.022, side * 0.59]} />)}
   </group>)}</group>;
 }
-function AcrylicCase({ config, exploded, modules }: Pick<Props, "config" | "exploded" | "modules">) {
+function AcrylicCase({ config, panels, exploded, modules }: Pick<Props, "config" | "panels" | "exploded" | "modules">) {
   const { width, length, height } = caseDimensions(config);
   const w = width * unit, l = length * unit, h = height * unit, t = config.thickness * unit;
   const a = config.angle * Math.PI / 180;
   const lift = caseLift(l, config.angle);
   const explode = exploded ? 0.4 : 0;
   const footMounts = useMemo(() => footMountLayout(l, config.angle, t), [l, config.angle, t]);
-  const panels = useMemo(() => createPanelProfiles(w, l, h, t), [w, l, h, t]);
   const { innerLength, baseBottom, baseTop, endOuter } = panels.layout;
   const acrylic = useMemo<MeshPhysicalMaterialParameters>(() => ({ color: config.tint.color, metalness: 0, roughness: 0.13, transmission: 0.88, thickness: t * 2, ior: 1.49, clearcoat: 1, clearcoatRoughness: 0.07, envMapIntensity: 1.25, attenuationColor: config.tint.color, attenuationDistance: 0.7 }), [config.tint.color, t]);
-  const base = useMemo(() => {
-    const shape = panels.base.clone();
-    if (config.vents) {
-      const count = Math.max(3, Math.floor((w - 0.5) / 0.12));
-      for (let i = 0; i < count; i++) {
-        const x = (i - (count - 1) / 2) * 0.12;
-        for (const side of [-1, 1]) {
-          const path = new Path(); const y = side * innerLength * 0.28;
-          path.moveTo(x - 0.017, y - innerLength * 0.09); path.lineTo(x - 0.017, y + innerLength * 0.09);
-          path.absarc(x, y + innerLength * 0.09, 0.017, Math.PI, 0, true);
-          path.lineTo(x + 0.017, y - innerLength * 0.09); path.absarc(x, y - innerLength * 0.09, 0.017, 0, Math.PI, true); path.closePath(); shape.holes.push(path);
-        }
-      }
-    }
-    return shape;
-  }, [panels, w, innerLength, config.vents]);
-  const sideShape = useMemo(() => {
-    const shape = panels.side.clone();
-    for (let row = 0; row < config.rows; row++) for (const end of [-1, 1]) {
-      hole(shape, -innerLength / 2 + (row + 0.5) * 1.3335 + end * 0.6125, h - 0.07, 0.019);
-    }
-    if (config.angle > 0) for (const mount of footMounts) hole(shape, -mount.caseZ, mount.caseY, footHoleRadius);
-    return shape;
-  }, [panels, innerLength, h, config.rows, config.angle, footMounts]);
   const footShape = useMemo(() => createFootProfile(l, config.angle, t, config.footShape), [l, config.angle, t, config.footShape]);
   const handleShape = useMemo(() => createHandleProfile(w - 2 * t), [w, t]);
   const handle = handleLayout(w - 2 * t);
-  const rearShape = useMemo(() => {
-    const shape = panels.end.clone();
-    if (config.handle) for (const side of [-1, 1]) hole(shape, side * handle.mountX, h + handle.mountY, 0.022);
-    return shape;
-  }, [panels, h, config.handle, handle.mountX, handle.mountY]);
-  const baseArgs = useMemo(() => [base, { depth: t, bevelEnabled: false, curveSegments: 8 }] as const, [base, t]);
-  const sideArgs = useMemo(() => [sideShape, { depth: t, bevelEnabled: false, curveSegments: 12 }] as const, [sideShape, t]);
+  const baseArgs = useMemo(() => [panels.faces.bottom.shapes, { depth: t, bevelEnabled: false, curveSegments: 8 }] as const, [panels, t]);
+  const leftArgs = useMemo(() => [panels.faces.left.shapes, { depth: t, bevelEnabled: false, curveSegments: 12 }] as const, [panels, t]);
+  const rightArgs = useMemo(() => [panels.faces.right.shapes, { depth: t, bevelEnabled: false, curveSegments: 12 }] as const, [panels, t]);
   const footArgs = useMemo(() => [footShape, { depth: t, bevelEnabled: false, curveSegments: 24 }] as const, [footShape, t]);
   const handleArgs = useMemo(() => [handleShape, { depth: t, bevelEnabled: false, curveSegments: 16 }] as const, [handleShape, t]);
-  const rearArgs = useMemo(() => [rearShape, { depth: t, bevelEnabled: false, curveSegments: 12 }] as const, [rearShape, t]);
-  const frontArgs = useMemo(() => [panels.end, { depth: t, bevelEnabled: false }] as const, [panels, t]);
+  const rearArgs = useMemo(() => [panels.faces.rear.shapes, { depth: t, bevelEnabled: false, curveSegments: 12 }] as const, [panels, t]);
+  const frontArgs = useMemo(() => [panels.faces.front.shapes, { depth: t, bevelEnabled: false }] as const, [panels, t]);
   return <group>
     {config.angle > 0 && [-1, 1].map(side => <group key={side}>
       <mesh castShadow position={[side * (w / 2 + t / 2 + footPanelGap + explode * 2) - t / 2, footFloor, 0]} rotation={[0, Math.PI / 2, 0]}><extrudeGeometry args={footArgs} /><meshPhysicalMaterial {...acrylic} /><Edges color={config.tint.color} threshold={30} /></mesh>
@@ -128,7 +99,7 @@ function AcrylicCase({ config, exploded, modules }: Pick<Props, "config" | "expl
     <group rotation={[a, 0, 0]} position={[0, lift, 0]}>
       <mesh position={[0, baseBottom - explode, 0]} rotation={[-Math.PI / 2, 0, 0]}><extrudeGeometry args={baseArgs} /><meshPhysicalMaterial {...acrylic} /><Edges color={config.tint.color} threshold={35} /></mesh>
       {[-1, 1].map(side => <group key={side}>
-        <mesh position={[side * (w / 2 - t / 2 + explode) - t / 2, 0, 0]} rotation={[0, Math.PI / 2, 0]}><extrudeGeometry args={sideArgs} /><meshPhysicalMaterial {...acrylic} /><Edges color={config.tint.color} threshold={35} /></mesh>
+        <mesh position={[side * (w / 2 - t / 2 + explode) - t / 2, 0, 0]} rotation={[0, Math.PI / 2, 0]}><extrudeGeometry args={side === -1 ? leftArgs : rightArgs} /><meshPhysicalMaterial {...acrylic} /><Edges color={config.tint.color} threshold={35} /></mesh>
         <mesh position={[0, 0, side * (endOuter - t / 2 + explode) - t / 2]}><extrudeGeometry args={side === -1 ? rearArgs : frontArgs} /><meshPhysicalMaterial {...acrylic} /><Edges color={config.tint.color} /></mesh>
       </group>)}
       {config.handle && <group position={[0, h, -endOuter - t - explode * 2]}>

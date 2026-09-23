@@ -2,7 +2,11 @@ import { Check, ChevronDown, Minus, Plus } from "lucide-react";
 import { useState, type CSSProperties, type ReactNode } from "react";
 import { acrylicTints, busboards, footShapes, rowOptions, type CaseConfiguration } from "@/lib/configurator";
 
-type Props = { config: CaseConfiguration; onChange: (update: Partial<CaseConfiguration>) => void };
+import { CutoutControls } from "@/components/cutout-controls";
+import type { CasePanels } from "@/lib/case-panels";
+import type { CutoutAction } from "@/lib/custom-cutouts";
+
+type Props = { panels: CasePanels; onCutoutAction: (action: CutoutAction) => void; config: CaseConfiguration; onChange: (update: Partial<CaseConfiguration>) => void };
 function SectionTitle({ number, children, detail }: { number: string; children: ReactNode; detail?: string }) {
   return <div className="section-heading"><span className="section-number">{number}</span><h3>{children}</h3>{detail && <span className="section-detail">{detail}</span>}</div>;
 }
@@ -16,9 +20,9 @@ function RangeField({ label, value, min, max, unit, onChange }: { label: string;
   }
   return <div className="range-field"><div className="field-heading"><label htmlFor={`range-${unit}`}>{label}</label><div className="number-field"><input type="number" aria-label={`${label} in ${unit}`} min={min} max={max} step={1} value={editing ? draft : value} inputMode="numeric" onFocus={() => { setDraft(String(value)); setEditing(true); }} onBlur={commitDraft} onKeyDown={event => { if (event.key === "Enter") event.currentTarget.blur(); }} onChange={event => { setDraft(event.target.value); const number = Number(event.target.value); if (event.target.value && Number.isInteger(number) && number >= min && number <= max) onChange(number); }} /><span>{unit}</span></div></div><input id={`range-${unit}`} className="range-input" type="range" min={min} max={max} step={1} value={value} style={{ "--range-progress": `${(value - min) / (max - min) * 100}%` } as CSSProperties} onChange={event => onChange(event.currentTarget.valueAsNumber)} /><div className="range-labels"><span>{min} {unit}</span><span>{max} {unit}</span></div></div>;
 }
-export function ConfigurationPanel({ config, onChange }: Props) {
+export function ConfigurationPanel({ config, panels, onChange, onCutoutAction }: Props) {
   return <aside className="control-panel" aria-label="Case controls">
-    <div className="panel-heading"><h2>Your configuration</h2><span className="micro-label">01—04</span></div>
+    <div className="panel-heading"><h2>Your configuration</h2><span className="micro-label">01—05</span></div>
     <section className="control-section"><SectionTitle number="01">Dimensions</SectionTitle>
       <div className="field-heading"><span>Rack format</span><span className="field-note">{config.rows} {config.rows === 1 ? "row" : "rows"}</span></div>
       <div className="segmented-control" aria-label="Rack format">{rowOptions.map(option => <button key={option.value} className={`segment ${config.rows === option.value ? "segment-active" : ""}`} aria-pressed={config.rows === option.value} onClick={() => onChange({ rows: option.value })}>{option.label}</button>)}</div>
@@ -49,5 +53,6 @@ export function ConfigurationPanel({ config, onChange }: Props) {
       <div className="hardware-note"><span className="hardware-dot" />Black hardware <span>Mechanical assembly · no glue</span></div>
       <p className="control-note">Case panels interlock in closed slots. Rail-end screws retain the sides; removing one side releases the panels.</p>
     </section>
+    <section className="control-section"><SectionTitle number="05" detail={`${config.cutouts.length} ADDED`}>Custom cutouts</SectionTitle><CutoutControls config={config} panels={panels} onAction={onCutoutAction} /></section>
   </aside>;
 }

@@ -75,6 +75,24 @@ The canvas fills the preview stage so contact shadows are not cropped by an
 inset rectangle. Material details remain in the controls and top label; no
 material annotation is drawn over the model.
 
+Custom cutouts live in section 05. Each SVG or text item selects one of the five
+enclosure panels and has independent width, rotation and X/Y placement. The
+flat layout is an outside view: X goes right, Y goes up, and the origin is the
+panel centre. Bottom is viewed from below with the rear at the top. Left, rear,
+and bottom geometry is mirrored during assembly so lettering reads correctly
+from outside. Width scales both axes uniformly. Numeric controls provide a
+keyboard alternative to pointer placement. Solid fill is retained material;
+dashed orange outlines identify the selected cutout.
+
+The panel geometry is shared by the flat layout, 3D preview, removal reports
+and JSON export. Subtract all cuts together, including existing ventilation
+and mounting holes, before finding disconnected acrylic. Keep the largest
+component sharing an edge with the original panel perimeter. Remove every
+other component, including enclosed font counters, and show persistent, live
+warnings with part counts and area. Report fully removed panels and cutouts
+outside the sheet. This policy guarantees connected preview material, not
+structural strength or fabrication readiness; the existing concept limits apply.
+
 ## Social card
 
 `public/og.png` is a 1200 × 630 social card created with the built-in image-generation
