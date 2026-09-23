@@ -29,7 +29,7 @@ test("stand support edge follows synth depth and angle, with extra ribs for wide
         const cross = (x - a[0]) * (b[1] - a[1]) - (y - a[1]) * (b[0] - a[0]);
         return Math.abs(cross) < 1e-7 && x >= Math.min(a[0], b[0]) - 1e-7 && x <= Math.max(a[0], b[0]) + 1e-7 && y >= Math.min(a[1], b[1]) - 1e-7 && y <= Math.max(a[1], b[1]) + 1e-7;
       }));
-      assert.ok(stand.front < -stand.config.height * Math.sin(radians));
+      near(stand.front, -stand.stopHeight * Math.sin(radians) - 2 * stand.config.thickness * Math.cos(radians));
       assert.ok(stand.rear > stand.config.depth * Math.cos(radians));
     }
   }
@@ -190,4 +190,42 @@ test("brace corners use the selected circular radius and rounding survives expor
   assert.deepEqual(createSynthStand(legacy).parts, createSynthStand(defaultStandConfiguration).parts);
   assert.deepEqual(createSynthStand({ ...stand.config, roundedEdges: false }).parts, createSynthStand(defaultStandConfiguration).parts);
   assert.equal(createSynthStand({ ...stand.config, cornerRadius: Infinity }).config.cornerRadius, 3);
+});
+
+test("compact front is the default, optional extension changes depth exactly and height no longer adds a toe", () => {
+  const compact = createSynthStand(defaultStandConfiguration);
+  assert.equal(compact.frontExtension.enabled, false);
+  assert.equal(compact.frontExtension.length, 0);
+  assert.ok(compact.front > -compact.config.height * Math.sin(compact.config.angle * Math.PI / 180) - 30 - 2 * compact.config.thickness);
+  near(createSynthStand({ ...defaultStandConfiguration, height: 200 }).front, compact.front);
+  for (const angle of [0, 25, 45]) for (const thickness of [5, 10]) for (const roundedEdges of [false, true]) for (const frontExtensionLength of [5, 15, 100]) {
+    const config = { ...defaultStandConfiguration, depth: 120, angle, thickness, roundedEdges, cornerRadius: 10, cableHoles: true };
+    const base = createSynthStand(config);
+    const extended = createSynthStand({ ...config, frontExtension: true, frontExtensionLength });
+    near(extended.dimensions.depth - base.dimensions.depth, frontExtensionLength);
+    near(base.front - extended.front, frontExtensionLength);
+    near(extended.frontHeight, base.frontHeight);
+    near(extended.stopHeight, base.stopHeight);
+    for (const part of extended.parts) {
+      assert.equal(part.polygons.length, 1);
+      assert.ok(part.polygons.flat(2).every(point => point.every(Number.isFinite)));
+      near(Math.min(...part.polygons.flat(2).map(point => point[0])), part.minX);
+      near(Math.min(...ys(part.polygons)), 0);
+      const original = base.parts.find(other => other.id === part.id);
+      if (part.kind === "brace") assert.deepEqual(part.polygons, original.polygons);
+      else for (const x of base.bracePositions) {
+        const halfSlot = base.slotWidth / 2 + base.reliefRadius + 0.01;
+        const jointZone = rect(x - halfSlot, -1, x + halfSlot, base.braceHeight + 1);
+        assert.deepEqual(polygonClipping.intersection(part.polygons, jointZone), polygonClipping.intersection(original.polygons, jointZone));
+      }
+    }
+  }
+  const extended = createSynthStand({ ...defaultStandConfiguration, frontExtension: true, frontExtensionLength: 15 });
+  assert.equal(standExport(extended).frontExtension.length, 15);
+  assert.match(standSvg(extended), /Front extension: 15 mm beyond the front stops/);
+  assert.deepEqual(createSynthStand({ ...extended.config, frontExtension: false }).parts, compact.parts);
+  const { frontExtension, frontExtensionLength, ...legacy } = defaultStandConfiguration;
+  assert.equal(frontExtension, false); assert.equal(frontExtensionLength, 15);
+  assert.deepEqual(createSynthStand(legacy).parts, compact.parts);
+  assert.equal(createSynthStand({ ...extended.config, frontExtensionLength: NaN }).config.frontExtensionLength, 15);
 });

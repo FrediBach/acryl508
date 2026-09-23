@@ -70,8 +70,13 @@ sheet thickness plus the selected clearance (0–0.4 mm); slot roots have circul
 relief so square shoulders can seat. Joint shoulders have 0.2 mm total vertical
 clearance. The front deck is 11 sheet thicknesses above the floor, leaving a
 solid web above the 8-thickness-high braces. The footprint extends 30 mm behind
-the body and beyond its tilted front projection. Height is measured normal to
-the synth base; actual feet and underside geometry are not modelled.
+the body. By default, compact front feet end beneath the outer front stops.
+Enable **Front extension** under **Playing angle** to add a 5–100 mm toe
+(15 mm initial setting), measured horizontally beyond the front stops. Turning
+it off retains the selected length. Instrument height no longer automatically
+extends the feet; it is measured normal to the synth base for the preview.
+The integral front stops remain in both modes. Actual feet and underside
+geometry are not modelled.
 
 Perspective, side, top, exploded and optional synth-envelope views use the
 same polygons as the cutting layout and exported SVG. JSON includes every

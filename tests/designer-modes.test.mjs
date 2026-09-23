@@ -54,6 +54,10 @@ test("mode switching preserves independent designs and routes material choices a
     await click("Synth stand");
     assert.equal(button("Synth stand").getAttribute("aria-pressed"), "true");
     assert.ok(document.querySelector('[aria-label="Synth stand controls"]'));
+    assert.equal(button("Front extension").getAttribute("aria-checked"), "false");
+    assert.equal(document.querySelector('input[aria-label="Extension length in mm"]'), null);
+    await click("Front extension");
+    assert.equal(document.querySelector('input[aria-label="Extension length in mm"]').value, "15");
     assert.equal(button("Rounded edges").getAttribute("aria-checked"), "false");
     await click("Rounded edges");
     assert.ok(document.querySelector('input[aria-label="Corner radius in mm"]'));
@@ -68,6 +72,8 @@ test("mode switching preserves independent designs and routes material choices a
     assert.equal(stand.mode, "synth-stand"); assert.equal(stand.configuration.angle, 35); assert.equal(stand.configuration.tint.id, "blue");
     assert.equal(stand.configuration.cableHoles, true);
     assert.equal(stand.configuration.roundedEdges, true);
+    assert.equal(stand.configuration.frontExtension, true);
+    assert.equal(stand.frontExtension.length, 15);
     assert.equal(stand.edgeRounding.requestedRadius, 3);
     assert.equal(stand.cableManagement.totalCount, (stand.construction.ribCount - 1) * 3);
     await click("Cutting layout");
@@ -84,6 +90,13 @@ test("mode switching preserves independent designs and routes material choices a
     assert.equal(caseData.configuration.hp, 104); assert.equal(caseData.configuration.tint.id, "orange");
     await click("Synth stand");
     assert.equal(button("35°").getAttribute("aria-pressed"), "true");
+    assert.equal(button("Front extension").getAttribute("aria-checked"), "true");
+    await click("Front extension");
+    assert.equal(document.querySelector('input[aria-label="Extension length in mm"]'), null);
+    await click("Export JSON");
+    const compactStand = JSON.parse(await downloads.at(-1).blob.text());
+    assert.equal(compactStand.frontExtension.length, 0);
+    assert.equal(compactStand.configuration.frontExtensionLength, 15);
     assert.equal(button("Rounded edges").getAttribute("aria-checked"), "true");
     await click("Rounded edges");
     assert.equal(document.querySelector('input[aria-label="Corner radius in mm"]'), null);
