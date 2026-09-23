@@ -1,11 +1,9 @@
 import assert from "node:assert/strict";
-import { access, readFile } from "node:fs/promises";
+import { access } from "node:fs/promises";
 import test from "node:test";
-import ts from "typescript";
+import { loadTypescript } from "./load-typescript.mjs";
 
-const source = await readFile(new URL("../lib/configurator.ts", import.meta.url), "utf8");
-const compiled = ts.transpileModule(source, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext } }).outputText;
-const { caseDimensions, configurationExport, defaultConfiguration, acrylicTints, footShapes, panelCount, rackRowLayout, rackRows, sidePanelMargin, totalRackUnits } = await import(`data:text/javascript;base64,${Buffer.from(compiled).toString("base64")}`);
+const { caseDimensions, configurationExport, defaultConfiguration, acrylicTints, footShapes, panelCount, rackRowLayout, rackRows, sidePanelMargin, totalRackUnits } = await loadTypescript("../lib/configurator.ts");
 
 test("build produces the worker, client manifest and social card", async () => {
   await Promise.all(["../dist/server/index.js", "../dist/client/vinext-client-entry-manifest.json", "../dist/client/og.png"].map(path => access(new URL(path, import.meta.url))));
@@ -79,7 +77,7 @@ test("export retains the complete configuration and marks unverified board fit",
   for (const [key, value] of Object.entries(config)) assert.deepEqual(exported.configuration[key], value);
   assert.deepEqual(exported.outerDimensions, caseDimensions(config));
   assert.equal(exported.status, "design-concept");
-  assert.equal(exported.version, 4);
+  assert.equal(exported.version, 5);
   assert.equal(exported.units, "mm");
   assert.equal(exported.configuration.material, "GS cast acrylic");
   assert.match(exported.notes.join(" "), /not a cutting template/);

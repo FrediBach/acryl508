@@ -1,8 +1,9 @@
 import { ArrowDown, ArrowUp, Check, ChevronDown, Minus, Plus, Trash2 } from "lucide-react";
 import { useState, type CSSProperties, type ReactNode } from "react";
-import { acrylicTints, busboards, footShapes, maxRackUnits, maxSideMarginRatio, minSideMarginRatio, rackFormatLabel, rackRows, sidePanelMargin, totalRackUnits, ventDensities, ventStyles, type CaseConfiguration, type RackUnit } from "@/lib/configurator";
+import { acrylicTints, busboards, footShapes, maxRackUnits, maxSideMarginRatio, minSideMarginRatio, rackFormatLabel, rackRows, sidePanelMargin, totalRackUnits, type CaseConfiguration, type RackUnit } from "@/lib/configurator";
 
 import { CutoutControls } from "@/components/cutout-controls";
+import { VentControls } from "@/components/vent-controls";
 import type { CasePanels } from "@/lib/case-panels";
 import type { CutoutAction } from "@/lib/custom-cutouts";
 
@@ -75,14 +76,7 @@ export function ConfigurationPanel({ config, panels, onChange, onCutoutAction }:
     <section className="control-section hardware-section"><SectionTitle number="04">The details</SectionTitle>
       <div className="inline-field"><label htmlFor="handle">Acrylic handle</label><button id="handle" role="switch" aria-checked={config.handle} aria-label="Acrylic handle" aria-describedby="handle-note" className={`toggle ${config.handle ? "toggle-on" : ""}`} onClick={() => onChange({ handle: !config.handle })}><span>{config.handle ? <Plus size={10} /> : <Minus size={10} />}</span></button></div>
       <p className="control-note handle-note" id="handle-note">Rear-mounted grip · same tint and sheet thickness.</p>
-      <div className="inline-field"><label htmlFor="vents">Bottom ventilation</label><button id="vents" role="switch" aria-checked={config.vents} aria-label="Bottom ventilation" className={`toggle ${config.vents ? "toggle-on" : ""}`} onClick={() => onChange({ vents: !config.vents })}><span>{config.vents ? <Plus size={10} /> : <Minus size={10} />}</span></button></div>
-      <fieldset className="vent-options" disabled={!config.vents} aria-describedby="vent-note">
-        <legend className="sr-only">Bottom vent options</legend>
-        <div className="inline-field"><label htmlFor="vent-style">Vent pattern</label><div className="select-wrap"><select id="vent-style" value={config.ventStyle} onChange={event => onChange({ ventStyle: event.target.value as CaseConfiguration["ventStyle"] })}>{ventStyles.map(style => <option key={style.value} value={style.value}>{style.label}</option>)}</select><ChevronDown size={12} /></div></div>
-        <div className="field-heading"><span id="vent-density-label">Vent density</span></div>
-        <div className="segmented-control" role="group" aria-labelledby="vent-density-label">{ventDensities.map(density => <button key={density.value} className={`segment ${config.ventDensity === density.value ? "segment-active" : ""}`} aria-pressed={config.ventDensity === density.value} onClick={() => onChange({ ventDensity: density.value })}>{density.label}</button>)}</div>
-      </fieldset>
-      <p className="control-note" id="vent-note">{config.vents ? "Higher density adds more openings. All patterns keep a solid border and centre strip." : "Enable bottom ventilation to use the selected pattern and density."}</p>
+      <VentControls config={config} panels={panels} onChange={onChange} />
       <div className="inline-field"><label htmlFor="busboard">Busboard</label><div className="select-wrap board-select"><select id="busboard" value={config.busboard} onChange={event => onChange({ busboard: event.target.value as CaseConfiguration["busboard"] })}>{Object.entries(busboards).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select><ChevronDown size={12} /></div></div>
       {config.busboard !== "none" && <p className="control-note board-note">Layout concept. Exact board fit and hole patterns need verification.</p>}
       <div className="hardware-note"><span className="hardware-dot" />Black hardware <span>Mechanical assembly · no glue</span></div>

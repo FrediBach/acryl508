@@ -1,5 +1,6 @@
 import type { CustomCutout, CutoutReport, CutoutSide } from "./custom-cutouts";
 import type { MultiPolygon } from "polygon-clipping";
+import { defaultVentDesign, normalizeVentDesign, type VentDesign } from "./vent-design";
 
 export type AcrylicTint = { id: string; label: string; color: string };
 export type Busboard = "none" | "sinusoda" | "trolley";
@@ -11,6 +12,7 @@ export type CaseConfiguration = {
   hp: number; rows: number; rowUnits: RackUnit[]; depth: number; thickness: number; sideMarginRatio: number;
   tint: AcrylicTint; angle: number; vents: boolean; busboard: Busboard;
   ventStyle: VentStyle; ventDensity: VentDensity;
+  ventDesign: VentDesign;
   handle: boolean; footShape: FootShape;
   cutouts: CustomCutout[];
 };
@@ -43,6 +45,7 @@ export const ventDensities: { value: VentDensity; label: string }[] = [
 export const defaultConfiguration: CaseConfiguration = {
   hp: 84, rows: 1, rowUnits: [3], depth: 75, thickness: 5, sideMarginRatio: 2, tint: acrylicTints[1], angle: 0, vents: true, busboard: "none",
   handle: false, footShape: "wedge", cutouts: [], ventStyle: "long-slits", ventDensity: "medium",
+  ventDesign: defaultVentDesign,
 };
 // `rows` remains in the exported format for backwards compatibility. A mismatched
 // legacy `rows` value is interpreted as that many 3U rows.
@@ -83,8 +86,14 @@ export function caseDimensions(config: CaseConfiguration) {
 }
 export function configurationExport(config: CaseConfiguration, cutoutReports: CutoutReport[] = [], resolvedPanels: Partial<Record<CutoutSide, MultiPolygon>> = {}) {
   return {
-    product: "Acryl508", version: 4, units: "mm", status: "design-concept",
-    configuration: { ...config, material: "GS cast acrylic", fasteners: "Black socket-head screws", assembly: "Mechanical; no glue" },
+    product: "Acryl508", version: 5, units: "mm", status: "design-concept",
+    configuration: { ...config, ventDesign: normalizeVentDesign(config.ventDesign), material: "GS cast acrylic", fasteners: "Black socket-head screws", assembly: "Mechanical; no glue" },
+    ventilation: {
+      minimumWebMm: Math.max(3, config.thickness), borderMm: Math.max(8, 2 * config.thickness),
+      effects: "Up to three deterministic fields, summed by target, then constrained to separate cells. Size is bounded and positions use the remaining room in each cell.",
+      customCutouts: "Omit vents within one minimum web of each bottom custom-cutout polygon bounding box.",
+      status: "Geometry guardrails only; strength, thermal performance and laser tolerances require prototype validation. Custom cuts can independently weaken the panel.",
+    },
     outerDimensions: caseDimensions(config),
     customCutouts: {
       placement: "Viewed from outside each panel; x/y in mm from panel centre, x right, y up; rotation in degrees counterclockwise; width uniformly scales the normalized outlines. Bottom is viewed from below with rear at the top.",

@@ -205,6 +205,24 @@
 #vent-note { margin-bottom: 14px; }
 .vent-options:disabled { opacity: .45; }
 .vent-options:disabled button, .vent-options:disabled select { cursor: not-allowed; }
+.vent-controls { margin-bottom: 16px; }
+.vent-presets { display: flex; flex-wrap: wrap; gap: 5px; margin: 9px 0 14px; }
+.vent-presets button { font-size: 9px; padding: 5px 8px; border: 1px solid var(--border); border-radius: 3px; }
+.vent-presets button[aria-pressed="true"] { color: var(--signal); background: var(--signal-soft); border-color: var(--signal); }
+.vent-range output { font: 9px var(--font-geist-mono), monospace; color: var(--muted-foreground); }
+.vent-preview-heading { display: flex; justify-content: space-between; gap: 8px; margin-top: 15px; font: 7px var(--font-geist-mono), monospace; color: var(--muted-foreground); }
+.vent-preview { display: block; width: 100%; height: 132px; margin: 8px 0 12px; background: var(--background); border: 1px solid var(--border); border-radius: 3px; }
+.vent-preview path { fill: var(--signal-soft); stroke: var(--signal); stroke-width: .7; }
+.vent-effects-heading, .vent-seed { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 9px; margin-top: 12px; }
+.vent-layer { border: 1px solid var(--border); border-radius: 3px; margin-top: 9px; }
+.vent-layer summary { display: flex; align-items: center; justify-content: space-between; padding: 9px; font-size: 9px; cursor: pointer; }
+.vent-layer summary::-webkit-details-marker { display: none; }
+.vent-layer[open] summary { border-bottom: 1px solid var(--border); }
+.vent-layer-body { padding: 9px; }
+.vent-layer-selects { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.vent-layer-selects label { display: grid; gap: 5px; min-width: 0; font-size: 9px; color: var(--muted-foreground); }
+.vent-layer-selects select { width: 100%; min-width: 0; padding: 6px 3px; border: 1px solid var(--border); border-radius: 2px; font-size: 9px; color: var(--foreground); background: var(--background); }
+.vent-limit-note { margin-top: -5px; }
 .stance-control { grid-template-columns: repeat(4, 1fr); margin: 0; }
 .stance-control .segment { font-size: 9px; }
 .foot-shape-field { border: 0; padding: 0; margin: 14px 0 0; min-width: 0; }

@@ -2,8 +2,8 @@ import { Path, type Shape } from "three";
 import { caseDimensions, rackRowLayout, sidePanelMargin, type CaseConfiguration } from "./configurator";
 import { footHoleRadius, footMountLayout, handleLayout } from "./acrylic-profiles";
 import { createPanelProfiles } from "./panel-joints";
-import { createBottomVents } from "./bottom-vents";
-import { cutoutSides, mapPolygons, polygonsToShapes, shapesToPolygons, subtractCutouts, type CutoutSide } from "./custom-cutouts";
+import { createBottomVentLayout } from "./bottom-vents";
+import { cutoutSides, mapPolygons, placedCutout, polygonBounds, polygonsToShapes, shapesToPolygons, subtractCutouts, type CutoutSide } from "./custom-cutouts";
 
 function hole(shape: Shape, x: number, y: number, radius: number) {
   const path = new Path(); path.absarc(x, y, radius, 0, Math.PI * 2, true); shape.holes.push(path);
@@ -16,9 +16,10 @@ export function createCasePanels(config: CaseConfiguration) {
   const panels = createPanelProfiles(w, l, h, t, edgeMargin);
   const { innerLength } = panels.layout;
   const base = panels.base;
-  if (config.vents) {
-    base.holes.push(...createBottomVents(w, innerLength, config.ventStyle, config.ventDensity));
-  }
+  const exclusions = (config.cutouts ?? []).filter(cutout => cutout.side === "bottom").flatMap(cutout => placedCutout(cutout).map(polygon =>
+    polygonBounds(mapPolygons([polygon], (x, y) => [-x / 100, y / 100]))));
+  const ventilation = createBottomVentLayout(w, innerLength, config.ventStyle, config.ventDensity, { thickness: t, design: config.ventDesign, exclusions });
+  if (config.vents) base.holes.push(...ventilation.paths);
   const side = panels.side;
   for (const row of rackRowLayout(config)) for (const end of [-1, 1]) {
     hole(side, row.center / 100 + end * row.railOffset / 100, h - 0.07, 0.019);
@@ -41,6 +42,6 @@ export function createCasePanels(config: CaseConfiguration) {
       : [originals[value]];
     return [value, { ...result, original, shapes }];
   })) as Record<CutoutSide, ReturnType<typeof subtractCutouts> & { original: ReturnType<typeof shapesToPolygons>; shapes: Shape[] }>;
-  return { faces, layout: panels.layout, reports: cutoutSides.map(({ value }) => faces[value].report) };
+  return { faces, layout: panels.layout, ventilation, reports: cutoutSides.map(({ value }) => faces[value].report) };
 }
 export type CasePanels = ReturnType<typeof createCasePanels>;

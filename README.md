@@ -63,7 +63,25 @@ bands with a solid centre strip and perimeter. Switching ventilation off keeps
 the selected options for later. The preview, custom-cutout editor and SVG
 export share the same panel geometry; JSON includes `ventStyle` and
 `ventDensity`. Older configurations without these fields use long slits at
-medium density, matching the original pattern.
+medium density. The default case retains the original pattern; compact cases
+and dense patterns now adapt to the sheet thickness guardrails.
+
+The pattern editor includes Regular, Wave, Ripple, Weave and Organic starting
+points and up to three editable effect layers. Sine, triangle, radial ripple,
+smooth seeded noise and taper fields can target length/size or either position
+axis. Adjust base size, signed strength, frequency, phase and direction. The
+bottom outline preview includes custom cutouts; the 3D view and SVG use those
+same outlines. Organic variation is reproducible from the exported seed.
+
+After combining effects, each opening stays inside its own cell. The generator
+retains at least one sheet thickness (minimum 3 mm) between vents and across
+the centre strip, and twice the sheet thickness (minimum 8 mm) at the panel
+border. Density is reduced when needed. Vents near the bounding box of each
+custom bottom cutout are omitted with a message; imported shapes may therefore
+reserve extra material. These are geometry limits, not certified structural,
+thermal or laser-cutting limits. Custom cutouts can still independently weaken
+the panel and need review. JSON version 5 includes the full `ventDesign` and
+the guardrail policy.
 
 ## Custom cutouts
 
@@ -87,7 +105,7 @@ are removed, even if an island is larger than the remaining frame. Warnings
 report removed pieces, cuts outside the panel, and panels with no material left.
 Use stencil lettering when enclosed centres should remain attached.
 
-JSON version 4 includes the ordered 1U/3U row layout, adjustable side-panel margin, each cutout's source metadata, normalized outlines,
+JSON version 5 includes the ordered 1U/3U row layout, adjustable side-panel margin, each cutout's source metadata, normalized outlines,
 placement, and width, plus removal reports and the resolved panel outlines in
 millimetres. It remains a design specification requiring fabrication validation.
 Font copyrights and distribution licences are retained in the bundled JSON
