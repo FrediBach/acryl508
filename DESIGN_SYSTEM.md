@@ -12,6 +12,7 @@ clear hierarchy, restrained colour, and controls that show what they change.
 - Spacing: 4, 8, 12, 16, 24, 32, 48 px. Borders: 1 px. Corners: 2–4 px.
 - Orange denotes a selected parameter or a primary export action. Material swatches
   represent acrylic colour independently of the interface accent.
+- Export buttons use a deeper orange `#c44718` with white text in both themes.
 - Avoid decorative shadows; reserve them for the product and modal elevation.
 
 ## Components and interaction
@@ -43,6 +44,18 @@ with a rounded hand opening, and two feet in wedge, arch, or sled profiles. Feet
 follow the selected 10°, 20°, or 30° stance; no feet preserves the saved profile.
 The summary and JSON export include all acrylic panels (5–8). Displayed case
 dimensions describe the enclosure, excluding accessories.
+
+Feet overlap the outside of each side wall and attach with two removable
+through-bolts per foot, broad washers, isolating spacers, and locknuts. Matching
+clearance holes and the full fastening stack appear in the preview and separate
+in the exploded view. No glue or tapped acrylic threads are used. Joint sizes and
+loads remain conceptual and require fabrication validation. See the
+[Perspex fixing guidance](https://www.perspex.co.uk/Perspex/media/General/technical-library/PDFs/Perspex-Design-Guide.pdf)
+and [ACRYLITE hole clearances](https://www.acrylite.co/resources/knowledge-base/article/how-far-in-should-I-drill-a-hole-from-the-edge-of-acrylic-sheet?category=working-with-acrylite-r).
+
+The canvas fills the preview stage so contact shadows are not cropped by an
+inset rectangle. Material details remain in the controls and top label; no
+material annotation is drawn over the model.
 
 ## Social card
 
