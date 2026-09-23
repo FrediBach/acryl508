@@ -52,6 +52,6 @@ export function VentControls({ config, panels, onChange }: { config: CaseConfigu
       {design.layers.length > 0 && <p className="control-note">Position effects use the spare room around each opening. Reduce base size or density for more movement. Openings never close completely.</p>}
     </fieldset>
     <p className="control-note" id="vent-note">{config.vents ? `At least ${(layout.minimumWeb * 100).toFixed(1)} mm between vents and ${(layout.edgeMargin * 100).toFixed(1)} mm at the border. Length and movement stay within these limits.` : "Enable ventilation to use the selected pattern and effects."}</p>
-    {config.vents && <p className="control-note vent-limit-note" role="status">{layout.pitchAdjusted && "Density reduced for this sheet thickness. "}{layout.limited > 0 && `${layout.limited} openings reached an effect limit. `}{layout.omitted > 0 && `${layout.omitted} openings omitted near custom cutouts. `}Geometry limits only; strength, heat and laser tolerances still need prototype validation.</p>}
+    {config.vents && <p className="control-note vent-limit-note" role="status">{layout.pitchAdjusted && "Density reduced for this sheet thickness. "}{layout.limited > 0 && `${layout.limited} openings reached an effect limit. `}{layout.omitted > 0 && `${layout.omitted} openings omitted near custom cutouts or board mounts. `}Geometry limits only; strength, heat and laser tolerances still need prototype validation.</p>}
   </div>;
 }

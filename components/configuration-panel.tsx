@@ -96,7 +96,12 @@ export function ConfigurationPanel({ config, panels, onChange, onCutoutAction }:
       </>}
       <VentControls config={config} panels={panels} onChange={onChange} />
       <div className="inline-field"><label htmlFor="busboard">Busboard</label><div className="select-wrap board-select"><select id="busboard" value={config.busboard} onChange={event => onChange({ busboard: event.target.value as CaseConfiguration["busboard"] })}>{Object.entries(busboards).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select><ChevronDown size={12} /></div></div>
-      {config.busboard !== "none" && <p className="control-note board-note">Layout concept. Exact board fit and hole patterns need verification.</p>}
+      {config.busboard === "sinusoda" && <>
+        <p className="control-note board-note">Juice · 226 × 86 × 19 mm · 23 headers. Centred on the base. All 28 mounting holes are estimated from the data-sheet photo (Ø3.2 mm assumed); verify against your board before drilling. Use at least 14 evenly spaced screws with nylon washers.</p>
+        <p className="control-note">Preview assumes 5 mm standoffs. {panels.powerBoard?.fits ? `${panels.powerBoard.moduleClearance.toFixed(1)} mm remains above the board for modules and cables.` : "Board does not fit: allow at least 226 × 86 mm inside the case (45 HP and at least 2U total). Preview and bottom mounting holes are omitted."}</p>
+        {panels.mountingConflicts > 0 && <p className="control-note" role="alert">Bottom custom cutouts overlap or approach {panels.mountingConflicts} mounting points. Move these cuts to preserve the mounts.</p>}
+      </>}
+      {config.busboard === "trolley" && <p className="control-note board-note">Layout concept. Exact board fit and hole patterns need verification.</p>}
       <div className="hardware-note"><span className="hardware-dot" />Black hardware <span>Mechanical assembly · no glue</span></div>
       <p className="control-note">Case panels interlock in closed slots. Rail-end screws retain the sides; removing one side releases the panels.</p>
     </section>

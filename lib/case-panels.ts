@@ -2,8 +2,9 @@ import { Path, type Shape } from "three";
 import { caseDimensions, handleCount, handleDimensions, rackRowLayout, sidePanelMargin, type CaseConfiguration } from "./configurator";
 import { createSideProfile } from "./acrylic-profiles";
 import { createPanelProfiles } from "./panel-joints";
-import { createBottomVentLayout } from "./bottom-vents";
+import { createBottomVentLayout, type VentBounds } from "./bottom-vents";
 import { cableHolderLayout, cableHolderTopEdge } from "./cable-holder";
+import { sinusodaHoles, sinusodaJuice, sinusodaPlacement } from "./sinusoda";
 import { cutoutSides, mapPolygons, placedCutout, polygonBounds, polygonsToShapes, shapesToPolygons, subtractCutouts, type CutoutSide } from "./custom-cutouts";
 
 function hole(shape: Shape, x: number, y: number, radius: number) {
@@ -18,10 +19,18 @@ export function createCasePanels(config: CaseConfiguration) {
   const panels = createPanelProfiles(w, l, h, t, edgeMargin, config.cableHolder ? shape => cableHolderTopEdge(shape, h, holder) : undefined);
   const { innerLength } = panels.layout;
   const base = panels.base;
-  const exclusions = (config.cutouts ?? []).filter(cutout => cutout.side === "bottom").flatMap(cutout => placedCutout(cutout).map(polygon =>
+  const powerBoard = config.busboard === "sinusoda" ? sinusodaPlacement(panels.layout.innerWidth * 100, innerLength * 100, config.depth) : null;
+  const mountingHoles = powerBoard?.fits ? sinusodaHoles : [];
+  const mountingRadius = sinusodaJuice.holeDiameter / 200;
+  const exclusions: VentBounds[] = (config.cutouts ?? []).filter(cutout => cutout.side === "bottom").flatMap(cutout => placedCutout(cutout).map(polygon =>
     polygonBounds(mapPolygons([polygon], (x, y) => [-x / 100, y / 100]))));
+  const mountingConflicts = mountingHoles.filter(({ x, y }) => exclusions.some(box =>
+    x / 100 + mountingRadius + t > box.left && x / 100 - mountingRadius - t < box.right &&
+    y / 100 + mountingRadius + t > box.bottom && y / 100 - mountingRadius - t < box.top)).length;
+  exclusions.push(...mountingHoles.map(({ x, y }) => ({ left: x / 100 - mountingRadius, right: x / 100 + mountingRadius, bottom: y / 100 - mountingRadius, top: y / 100 + mountingRadius })));
   const ventilation = createBottomVentLayout(w, innerLength, config.ventStyle, config.ventDensity, { thickness: t, design: config.ventDesign, exclusions, layout: config.ventLayout, coverage: config.ventCoverage, mix: config.ventMix });
   if (config.vents) base.holes.push(...ventilation.paths);
+  for (const { x, y } of mountingHoles) hole(base, x / 100, y / 100, mountingRadius);
   const side = panels.side;
   for (const row of rackRowLayout(config)) for (const end of [-1, 1]) {
     hole(side, row.center / 100 + end * row.railOffset / 100, h - 0.07, 0.019);
@@ -45,6 +54,6 @@ export function createCasePanels(config: CaseConfiguration) {
       : [originals[value]];
     return [value, { ...result, original, shapes }];
   })) as Record<CutoutSide, ReturnType<typeof subtractCutouts> & { original: ReturnType<typeof shapesToPolygons>; shapes: Shape[] }>;
-  return { faces, layout: panels.layout, ventilation, reports: cutoutSides.map(({ value }) => faces[value].report) };
+  return { faces, layout: panels.layout, ventilation, powerBoard, mountingHoles, mountingConflicts, reports: cutoutSides.map(({ value }) => faces[value].report) };
 }
 export type CasePanels = ReturnType<typeof createCasePanels>;

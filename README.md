@@ -170,3 +170,33 @@ kerf, tolerances, corner relief, and hardware clearances before fabrication.
 
 - [vinext Documentation](https://github.com/cloudflare/vinext)
 - [Drizzle D1 Guide](https://orm.drizzle.team/docs/get-started/d1-new)
+
+## Sinusoda Juice
+
+Selecting **Sinusoda Juice** places one centred, unrotated 226 × 86 × 19 mm
+board in the case. These overall dimensions, 23 Eurorack headers (2 × 8 pins
+at 2.54 mm pitch), 28 mounting holes, and the recommendation for at least 14
+evenly distributed screws with nylon washers come from
+`docs/sinusoda_data_sheet_juice_v23_2.pdf`, pages 1–2. The document itself
+identifies the board as v22.4 and the data sheet as version 1.0, December 2022.
+
+**The PDF contains no dimensioned mounting drawing.** With the user's approval,
+the hole pattern is estimated from its top-view photograph (Figure 1), scaled
+to the published envelope. The centred coordinates in millimetres are every
+combination of X = −103, −68.7, −34.3, 0, 34.3, 68.7, 103 and
+Y = −39, −20, 20, 39. X runs right and Y toward the rear when viewed from above;
+the underside editor mirrors X. The 3.2 mm hole diameter, board notches,
+component envelopes, 1.6 mm PCB thickness and 5 mm standoffs are assumptions.
+They require measurement against the actual board before fabrication.
+
+The model, bottom preview and SVG share this pattern. Vents retain at least
+one sheet thickness around each mounting hole. Custom cuts approaching the
+mounts trigger a warning based on their bounding boxes. The board is never
+scaled to fit: cases below 226 mm internal width or 86 mm internal row length
+omit the board and its holes and show a warning (minimum 45 HP and 2U total).
+The space above the board subtracts its 19 mm height and the assumed 5 mm
+standoffs; it is not a validation of individual module or cable fit. The Straw
+input module and its cabling are not modelled. JSON records the source,
+assumptions, fit and hole coordinates; SVG describes the approximate pattern
+and warns about incompatible cases or custom-cutout conflicts. Trolley Bus
+retains its illustrative preview and adds no mounting holes.

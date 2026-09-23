@@ -2,6 +2,7 @@ import type { CustomCutout, CutoutReport, CutoutSide } from "./custom-cutouts";
 import type { MultiPolygon } from "polygon-clipping";
 import { defaultVentDesign, normalizeVentDesign, type VentDesign } from "./vent-design";
 import { cableHolderLayout } from "./cable-holder";
+import { sinusodaHoles, sinusodaJuice, sinusodaPlacement } from "./sinusoda";
 
 export type AcrylicTint = { id: string; label: string; color: string };
 export type Busboard = "none" | "sinusoda" | "trolley";
@@ -33,7 +34,7 @@ export const maxRackUnits = 9;
 export const rackUnitPitch = 44.45;
 export const minSideMarginRatio = 1;
 export const maxSideMarginRatio = 2;
-export const busboards: Record<Busboard, string> = { none: "No busboard", sinusoda: "Sinusoda", trolley: "Trolley Bus" };
+export const busboards: Record<Busboard, string> = { none: "No busboard", sinusoda: "Sinusoda Juice", trolley: "Trolley Bus" };
 export const footShapes: { value: FootShape; label: string; description: string }[] = [
   { value: "wedge", label: "Wedge", description: "Solid side panels extend to the floor." },
   { value: "arch", label: "Arch", description: "An arch in each side panel leaves two contact points." },
@@ -125,6 +126,15 @@ export function configurationExport(config: CaseConfiguration, cutoutReports: Cu
       status: "Geometry guardrails only; strength, thermal performance and laser tolerances require prototype validation. Custom cuts can independently weaken the panel.",
     },
     outerDimensions: caseDimensions(config),
+    powerBoard: config.busboard === "sinusoda" ? {
+      ...sinusodaJuice,
+      placement: sinusodaPlacement(config.hp * 5.08, rackRowLayout(config).reduce((sum, row) => sum + row.length, 0), config.depth),
+      mountingHoleCentersMm: sinusodaHoles,
+      coordinates: "Centred on base, viewed from above; X right, Y toward rear. Underside editor mirrors X. No automatic rotation or scaling.",
+      bottomHolePolicy: "All 28 approximate holes when the board fits. Omit vents within one sheet thickness of each hole. Review custom-cutout conflicts.",
+      accuracy: "226 × 86 × 19 mm envelope from data sheet. Hole centres, 3.2 mm diameter, notches and component positions estimated from Figure 1; verify against hardware before drilling. PCB thickness 1.6 mm and standoffs 5 mm are preview assumptions.",
+      mounting: "Use at least 14 evenly distributed screws with nylon washers, per data sheet. Fastener size and standoff height need verification.",
+    } : null,
     customCutouts: {
       placement: "Viewed from outside each panel; x/y in mm from panel centre, x right, y up; rotation in degrees counterclockwise; width uniformly scales the normalized outlines. Bottom is viewed from below with rear at the top.",
       loosePartPolicy: "After all cutouts and existing holes are subtracted, retain only the largest connected acrylic region sharing an edge with the original panel perimeter. Remove all other regions, including enclosed letter centres even when larger than the remaining frame.",
@@ -147,6 +157,6 @@ export function configurationExport(config: CaseConfiguration, cutoutReports: Cu
     handles: { method: "Integral side-panel grips", mode: config.handleMode ?? "auto", count: handleCount(config), widthMm: handleDimensions(config).width, riseMm: handleDimensions(config).height, roundedRoots: true, sides: handleCount(config) === 2 ? ["left", "right"] : handleCount(config) === 1 ? ["left"] : [], additionalParts: 0 },
     footAttachment: null,
     cableHolder: { enabled: Boolean(config.cableHolder), method: "Integral fingers along the rear panel top edge", heightMm: holder.height, slitWidthMm: holder.slitWidth, slitCount: config.cableHolder ? holder.slitCount : 0, fingerWidthMm: holder.fingerWidth, pitchMm: holder.pitch, slitCentersMm: config.cableHolder ? holder.slitCenters : [], roundedTips: true, roundedSlitRoots: true, additionalParts: 0 },
-    notes: ["Configuration specification only; not a cutting template.", "Outer dimensions describe the enclosure, excluding the integral grip, cable holder and stance extensions.", "The minimum side margin uses a 1.5× slot-width centre-to-edge guardrail adapted from acrylic hole guidance; rectangular slots and the complete loaded assembly still require fabrication validation.", "Joint clearances, fasteners, load capacity and rail profiles require fabrication validation.", ...(config.busboard !== "none" ? [busboards[config.busboard] + " is a requested board family. Board dimensions, mounting holes and electrical clearances must be verified against the exact model. The preview is illustrative."] : [])],
+    notes: ["Configuration specification only; not a cutting template.", "Outer dimensions describe the enclosure, excluding the integral grip, cable holder and stance extensions.", "The minimum side margin uses a 1.5× slot-width centre-to-edge guardrail adapted from acrylic hole guidance; rectangular slots and the complete loaded assembly still require fabrication validation.", "Joint clearances, fasteners, load capacity and rail profiles require fabrication validation.", ...(config.busboard === "sinusoda" ? ["Sinusoda Juice envelope follows the supplied data sheet; the 28-hole pattern is photo-derived and approximate. Verify centres, diameters, mounting stack, module and electrical clearances against the physical board before fabrication."] : config.busboard === "trolley" ? ["Trolley Bus is a requested board family. Board dimensions, mounting holes and electrical clearances must be verified against the exact model. The preview is illustrative."] : [])],
   };
 }

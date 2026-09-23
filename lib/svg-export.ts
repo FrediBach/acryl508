@@ -76,7 +76,7 @@ export function configurationSvg(config: CaseConfiguration, panels: CasePanels) 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${number(width)}mm" height="${number(height)}mm" viewBox="0 0 ${number(width)} ${number(height)}" fill="none" stroke="#000000" stroke-width="0.2" stroke-linecap="round" stroke-linejoin="round" data-units="mm">
   <title>Acryl508 ${escapeXml(rackFormatLabel(config))} / ${config.hp}HP panel layout</title>
-  <desc>Full-size concept vectors in millimetres. Verify kerf, tolerances, corner relief, rail fit and hardware clearances before fabrication.</desc>
+  <desc>Full-size concept vectors in millimetres. Verify kerf, tolerances, corner relief, rail fit and hardware clearances before fabrication.${config.busboard === "sinusoda" ? ` Sinusoda Juice: 226 x 86 x 19 mm envelope from data sheet. All 28 mounting centres are photo-derived estimates; diameter 3.2 mm assumed. Verify on hardware before drilling.${panels.powerBoard?.fits ? "" : " Board does not fit; no mounting holes exported."}${panels.mountingConflicts ? ` WARNING: custom cutouts approach or overlap ${panels.mountingConflicts} mounting points.` : ""}` : ""}</desc>
 ${groups}
 </svg>
 `;
