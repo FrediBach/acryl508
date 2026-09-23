@@ -1,6 +1,6 @@
 import { Check, ChevronDown, Minus, Plus } from "lucide-react";
 import { useState, type CSSProperties, type ReactNode } from "react";
-import { acrylicTints, busboards, rowOptions, type CaseConfiguration } from "@/lib/configurator";
+import { acrylicTints, busboards, footShapes, rowOptions, type CaseConfiguration } from "@/lib/configurator";
 
 type Props = { config: CaseConfiguration; onChange: (update: Partial<CaseConfiguration>) => void };
 function SectionTitle({ number, children, detail }: { number: string; children: ReactNode; detail?: string }) {
@@ -31,8 +31,17 @@ export function ConfigurationPanel({ config, onChange }: Props) {
       <div className="swatch-list" aria-label="Acrylic tint">{acrylicTints.map(tint => <button key={tint.id} className={`tint-swatch ${config.tint.id === tint.id ? "tint-swatch-active" : ""}`} style={{ "--swatch": tint.color } as CSSProperties} aria-label={`${tint.label} acrylic`} aria-pressed={config.tint.id === tint.id} title={tint.label} onClick={() => onChange({ tint })}><span className="swatch-surface">{config.tint.id === tint.id && <Check size={18} strokeWidth={1.7} />}</span><span className="swatch-caption">{tint.id === "orange" ? "Orange" : tint.id === "green" ? "Sea glass" : tint.label}</span></button>)}</div>
       <div className="inline-field"><label htmlFor="thickness">Sheet thickness</label><div className="select-wrap"><select id="thickness" value={config.thickness} onChange={event => onChange({ thickness: Number(event.target.value) })}>{[3, 4, 5, 6].map(value => <option key={value} value={value}>{value} mm</option>)}</select><ChevronDown size={12} /></div></div>
     </section>
-    <section className="control-section"><SectionTitle number="03">Stance</SectionTitle><div className="segmented-control stance-control" aria-label="Leg angle">{[0, 10, 20, 30].map(angle => <button key={angle} className={`segment ${config.angle === angle ? "segment-active" : ""}`} aria-pressed={config.angle === angle} onClick={() => onChange({ angle })}>{angle === 0 ? "No legs" : `${angle}°`}</button>)}</div></section>
+    <section className="control-section"><SectionTitle number="03">Stance</SectionTitle>
+      <div className="segmented-control stance-control" role="group" aria-label="Foot angle">{[0, 10, 20, 30].map(angle => <button key={angle} className={`segment ${config.angle === angle ? "segment-active" : ""}`} aria-pressed={config.angle === angle} onClick={() => onChange({ angle })}>{angle === 0 ? "No feet" : `${angle}°`}</button>)}</div>
+      <fieldset className="foot-shape-field" disabled={config.angle === 0} aria-describedby="foot-shape-note">
+        <legend>Foot shape <span className="field-note">Acrylic sheet</span></legend>
+        <div className="segmented-control foot-shape-control">{footShapes.map(shape => <button key={shape.value} className={`segment ${config.footShape === shape.value ? "segment-active" : ""}`} aria-pressed={config.footShape === shape.value} title={shape.description} onClick={() => onChange({ footShape: shape.value })}>{shape.label}</button>)}</div>
+      </fieldset>
+      <p className="control-note" id="foot-shape-note">{config.angle === 0 ? "Choose an angle to add two acrylic feet." : footShapes.find(shape => shape.value === config.footShape)?.description}</p>
+    </section>
     <section className="control-section hardware-section"><SectionTitle number="04">The details</SectionTitle>
+      <div className="inline-field"><label htmlFor="handle">Acrylic handle</label><button id="handle" role="switch" aria-checked={config.handle} aria-label="Acrylic handle" aria-describedby="handle-note" className={`toggle ${config.handle ? "toggle-on" : ""}`} onClick={() => onChange({ handle: !config.handle })}><span>{config.handle ? <Plus size={10} /> : <Minus size={10} />}</span></button></div>
+      <p className="control-note handle-note" id="handle-note">Rear-mounted grip · same tint and sheet thickness.</p>
       <div className="inline-field"><label htmlFor="vents">Bottom ventilation</label><button id="vents" role="switch" aria-checked={config.vents} aria-label="Bottom ventilation" className={`toggle ${config.vents ? "toggle-on" : ""}`} onClick={() => onChange({ vents: !config.vents })}><span>{config.vents ? <Plus size={10} /> : <Minus size={10} />}</span></button></div>
       <div className="inline-field"><label htmlFor="busboard">Busboard</label><div className="select-wrap board-select"><select id="busboard" value={config.busboard} onChange={event => onChange({ busboard: event.target.value as CaseConfiguration["busboard"] })}>{Object.entries(busboards).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select><ChevronDown size={12} /></div></div>
       {config.busboard !== "none" && <p className="control-note board-note">Layout concept. Exact board fit and hole patterns need verification.</p>}

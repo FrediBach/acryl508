@@ -5,6 +5,7 @@ import { Canvas, useThree } from "@react-three/fiber";
 import { Path, Shape, Vector3, type MeshPhysicalMaterialParameters } from "three";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { caseDimensions, type CaseConfiguration } from "@/lib/configurator";
+import { caseLift, createFootProfile, createHandleProfile, footFloor, handleLayout, handleRise } from "@/lib/acrylic-profiles";
 
 export type CameraView = "perspective" | "front" | "top";
 type Props = { config: CaseConfiguration; dark: boolean; view: CameraView; resetKey: number; exploded: boolean; modules: boolean };
@@ -19,8 +20,8 @@ function rectangularShape(width: number, height: number) {
 function hole(shape: Shape, x: number, y: number, radius: number) {
   const path = new Path(); path.absarc(x, y, radius, 0, Math.PI * 2, true); shape.holes.push(path);
 }
-function Screw({ position, side = false }: { position: [number, number, number]; side?: boolean }) {
-  return <group position={position} rotation={side ? [0, 0, -Math.sign(position[0]) * Math.PI / 2] : [0, 0, 0]}>
+function Screw({ position, side = false, rear = false }: { position: [number, number, number]; side?: boolean; rear?: boolean }) {
+  return <group position={position} rotation={rear ? [-Math.PI / 2, 0, 0] : side ? [0, 0, -Math.sign(position[0]) * Math.PI / 2] : [0, 0, 0]}>
     <mesh><cylinderGeometry args={[0.035, 0.035, 0.027, 20]} /><meshStandardMaterial color="#252628" metalness={0.72} roughness={0.3} /></mesh>
     <mesh position={[0, 0.014, 0]}><cylinderGeometry args={[0.014, 0.014, 0.002, 6]} /><meshStandardMaterial color="#050606" roughness={0.85} /></mesh>
   </group>;
@@ -47,7 +48,7 @@ function AcrylicCase({ config, exploded, modules }: Pick<Props, "config" | "expl
   const { width, length, height } = caseDimensions(config);
   const w = width * unit, l = length * unit, h = height * unit, t = config.thickness * unit;
   const a = config.angle * Math.PI / 180;
-  const lift = config.angle ? Math.sin(a) * l / 2 + 0.08 : 0.035;
+  const lift = caseLift(l, config.angle);
   const explode = exploded ? 0.4 : 0;
   const acrylic = useMemo<MeshPhysicalMaterialParameters>(() => ({ color: config.tint.color, metalness: 0, roughness: 0.13, transmission: 0.88, thickness: t * 2, ior: 1.49, clearcoat: 1, clearcoatRoughness: 0.07, envMapIntensity: 1.25, attenuationColor: config.tint.color, attenuationDistance: 0.7 }), [config.tint.color, t]);
   const base = useMemo(() => {
@@ -74,23 +75,31 @@ function AcrylicCase({ config, exploded, modules }: Pick<Props, "config" | "expl
     }
     return shape;
   }, [l, h, t, config.rows]);
-  const legShape = useMemo(() => {
-    const shape = new Shape();
-    const extent = l * Math.cos(a) * 0.86;
-    shape.moveTo(-extent / 2, 0); shape.lineTo(extent / 2, 0); shape.lineTo(extent / 2, Math.sin(a) * l * 0.86 + 0.08); shape.lineTo(-extent / 2, 0.08); shape.closePath();
+  const footShape = useMemo(() => createFootProfile(l, config.angle, t, config.footShape), [l, config.angle, t, config.footShape]);
+  const handleShape = useMemo(() => createHandleProfile(w - 2 * t), [w, t]);
+  const handle = handleLayout(w - 2 * t);
+  const rearShape = useMemo(() => {
+    const shape = rectangularShape(w - 2 * t, h - t);
+    if (config.handle) for (const side of [-1, 1]) hole(shape, side * handle.mountX, (h - t) / 2 + handle.mountY, 0.022);
     return shape;
-  }, [l, a]);
+  }, [w, h, t, config.handle, handle.mountX, handle.mountY]);
   const baseArgs = useMemo(() => [base, { depth: t, bevelEnabled: false, curveSegments: 8 }] as const, [base, t]);
   const sideArgs = useMemo(() => [sideShape, { depth: t, bevelEnabled: false, curveSegments: 12 }] as const, [sideShape, t]);
-  const legArgs = useMemo(() => [legShape, { depth: t, bevelEnabled: false }] as const, [legShape, t]);
+  const footArgs = useMemo(() => [footShape, { depth: t, bevelEnabled: false, curveSegments: 24 }] as const, [footShape, t]);
+  const handleArgs = useMemo(() => [handleShape, { depth: t, bevelEnabled: false, curveSegments: 16 }] as const, [handleShape, t]);
+  const rearArgs = useMemo(() => [rearShape, { depth: t, bevelEnabled: false, curveSegments: 12 }] as const, [rearShape, t]);
   return <group>
-    {config.angle > 0 && [-1, 1].map(side => <mesh key={side} position={[side * (w / 2 - t / 2) - t / 2, 0.015, 0]} rotation={[0, Math.PI / 2, 0]}><extrudeGeometry args={legArgs} /><meshPhysicalMaterial {...acrylic} /><Edges color={config.tint.color} threshold={30} /></mesh>)}
+    {config.angle > 0 && [-1, 1].map(side => <mesh key={side} castShadow position={[side * (w / 2 - t / 2 + explode) - t / 2, footFloor, 0]} rotation={[0, Math.PI / 2, 0]}><extrudeGeometry args={footArgs} /><meshPhysicalMaterial {...acrylic} /><Edges color={config.tint.color} threshold={30} /></mesh>)}
     <group rotation={[a, 0, 0]} position={[0, lift, 0]}>
       <mesh position={[0, -explode, 0]} rotation={[-Math.PI / 2, 0, 0]}><extrudeGeometry args={baseArgs} /><meshPhysicalMaterial {...acrylic} /><Edges color={config.tint.color} threshold={35} /></mesh>
       {[-1, 1].map(side => <group key={side}>
         <mesh position={[side * (w / 2 - t / 2 + explode) - t / 2, t + (h - t) / 2, 0]} rotation={[0, Math.PI / 2, 0]}><extrudeGeometry args={sideArgs} /><meshPhysicalMaterial {...acrylic} /><Edges color={config.tint.color} threshold={35} /></mesh>
-        <mesh position={[0, t + (h - t) / 2, side * (l / 2 - t / 2 + explode)]}><boxGeometry args={[w - 2 * t, h - t, t]} /><meshPhysicalMaterial {...acrylic} /><Edges color={config.tint.color} /></mesh>
+        {side === -1 ? <mesh position={[0, t + (h - t) / 2, -l / 2 - explode]}><extrudeGeometry args={rearArgs} /><meshPhysicalMaterial {...acrylic} /><Edges color={config.tint.color} /></mesh> : <mesh position={[0, t + (h - t) / 2, l / 2 - t / 2 + explode]}><boxGeometry args={[w - 2 * t, h - t, t]} /><meshPhysicalMaterial {...acrylic} /><Edges color={config.tint.color} /></mesh>}
       </group>)}
+      {config.handle && <group position={[0, h, -l / 2 - t - explode * 2]}>
+        <mesh castShadow><extrudeGeometry args={handleArgs} /><meshPhysicalMaterial {...acrylic} /><Edges color={config.tint.color} threshold={35} /></mesh>
+        {[-1, 1].map(side => <Screw key={side} rear position={[side * handle.mountX, handle.mountY, -0.014 - explode * 0.5]} />)}
+      </group>}
       {Array.from({ length: config.rows }, (_, row) => {
         const z = -l / 2 + t + (row + 0.5) * 1.3335;
         return <group key={row}>{[-1, 1].map(end => <group key={end}><Rail width={w - 2 * t} y={h - 0.07 + explode} z={z + end * 0.6125} />{[-1, 1].map(side => <Screw key={side} side position={[side * (w / 2 + 0.012 + explode * 1.4), h - 0.07, z + end * 0.6125]} />)}</group>)}{modules && <ExampleModules width={w - 2 * t - 0.02} y={h + explode * 2} z={z} />}</group>;
@@ -110,14 +119,16 @@ function CameraRig({ config, view, resetKey, exploded }: Pick<Props, "config" | 
   const width = dimensions.width * unit, length = dimensions.length * unit, height = dimensions.height * unit;
   useEffect(() => {
     const aspect = size.width / size.height;
-    const fit = Math.max(width / aspect, length * 0.85, height * 1.3, 1.85) * (exploded ? 2.8 : 2.35);
-    const target = new Vector3(0, height / 2 + (config.angle ? Math.sin(config.angle * Math.PI / 180) * length / 2 : 0), 0);
+    const radians = config.angle * Math.PI / 180;
+    const totalHeight = caseLift(length, config.angle) + Math.sin(radians) * length / 2 + Math.cos(radians) * (height + (config.handle ? handleRise : 0));
+    const fit = Math.max(width / aspect, length * 0.85, totalHeight * 1.3, 1.85) * (exploded ? 2.8 : 2.35);
+    const target = new Vector3(0, totalHeight / 2, 0);
     const direction = view === "top" ? new Vector3(0, 1, 0.001) : view === "front" ? new Vector3(0, 0.1, 1) : new Vector3(0.65, 0.72, 1).normalize();
     camera.position.copy(target).addScaledVector(direction, fit);
     camera.lookAt(target);
     if (controls.current) { controls.current.target.copy(target); controls.current.update(); }
     invalidate();
-  }, [camera, size.width, size.height, width, length, height, config.angle, view, resetKey, exploded, invalidate]);
+  }, [camera, size.width, size.height, width, length, height, config.angle, config.handle, view, resetKey, exploded, invalidate]);
   return <OrbitControls ref={controls} makeDefault enablePan={false} enableDamping minDistance={1.3} maxDistance={28} maxPolarAngle={Math.PI / 2 - 0.03} />;
 }
 class PreviewBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
