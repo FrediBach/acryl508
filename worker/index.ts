@@ -1,10 +1,7 @@
 /** Cloudflare Worker entry point for Acryl508. */
 import handler from "vinext/server/app-router-entry";
 
-interface Env {
-  ASSETS: Fetcher;
-  DB: D1Database;
-}
+type Env = Parameters<typeof handler.fetch>[1];
 
 interface ExecutionContext {
   waitUntil(promise: Promise<unknown>): void;
