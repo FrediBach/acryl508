@@ -39,6 +39,24 @@ clearances, rail profiles, panel joints, load capacity, and busboard mounting pa
 are not yet validated. Sinusoda and Trolley Bus are board-family preferences, with an
 illustrative board preview. JSON export states these limits explicitly.
 
+The five enclosure sheets form a rail-retained tab-and-slot assembly. The base
+and both end panels have lateral tongues that enter closed slots in the two side
+panels. The slots constrain vertical and fore/aft movement; the rail-end screws
+retain the sides against lateral withdrawal. Screws engage the metal rails, with
+load-spreading washers against the acrylic. No additional case-panel screws or
+glue are part of this concept. Support the case, remove the rail-end screws on
+one side, withdraw that side, then remove the base and end panels. The exploded
+view separates the mating tabs, slots, rails, and hardware for inspection.
+
+Keep two sheet thicknesses of retaining material below the base and beyond each
+end panel. With sheet thickness `t`, outer dimensions are `HP × 5.08 + 2t` by
+`rows × 133.35 + 6t` by `internal depth + 3t` mm. The base underside is at `2t`
+and its inner surface at `3t`. This preserves HP, row spacing, and usable depth.
+The feet, handle, and busboard positions follow the revised enclosure geometry.
+Slot widths are nominal sheet thickness, not validated cutting tolerances.
+Laser kerf, actual sheet thickness, internal-corner relief, rail threads, screw
+engagement, racking, panel flex and loaded retention need fabrication testing.
+
 Optional accessories use the same sheet thickness and tint: one rear handle panel
 with a rounded hand opening, and two feet in wedge, arch, or sled profiles. Feet
 follow the selected 10°, 20°, or 30° stance; no feet preserves the saved profile.

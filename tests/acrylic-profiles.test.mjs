@@ -21,7 +21,7 @@ function extrude(profile, thickness) {
 
 test("all foot profiles overlap the tilted case and stay above the floor at every stance and sheet thickness", () => {
   for (const rows of [1, 2, 3]) for (const angle of [10, 20, 30]) for (const thickness of [0.03, 0.04, 0.05, 0.06]) {
-    const length = rows * 1.3335 + 2 * thickness;
+    const length = rows * 1.3335 + 6 * thickness;
     const radians = angle * Math.PI / 180;
     const half = length * Math.cos(radians) * 0.43;
     const top = x => caseLift(length, angle) - footFloor + x * Math.tan(radians);
@@ -31,7 +31,7 @@ test("all foot profiles overlap the tilted case and stay above the floor at ever
       const { shape, holes } = profile.extractPoints(24);
       for (const point of [...shape, ...holes.flat()]) {
         assert.ok(point.y >= -1e-9);
-        assert.ok(point.y <= top(point.x) + (thickness + 0.24) / Math.cos(radians) + 1e-9);
+        assert.ok(point.y <= top(point.x) + (3 * thickness + 0.24) / Math.cos(radians) + 1e-9);
       }
       for (const x of [-half, half]) assert.ok(shape.some(point => Math.abs(point.x - x) < 1e-9 && Math.abs(point.y - top(x)) < 1e-9));
       areas[style] = Math.abs(ShapeUtils.area(shape)) - holes.reduce((total, hole) => total + Math.abs(ShapeUtils.area(hole)), 0);
@@ -53,7 +53,7 @@ function distanceToEdge(point, a, b) {
 
 test("foot bolt holes align with side-wall holes and retain material around every joint", () => {
   for (const rows of [1, 2, 3]) for (const angle of [10, 20, 30]) for (const thickness of [0.03, 0.04, 0.05, 0.06]) {
-    const length = rows * 1.3335 + thickness * 2;
+    const length = rows * 1.3335 + thickness * 6;
     const radians = angle * Math.PI / 180;
     const mounts = footMountLayout(length, angle, thickness);
     assert.equal(mounts.length, 2);
@@ -63,8 +63,8 @@ test("foot bolt holes align with side-wall holes and retain material around ever
         // Independently rotate the matching side-wall hole into world space.
         assert.ok(Math.abs(footFloor + mount.y - (caseLift(length, angle) + mount.caseY * Math.cos(radians) - mount.caseZ * Math.sin(radians))) < 1e-9);
         assert.ok(Math.abs(-mount.x - (mount.caseY * Math.sin(radians) + mount.caseZ * Math.cos(radians))) < 1e-9);
-        assert.ok(mount.caseY - thickness >= 0.09, "clear of the bottom edge of the wall");
-        assert.ok(0.5 - (mount.caseY - thickness) >= 0.09, "clear of rails at minimum depth");
+        assert.ok(mount.caseY - 3 * thickness >= 0.09, "clear of the base slots");
+        assert.ok(0.5 - (mount.caseY - 3 * thickness) >= 0.09, "clear of rails at minimum depth");
         const center = new Vector2(mount.x, mount.y);
         const hole = holes[holes.length - 2 + index];
         for (const point of hole) assert.ok(Math.abs(point.distanceTo(center) - footHoleRadius) < 1e-9);

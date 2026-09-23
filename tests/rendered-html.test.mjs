@@ -14,14 +14,29 @@ test("build produces the worker, client manifest and social card", async () => {
 test("dimensions preserve exact HP pitch, row height and uniform sheet thickness", () => {
   const base = caseDimensions(defaultConfiguration);
   assert.equal(base.width, 84 * 5.08 + 10);
-  assert.equal(base.length, 133.35 + 10);
-  assert.equal(base.height, 80);
+  assert.equal(base.length, 133.35 + 30);
+  assert.equal(base.height, 90);
   const oddHp = caseDimensions({ ...defaultConfiguration, hp: 85 });
   assert.ok(Math.abs(oddHp.width - base.width - 5.08) < 1e-10);
   const thick = caseDimensions({ ...defaultConfiguration, thickness: 6, rows: 3 });
   assert.equal(thick.width, base.width + 2);
-  assert.equal(thick.length, 3 * 133.35 + 12);
-  assert.equal(thick.height, base.height + 1);
+  assert.equal(thick.length, 3 * 133.35 + 36);
+  assert.equal(thick.height, base.height + 3);
+});
+
+test("case panels are retained by the rail screws without additional panel fasteners or adhesive", () => {
+  for (const rows of [1, 2, 3]) for (const thickness of [3, 4, 5, 6]) {
+    const config = { ...defaultConfiguration, rows, thickness };
+    const { panelAssembly, outerDimensions } = configurationExport(config);
+    assert.equal(panelAssembly.railCount, rows * 2);
+    assert.equal(panelAssembly.railEndScrewCount, rows * 4);
+    assert.equal(panelAssembly.additionalPanelFasteners, 0);
+    assert.equal(panelAssembly.adhesive, false);
+    assert.equal(outerDimensions.height - panelAssembly.baseUndersideHeight - thickness, config.depth);
+    assert.equal(outerDimensions.length - 2 * panelAssembly.endRetainingMargin - 2 * thickness, rows * 133.35);
+    assert.match(panelAssembly.disassembly, /remove the rail-end screws on one side/);
+    assert.match(panelAssembly.status, /require fabrication validation/);
+  }
 });
 
 test("export retains the complete configuration and marks unverified board fit", () => {
