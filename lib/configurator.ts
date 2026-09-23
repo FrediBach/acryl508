@@ -1,4 +1,4 @@
-import type { CustomCutout, CutoutReport, CutoutSide } from "./custom-cutouts";
+import { cutoutSides, type CustomCutout, type CutoutReport, type CutoutSide } from "./custom-cutouts";
 import type { MultiPolygon } from "polygon-clipping";
 import { defaultVentDesign, normalizeVentDesign, type VentDesign } from "./vent-design";
 import { cableHolderLayout } from "./cable-holder";
@@ -7,6 +7,8 @@ import { trolleyBus, trolleyHoles, trolleyMountingHoles, trolleyPlacement } from
 import { compactPwr, compactPwrHoles, compactPwrPlacement } from "./compactpwr";
 
 export type AcrylicTint = { id: string; label: string; color: string };
+export type PanelSide = CutoutSide;
+export const panelSides = cutoutSides;
 export type Busboard = "none" | "sinusoda" | "trolley" | "compactpwr";
 export type FootShape = "wedge" | "arch" | "sled";
 export type RackUnit = 1 | 3;
@@ -17,7 +19,8 @@ export type VentCoverage = "bands" | "field";
 export type VentMix = "checkerboard" | "rows" | "columns";
 export type CaseConfiguration = {
   hp: number; rows: number; rowUnits: RackUnit[]; depth: number; thickness: number; sideMarginRatio: number;
-  tint: AcrylicTint; angle: number; vents: boolean; busboard: Busboard;
+  tint: AcrylicTint; individualPanelTints?: boolean; panelTints?: Partial<Record<PanelSide, AcrylicTint>>;
+  angle: number; vents: boolean; busboard: Busboard;
   ventStyle: VentStyle; ventDensity: VentDensity;
   ventLayout: VentLayout; ventCoverage: VentCoverage; ventMix: VentMix;
   ventDesign: VentDesign;
@@ -32,6 +35,12 @@ export const acrylicTints: AcrylicTint[] = [
   { id: "green", label: "Sea glass", color: "#57b7a6" },
   { id: "blue", label: "Cobalt", color: "#578fc8" },
 ];
+export function panelTintsFrom(tint: AcrylicTint): Record<PanelSide, AcrylicTint> {
+  return Object.fromEntries(panelSides.map(({ value }) => [value, tint])) as Record<PanelSide, AcrylicTint>;
+}
+export function panelTint(config: Pick<CaseConfiguration, "tint" | "individualPanelTints" | "panelTints">, side: PanelSide) {
+  return config.individualPanelTints ? config.panelTints?.[side] ?? config.tint : config.tint;
+}
 export const maxRackUnits = 9;
 export const rackUnitPitch = 44.45;
 export const minSideMarginRatio = 1;
@@ -118,7 +127,7 @@ export function caseDimensions(config: CaseConfiguration) {
 export function configurationExport(config: CaseConfiguration, cutoutReports: CutoutReport[] = [], resolvedPanels: Partial<Record<CutoutSide, MultiPolygon>> = {}) {
   const holder = cableHolderLayout(config);
   return {
-    product: "Acryl508", version: 7, units: "mm", status: "design-concept",
+    product: "Acryl508", version: 8, units: "mm", status: "design-concept",
     configuration: { ...config, handleWidth: handleDimensions(config).width, handleHeight: handleDimensions(config).height, ventLayout: config.ventLayout ?? "aligned", ventCoverage: config.ventCoverage ?? "bands", ventMix: config.ventMix ?? "checkerboard", ventDesign: normalizeVentDesign(config.ventDesign), material: "GS cast acrylic", fasteners: "Black socket-head screws", assembly: "Mechanical; no glue" },
     ventilation: {
       minimumWebMm: Math.max(3, config.thickness), borderMm: Math.max(8, 2 * config.thickness),

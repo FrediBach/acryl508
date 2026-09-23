@@ -4,7 +4,7 @@ import { ContactShadows, Environment, Lightformer, Line, OrbitControls } from "@
 import { Canvas, useThree } from "@react-three/fiber";
 import { Path, Shape, Vector3, type MeshPhysicalMaterialParameters } from "three";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
-import { caseDimensions, handleDimensions, rackRowLayout, type CaseConfiguration } from "@/lib/configurator";
+import { caseDimensions, handleDimensions, panelTint, rackRowLayout, type AcrylicTint, type CaseConfiguration } from "@/lib/configurator";
 import { caseLift } from "@/lib/acrylic-profiles";
 import { cableHolderLayout } from "@/lib/cable-holder";
 import type { CasePanels } from "@/lib/case-panels";
@@ -21,6 +21,10 @@ function PanelEdges({ args, color, threshold = 15 }: { args: readonly [Shape | S
   const [shapes, { depth, curveSegments = 12 }] = args;
   const points = useMemo(() => panelEdgePoints(shapes, depth, curveSegments, threshold), [shapes, depth, curveSegments, threshold]);
   return points.length ? <Line segments points={points} color={color} raycast={() => null} /> : null;
+}
+
+function acrylicMaterial(tint: AcrylicTint, thickness: number): MeshPhysicalMaterialParameters {
+  return { color: tint.color, metalness: 0, roughness: 0.13, transmission: 0.88, thickness: thickness * 2, ior: 1.49, clearcoat: 1, clearcoatRoughness: 0.07, envMapIntensity: 1.25, attenuationColor: tint.color, attenuationDistance: 0.7 };
 }
 
 function hole(shape: Shape, x: number, y: number, radius: number) {
@@ -78,7 +82,7 @@ function AcrylicCase({ config, panels, exploded, modules }: Pick<Props, "config"
   const lift = caseLift(l, config.angle);
   const explode = exploded ? 0.4 : 0;
   const { baseBottom, baseTop, endOuter } = panels.layout;
-  const acrylic = useMemo<MeshPhysicalMaterialParameters>(() => ({ color: config.tint.color, metalness: 0, roughness: 0.13, transmission: 0.88, thickness: t * 2, ior: 1.49, clearcoat: 1, clearcoatRoughness: 0.07, envMapIntensity: 1.25, attenuationColor: config.tint.color, attenuationDistance: 0.7 }), [config.tint.color, t]);
+  const tints = { bottom: panelTint(config, "bottom"), left: panelTint(config, "left"), right: panelTint(config, "right"), rear: panelTint(config, "rear"), front: panelTint(config, "front") };
   const baseArgs = useMemo(() => [panels.faces.bottom.shapes, { depth: t, bevelEnabled: false, curveSegments: 8 }] as const, [panels, t]);
   const leftArgs = useMemo(() => [panels.faces.left.shapes, { depth: t, bevelEnabled: false, curveSegments: 12 }] as const, [panels, t]);
   const rightArgs = useMemo(() => [panels.faces.right.shapes, { depth: t, bevelEnabled: false, curveSegments: 12 }] as const, [panels, t]);
@@ -86,10 +90,10 @@ function AcrylicCase({ config, panels, exploded, modules }: Pick<Props, "config"
   const frontArgs = useMemo(() => [panels.faces.front.shapes, { depth: t, bevelEnabled: false }] as const, [panels, t]);
   return <group>
     <group rotation={[a, 0, 0]} position={[0, lift, 0]}>
-      <mesh position={[0, baseBottom - explode, 0]} rotation={[-Math.PI / 2, 0, 0]}><extrudeGeometry args={baseArgs} /><meshPhysicalMaterial {...acrylic} /><PanelEdges args={baseArgs} color={config.tint.color} threshold={35} /></mesh>
+      <mesh position={[0, baseBottom - explode, 0]} rotation={[-Math.PI / 2, 0, 0]}><extrudeGeometry args={baseArgs} /><meshPhysicalMaterial {...acrylicMaterial(tints.bottom, t)} /><PanelEdges args={baseArgs} color={tints.bottom.color} threshold={35} /></mesh>
       {[-1, 1].map(side => <group key={side}>
-        <mesh position={[side * (w / 2 - t / 2 + explode) - t / 2, 0, 0]} rotation={[0, Math.PI / 2, 0]}><extrudeGeometry args={side === -1 ? leftArgs : rightArgs} /><meshPhysicalMaterial {...acrylic} /><PanelEdges args={side === -1 ? leftArgs : rightArgs} color={config.tint.color} threshold={35} /></mesh>
-        <mesh position={[0, 0, side * (endOuter - t / 2 + explode) - t / 2]}><extrudeGeometry args={side === -1 ? rearArgs : frontArgs} /><meshPhysicalMaterial {...acrylic} /><PanelEdges args={side === -1 ? rearArgs : frontArgs} color={config.tint.color} /></mesh>
+        <mesh position={[side * (w / 2 - t / 2 + explode) - t / 2, 0, 0]} rotation={[0, Math.PI / 2, 0]}><extrudeGeometry args={side === -1 ? leftArgs : rightArgs} /><meshPhysicalMaterial {...acrylicMaterial(side === -1 ? tints.left : tints.right, t)} /><PanelEdges args={side === -1 ? leftArgs : rightArgs} color={side === -1 ? tints.left.color : tints.right.color} threshold={35} /></mesh>
+        <mesh position={[0, 0, side * (endOuter - t / 2 + explode) - t / 2]}><extrudeGeometry args={side === -1 ? rearArgs : frontArgs} /><meshPhysicalMaterial {...acrylicMaterial(side === -1 ? tints.rear : tints.front, t)} /><PanelEdges args={side === -1 ? rearArgs : frontArgs} color={side === -1 ? tints.rear.color : tints.front.color} /></mesh>
       </group>)}
       {rackRowLayout(config).map(row => {
         const z = row.center * unit, railOffset = row.railOffset * unit, length = row.length * unit;

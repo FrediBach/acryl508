@@ -3,7 +3,7 @@ import { access } from "node:fs/promises";
 import test from "node:test";
 import { loadTypescript } from "./load-typescript.mjs";
 
-const { caseDimensions, configurationExport, defaultConfiguration, acrylicTints, footShapes, panelCount, rackRowLayout, rackRows, sidePanelMargin, totalRackUnits } = await loadTypescript("../lib/configurator.ts");
+const { caseDimensions, configurationExport, defaultConfiguration, acrylicTints, footShapes, panelCount, panelTint, panelTintsFrom, rackRowLayout, rackRows, sidePanelMargin, totalRackUnits } = await loadTypescript("../lib/configurator.ts");
 
 test("build produces the worker, client manifest and social card", async () => {
   await Promise.all(["../dist/server/index.js", "../dist/client/vinext-client-entry-manifest.json", "../dist/client/og.png"].map(path => access(new URL(path, import.meta.url))));
@@ -77,12 +77,27 @@ test("export retains the complete configuration and marks unverified board fit",
   for (const [key, value] of Object.entries(config)) assert.deepEqual(exported.configuration[key], value);
   assert.deepEqual(exported.outerDimensions, caseDimensions(config));
   assert.equal(exported.status, "design-concept");
-  assert.equal(exported.version, 7);
+  assert.equal(exported.version, 8);
   assert.equal(exported.units, "mm");
   assert.equal(exported.configuration.material, "GS cast acrylic");
   assert.match(exported.notes.join(" "), /not a cutting template/);
   assert.match(exported.notes.join(" "), /Trolley Bus.*must be verified/);
   assert.doesNotMatch(configurationExport(defaultConfiguration).notes.join(" "), /requested board family/);
+});
+
+test("individual sheet tints are optional, resolved per panel and retained in exports", () => {
+  assert.equal(panelTint(defaultConfiguration, "front"), defaultConfiguration.tint);
+  const panelTints = panelTintsFrom(defaultConfiguration.tint);
+  panelTints.front = acrylicTints[0];
+  panelTints.bottom = acrylicTints[4];
+  const config = { ...defaultConfiguration, individualPanelTints: true, panelTints };
+  assert.equal(panelTint(config, "front"), acrylicTints[0]);
+  assert.equal(panelTint(config, "bottom"), acrylicTints[4]);
+  assert.equal(panelTint(config, "left"), defaultConfiguration.tint);
+  assert.equal(panelTint({ ...config, individualPanelTints: false }, "front"), defaultConfiguration.tint);
+  const exported = JSON.parse(JSON.stringify(configurationExport(config)));
+  assert.equal(exported.configuration.individualPanelTints, true);
+  assert.deepEqual(exported.configuration.panelTints, panelTints);
 });
 
 test("integral stance and grips keep five sheets and need no attachment hardware", () => {

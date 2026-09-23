@@ -1,6 +1,6 @@
 import { ArrowDownToLine } from "lucide-react";
 import { cableHolderLayout } from "@/lib/cable-holder";
-import { caseDimensions, footShapes, handleCount, handleDimensions, panelCount, rackFormatLabel, sidePanelMargin, ventStyles, type CaseConfiguration } from "@/lib/configurator";
+import { caseDimensions, footShapes, handleCount, handleDimensions, panelCount, panelSides, panelTint, rackFormatLabel, sidePanelMargin, ventStyles, type CaseConfiguration } from "@/lib/configurator";
 
 export function BuildSummary({ config, onExportJson, onExportSvg }: { config: CaseConfiguration; onExportJson: () => void; onExportSvg: () => void }) {
   const dimensions = caseDimensions(config);
@@ -13,7 +13,7 @@ export function BuildSummary({ config, onExportJson, onExportSvg }: { config: Ca
       </div>
       <dl className="spec-list">
         <div><dt>Case footprint</dt><dd>{dimensions.width.toFixed(1)} × {dimensions.length.toFixed(1)} <small>mm</small></dd></div>
-        <div><dt>Material</dt><dd>{config.thickness} mm GS <span className="spec-color" style={{ background: config.tint.color }} /></dd></div>
+        <div><dt>Material</dt><dd>{config.thickness} mm GS <span className="spec-colors" aria-label={config.individualPanelTints ? "Individual sheet tints" : config.tint.label}>{(config.individualPanelTints ? panelSides : panelSides.slice(0, 1)).map(side => { const tint = panelTint(config, side.value); return <span key={side.value} className="spec-color" style={{ background: tint.color }} title={`${side.label}: ${tint.label}`} />; })}</span></dd></div>
         <div><dt>Construction</dt><dd>{panelCount()} panels · {handleCount(config) ? `${handleCount(config)} integral ${handleCount(config) === 1 ? "grip" : "grips"}` : "no handles"}</dd></div>
         {config.handle && <div><dt>Handle size</dt><dd>{handleDimensions(config).width} × {handleDimensions(config).height} <small>mm</small></dd></div>}
         {config.cableHolder && <div><dt>Cable holder</dt><dd>{holder.slitCount} × {holder.slitWidth} mm slits · {holder.height} mm rise</dd></div>}
