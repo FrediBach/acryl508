@@ -4,6 +4,7 @@ import { acrylicTints, busboards, footShapes, handleCount, handleDimensions, han
 
 import { CutoutControls } from "@/components/cutout-controls";
 import { VentControls } from "@/components/vent-controls";
+import { cableHolderLayout, cableHolderLimits } from "@/lib/cable-holder";
 import type { CasePanels } from "@/lib/case-panels";
 import type { CutoutAction } from "@/lib/custom-cutouts";
 
@@ -30,6 +31,7 @@ function SideMarginField({ config, onChange }: { config: CaseConfiguration; onCh
 export function ConfigurationPanel({ config, panels, onChange, onCutoutAction }: Props) {
   const rows = rackRows(config);
   const handleSize = handleDimensions(config);
+  const holder = cableHolderLayout(config);
   const rackUnits = totalRackUnits(config);
   function updateRows(nextRows: RackUnit[]) { onChange({ rows: nextRows.length, rowUnits: nextRows }); }
   function replaceRow(index: number, units: RackUnit) { updateRows(rows.map((row, rowIndex) => rowIndex === index ? units : row)); }
@@ -84,6 +86,13 @@ export function ConfigurationPanel({ config, panels, onChange, onCutoutAction }:
         <RangeField label="Handle width" value={handleSize.width} min={handleSizeLimits.width.min} max={handleSizeLimits.width.max} unit="mm" onChange={handleWidth => onChange({ handleWidth })} />
         <RangeField label="Handle height" value={handleSize.height} min={handleSizeLimits.height.min} max={handleSizeLimits.height.max} unit="mm" onChange={handleHeight => onChange({ handleHeight })} />
         <p className="control-note">Outer width and height above the rim. Both handles share the same size, with rounded roots.</p>
+      </>}
+      <div className="inline-field"><label htmlFor="cable-holder">Patch cable holder</label><button id="cable-holder" role="switch" aria-checked={Boolean(config.cableHolder)} aria-label="Patch cable holder" aria-describedby="cable-holder-note" className={`toggle ${config.cableHolder ? "toggle-on" : ""}`} onClick={() => onChange({ cableHolder: !config.cableHolder })}><span>{config.cableHolder ? <Plus size={10} /> : <Minus size={10} />}</span></button></div>
+      <p className="control-note" id="cable-holder-note">{config.cableHolder ? `${holder.slitCount} evenly spaced slits between rounded fingers on the back plate. Slits stay open at the top for dropping cables in.` : "Extend the back plate with evenly spaced fingers to hold patch cables."}</p>
+      {config.cableHolder && <>
+        <RangeField label="Finger height" value={holder.height} min={cableHolderLimits.height.min} max={cableHolderLimits.height.max} unit="mm" onChange={cableHolderHeight => onChange({ cableHolderHeight })} />
+        <RangeField label="Slit width" value={holder.slitWidth} min={cableHolderLimits.slitWidth.min} max={cableHolderLimits.slitWidth.max} unit="mm" onChange={cableHolderSlitWidth => onChange({ cableHolderSlitWidth })} />
+        <p className="control-note">Height above the rim. Choose a slit wider than the cable and narrower than its plug. Spacing adapts evenly to the case width.</p>
       </>}
       <VentControls config={config} panels={panels} onChange={onChange} />
       <div className="inline-field"><label htmlFor="busboard">Busboard</label><div className="select-wrap board-select"><select id="busboard" value={config.busboard} onChange={event => onChange({ busboard: event.target.value as CaseConfiguration["busboard"] })}>{Object.entries(busboards).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select><ChevronDown size={12} /></div></div>

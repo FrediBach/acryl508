@@ -1,8 +1,10 @@
 import { ArrowDownToLine } from "lucide-react";
+import { cableHolderLayout } from "@/lib/cable-holder";
 import { caseDimensions, footShapes, handleCount, handleDimensions, panelCount, rackFormatLabel, sidePanelMargin, ventStyles, type CaseConfiguration } from "@/lib/configurator";
 
 export function BuildSummary({ config, onExportJson, onExportSvg }: { config: CaseConfiguration; onExportJson: () => void; onExportSvg: () => void }) {
   const dimensions = caseDimensions(config);
+  const holder = cableHolderLayout(config);
   return (
     <section className="summary-panel" aria-label="Design summary">
       <div className="summary-title">
@@ -14,6 +16,7 @@ export function BuildSummary({ config, onExportJson, onExportSvg }: { config: Ca
         <div><dt>Material</dt><dd>{config.thickness} mm GS <span className="spec-color" style={{ background: config.tint.color }} /></dd></div>
         <div><dt>Construction</dt><dd>{panelCount()} panels · {handleCount(config) ? `${handleCount(config)} integral ${handleCount(config) === 1 ? "grip" : "grips"}` : "no handles"}</dd></div>
         {config.handle && <div><dt>Handle size</dt><dd>{handleDimensions(config).width} × {handleDimensions(config).height} <small>mm</small></dd></div>}
+        {config.cableHolder && <div><dt>Cable holder</dt><dd>{holder.slitCount} × {holder.slitWidth} mm slits · {holder.height} mm rise</dd></div>}
         <div><dt>Side margin</dt><dd>{sidePanelMargin(config).toFixed(1)} mm</dd></div>
         <div><dt>Stance</dt><dd>{config.angle ? `${footShapes.find(shape => shape.value === config.footShape)?.label} · ${config.angle}°` : "Flat"}</dd></div>
         <div><dt>Bottom vents</dt><dd>{config.vents ? `${ventStyles.find(style => style.value === config.ventStyle)?.label} · ${config.ventDensity}` : "None"}</dd></div>

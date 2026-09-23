@@ -3,6 +3,7 @@ import { caseDimensions, handleCount, handleDimensions, rackRowLayout, sidePanel
 import { createSideProfile } from "./acrylic-profiles";
 import { createPanelProfiles } from "./panel-joints";
 import { createBottomVentLayout } from "./bottom-vents";
+import { cableHolderLayout, cableHolderTopEdge } from "./cable-holder";
 import { cutoutSides, mapPolygons, placedCutout, polygonBounds, polygonsToShapes, shapesToPolygons, subtractCutouts, type CutoutSide } from "./custom-cutouts";
 
 function hole(shape: Shape, x: number, y: number, radius: number) {
@@ -13,7 +14,8 @@ export function createCasePanels(config: CaseConfiguration) {
   const dimensions = caseDimensions(config);
   const w = dimensions.width / 100, l = dimensions.length / 100, h = dimensions.height / 100, t = config.thickness / 100;
   const edgeMargin = sidePanelMargin(config) / 100;
-  const panels = createPanelProfiles(w, l, h, t, edgeMargin);
+  const holder = cableHolderLayout(config);
+  const panels = createPanelProfiles(w, l, h, t, edgeMargin, config.cableHolder ? shape => cableHolderTopEdge(shape, h, holder) : undefined);
   const { innerLength } = panels.layout;
   const base = panels.base;
   const exclusions = (config.cutouts ?? []).filter(cutout => cutout.side === "bottom").flatMap(cutout => placedCutout(cutout).map(polygon =>
@@ -29,7 +31,7 @@ export function createCasePanels(config: CaseConfiguration) {
   const handleSize = { width: size.width / 100, height: size.height / 100 };
   const left = createSideProfile(side, l, h, t, config.angle, config.footShape, grips > 0, handleSize);
   const right = createSideProfile(side, l, h, t, config.angle, config.footShape, grips === 2, handleSize);
-  const originals = { front: panels.end, rear: panels.end, left, right, bottom: base };
+  const originals = { front: panels.end, rear: panels.rear, left, right, bottom: base };
   const faces = Object.fromEntries(cutoutSides.map(({ value }) => {
     // Each editor face is viewed from outside, centred in millimetres, Y up.
     // Mirror the back/left/underside so lettering reads correctly on the case.

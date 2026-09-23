@@ -6,6 +6,7 @@ import { Path, Shape, Vector3, type MeshPhysicalMaterialParameters } from "three
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { caseDimensions, handleDimensions, rackRowLayout, type CaseConfiguration } from "@/lib/configurator";
 import { caseLift } from "@/lib/acrylic-profiles";
+import { cableHolderLayout } from "@/lib/cable-holder";
 import type { CasePanels } from "@/lib/case-panels";
 import { panelEdgePoints } from "@/lib/panel-edges";
 
@@ -106,7 +107,7 @@ function CameraRig({ config, view, resetKey, exploded }: Pick<Props, "config" | 
   const width = dimensions.width * unit, length = dimensions.length * unit, height = dimensions.height * unit;
   const handleSize = handleDimensions(config);
   const gripWidth = config.handle ? handleSize.width * unit : 0;
-  const gripRise = config.handle ? handleSize.height * unit : 0;
+  const gripRise = Math.max(config.handle ? handleSize.height * unit : 0, config.cableHolder ? cableHolderLayout(config).height * unit : 0);
   useEffect(() => {
     const aspect = size.width / size.height;
     const radians = config.angle * Math.PI / 180;

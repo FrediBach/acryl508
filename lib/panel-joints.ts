@@ -28,7 +28,7 @@ export function panelJointLayout(width: number, length: number, height: number, 
   };
 }
 
-function tabbedProfile(width: number, bottom: number, top: number, tabs: Band[], thickness: number) {
+function tabbedProfile(width: number, bottom: number, top: number, tabs: Band[], thickness: number, topEdge?: (shape: Shape) => void) {
   const shape = new Shape();
   const half = width / 2;
   shape.moveTo(-half, bottom);
@@ -40,6 +40,7 @@ function tabbedProfile(width: number, bottom: number, top: number, tabs: Band[],
     shape.lineTo(half, tab.end);
   }
   shape.lineTo(half, top);
+  topEdge?.(shape);
   shape.lineTo(-half, top);
   for (const tab of [...tabs].reverse()) {
     shape.lineTo(-half, tab.end);
@@ -61,10 +62,11 @@ function slot(shape: Shape, left: number, bottom: number, right: number, top: nu
   shape.holes.push(path);
 }
 
-export function createPanelProfiles(width: number, length: number, height: number, thickness: number, edgeMargin = 2 * thickness) {
+export function createPanelProfiles(width: number, length: number, height: number, thickness: number, edgeMargin = 2 * thickness, rearTopEdge?: (shape: Shape) => void) {
   const layout = panelJointLayout(width, length, height, thickness, edgeMargin);
   const base = tabbedProfile(layout.innerWidth, -layout.innerLength / 2, layout.innerLength / 2, layout.baseTabs, thickness);
   const end = tabbedProfile(layout.innerWidth, 0, height, layout.endTabs, thickness);
+  const rear = rearTopEdge ? tabbedProfile(layout.innerWidth, 0, height, layout.endTabs, thickness, rearTopEdge) : end;
   const side = new Shape();
   side.moveTo(-length / 2, 0);
   side.lineTo(length / 2, 0);
@@ -76,5 +78,5 @@ export function createPanelProfiles(width: number, length: number, height: numbe
   for (const direction of [-1, 1]) for (const tab of layout.endTabs) {
     slot(side, direction * layout.endCenter - thickness / 2, tab.start, direction * layout.endCenter + thickness / 2, tab.end);
   }
-  return { base, side, end, layout };
+  return { base, side, end, rear, layout };
 }

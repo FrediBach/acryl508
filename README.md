@@ -115,6 +115,23 @@ outlines. JSON version 7 records the resolved grip count, size and integral stan
 legacy `handle` and `footShape` settings remain supported. Grip strength,
 loaded stability and fabrication tolerances still require prototype validation.
 
+## Patch cable holder
+
+Enable **Patch cable holder** in **The details** to extend the rear plate into
+an evenly spaced row of fingers. The fingers and slits have rounded tips and
+roots; each slit is open at the top. Finger height above the rim is adjustable
+from 20–70 mm (35 mm by default), and slit width from 3–8 mm (5 mm by default).
+Choose a slit that clears the cable but retains its plug. Equal-width fingers
+and equal pitch are calculated symmetrically across the available rear width,
+with a minimum 14 mm finger width and clearance at both ends. Slit bottoms
+stay above the case rim.
+
+The holder is part of the existing rear sheet, keeping the case at five panels.
+Preview, rear cutout editor and SVG export share its outline; JSON includes
+the settings and calculated spacing. Turning it off preserves its settings,
+and older configurations leave it disabled. Enclosure dimensions exclude the
+holder extension. Cable fit and loaded finger strength need prototype validation.
+
 ## Custom cutouts
 
 Section 05 accepts filled SVG outlines (up to 1 MB), or text from the bundled
