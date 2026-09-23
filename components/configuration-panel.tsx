@@ -101,7 +101,12 @@ export function ConfigurationPanel({ config, panels, onChange, onCutoutAction }:
         <p className="control-note">Preview assumes 5 mm standoffs. {panels.powerBoard?.fits ? `${panels.powerBoard.moduleClearance.toFixed(1)} mm remains above the board for modules and cables.` : "Board does not fit: allow at least 226 × 86 mm inside the case (45 HP and at least 2U total). Preview and bottom mounting holes are omitted."}</p>
         {panels.mountingConflicts > 0 && <p className="control-note" role="alert">Bottom custom cutouts overlap or approach {panels.mountingConflicts} mounting points. Move these cuts to preserve the mounts.</p>}
       </>}
-      {config.busboard === "trolley" && <p className="control-note board-note">Layout concept. Exact board fit and hole patterns need verification.</p>}
+      {config.busboard === "trolley" && <>
+        <p className="control-note board-note">Trolley Bus · 423 × 80 mm · 28 horizontal headers · 25 mm over the regulator cover, 15 mm elsewhere. Eight photo-estimated screw mounts (Ø3.2 mm assumed); verify before drilling. Befaco supplies adhesive mounts; this is a screw-mount adaptation.</p>
+        <p className="control-note">The product page lists 423 mm; the setup drawing shows 435 mm including an apparent connector projection. Fit checks reserve 435 mm, with the PCB shifted 6 mm left. Preview assumes 5 mm standoffs.</p>
+        <p className="control-note" role="status">{panels.powerBoard?.fits ? `${panels.powerBoard.moduleClearance.toFixed(1)} mm remains above the cover for modules and cables.` : "Board does not fit: allow 435 × 80 mm inside the case (86 HP and at least 2U total). Preview and bottom mounting holes are omitted."} The separate 4HP ON/OFF module and cable routing are not reserved.</p>
+        {panels.mountingConflicts > 0 && <p className="control-note" role="alert">Bottom custom cutouts overlap or approach {panels.mountingConflicts} mounting points. Move these cuts to preserve the mounts.</p>}
+      </>}
       <div className="hardware-note"><span className="hardware-dot" />Black hardware <span>Mechanical assembly · no glue</span></div>
       <p className="control-note">Case panels interlock in closed slots. Rail-end screws retain the sides; removing one side releases the panels.</p>
     </section>

@@ -48,7 +48,7 @@ test("insufficient width or row length omits the board mounts rather than scalin
     assert.match(configurationSvg(small, panels), /does not fit; no mounting holes exported/);
   }
   assert.equal(createCasePanels({ ...config, hp: 45, rows: 2, rowUnits: [1, 1] }).powerBoard.fits, true);
-  for (const busboard of ["none", "trolley"]) {
+  for (const busboard of ["none"]) {
     assert.equal(createCasePanels({ ...config, busboard }).mountingHoles.length, 0);
   }
 });

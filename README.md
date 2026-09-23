@@ -198,5 +198,40 @@ The space above the board subtracts its 19 mm height and the assumed 5 mm
 standoffs; it is not a validation of individual module or cable fit. The Straw
 input module and its cabling are not modelled. JSON records the source,
 assumptions, fit and hole coordinates; SVG describes the approximate pattern
-and warns about incompatible cases or custom-cutout conflicts. Trolley Bus
-retains its illustrative preview and adds no mounting holes.
+and warns about incompatible cases or custom-cutout conflicts.
+
+
+## Befaco Trolley Bus
+
+The Trolley Bus model uses [Befaco’s product specifications](https://www.befaco.org/trolley-bus/),
+[setup manual](https://www.befaco.org/docs/Trolley_bus/Assembled_Trolley_Bus_User_Manual.pdf),
+and [top-view photo](https://www.befaco.org/wp-content/uploads/2023/05/troleybus_top_web.png).
+The page specifies 423 × 80 mm, 28 horizontal connectors, 25 mm height over
+the regulator cover and 15 mm elsewhere. The manual’s installation drawing
+labels 435 mm with its arrow extending to the projecting connector. The model
+therefore uses a 423 mm board and a conservative 435 mm installation envelope,
+interpreting the extra 12 mm as a connector projection on the right. This is
+an inference, not a verified mechanical dimension. Fit checks require at least
+86 HP and 2U total; an 84 HP case is too narrow for that installation envelope.
+
+Befaco supplies adhesive PCB fasteners. At the user’s request this configurator
+instead models an **approximate screw-mount adaptation** using the eight PCB
+mounting points visible in the photo, excluding the two regulator-cover screws.
+PCB-local centres (mm) are all combinations of X = −207.5, −119, 0, 207.5 and
+Y = −24, 24. These columns are intentionally unevenly spaced. The PCB is shifted
+6 mm left to centre the complete connector-inclusive envelope on the base;
+case mounting holes receive that same translation. In the bottom outside view,
+X is mirrored, as for all other bottom geometry.
+
+Hole centres, Ø3.2 mm screw clearance, 60 mm bare PCB depth (80 mm including
+headers), 1.6 mm PCB thickness, 5 mm insulating standoffs and component positions
+are estimates or preview assumptions. Verify the mounting adaptation, fasteners,
+insulation and physical dimensions before drilling. The separate 4HP/3U ON/OFF
+module and its cabling are not modelled or reserved. The preview shows the red
+PCB, two rows of 14 outward-facing connectors, four DC converters and the red
+vented cover. It never scales the board down to fit.
+
+The bottom, preview and exports share all eight translated mounting points.
+Vents reserve one sheet thickness around each hole; nearby custom cutouts are
+flagged using their bounds. JSON and SVG record the dimensional discrepancy,
+mounting assumptions, and omission of mounting holes when the board cannot fit.

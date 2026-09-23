@@ -3,6 +3,7 @@ import type { MultiPolygon } from "polygon-clipping";
 import { defaultVentDesign, normalizeVentDesign, type VentDesign } from "./vent-design";
 import { cableHolderLayout } from "./cable-holder";
 import { sinusodaHoles, sinusodaJuice, sinusodaPlacement } from "./sinusoda";
+import { trolleyBus, trolleyHoles, trolleyMountingHoles, trolleyPlacement } from "./trolley";
 
 export type AcrylicTint = { id: string; label: string; color: string };
 export type Busboard = "none" | "sinusoda" | "trolley";
@@ -134,6 +135,14 @@ export function configurationExport(config: CaseConfiguration, cutoutReports: Cu
       bottomHolePolicy: "All 28 approximate holes when the board fits. Omit vents within one sheet thickness of each hole. Review custom-cutout conflicts.",
       accuracy: "226 × 86 × 19 mm envelope from data sheet. Hole centres, 3.2 mm diameter, notches and component positions estimated from Figure 1; verify against hardware before drilling. PCB thickness 1.6 mm and standoffs 5 mm are preview assumptions.",
       mounting: "Use at least 14 evenly distributed screws with nylon washers, per data sheet. Fastener size and standoff height need verification.",
+    } : config.busboard === "trolley" ? {
+      ...trolleyBus,
+      placement: trolleyPlacement(config.hp * 5.08, rackRowLayout(config).reduce((sum, row) => sum + row.length, 0), config.depth),
+      pcbHoleCentersMm: trolleyHoles,
+      mountingHoleCentersMm: trolleyMountingHoles(),
+      coordinates: "Base-centred millimetres viewed from above; X right, Y rear. PCB is shifted 6 mm left to centre the inferred connector-inclusive 435 mm envelope. Underside editor mirrors X.",
+      bottomHolePolicy: "Eight approximate screw holes when the installation envelope fits; cover screws excluded. Vents retain one sheet thickness around holes. Review custom-cutout conflicts.",
+      inputModule: "Separate 4HP/3U ON/OFF module and cabling not modelled or reserved.",
     } : null,
     customCutouts: {
       placement: "Viewed from outside each panel; x/y in mm from panel centre, x right, y up; rotation in degrees counterclockwise; width uniformly scales the normalized outlines. Bottom is viewed from below with rear at the top.",
@@ -157,6 +166,6 @@ export function configurationExport(config: CaseConfiguration, cutoutReports: Cu
     handles: { method: "Integral side-panel grips", mode: config.handleMode ?? "auto", count: handleCount(config), widthMm: handleDimensions(config).width, riseMm: handleDimensions(config).height, roundedRoots: true, sides: handleCount(config) === 2 ? ["left", "right"] : handleCount(config) === 1 ? ["left"] : [], additionalParts: 0 },
     footAttachment: null,
     cableHolder: { enabled: Boolean(config.cableHolder), method: "Integral fingers along the rear panel top edge", heightMm: holder.height, slitWidthMm: holder.slitWidth, slitCount: config.cableHolder ? holder.slitCount : 0, fingerWidthMm: holder.fingerWidth, pitchMm: holder.pitch, slitCentersMm: config.cableHolder ? holder.slitCenters : [], roundedTips: true, roundedSlitRoots: true, additionalParts: 0 },
-    notes: ["Configuration specification only; not a cutting template.", "Outer dimensions describe the enclosure, excluding the integral grip, cable holder and stance extensions.", "The minimum side margin uses a 1.5× slot-width centre-to-edge guardrail adapted from acrylic hole guidance; rectangular slots and the complete loaded assembly still require fabrication validation.", "Joint clearances, fasteners, load capacity and rail profiles require fabrication validation.", ...(config.busboard === "sinusoda" ? ["Sinusoda Juice envelope follows the supplied data sheet; the 28-hole pattern is photo-derived and approximate. Verify centres, diameters, mounting stack, module and electrical clearances against the physical board before fabrication."] : config.busboard === "trolley" ? ["Trolley Bus is a requested board family. Board dimensions, mounting holes and electrical clearances must be verified against the exact model. The preview is illustrative."] : [])],
+    notes: ["Configuration specification only; not a cutting template.", "Outer dimensions describe the enclosure, excluding the integral grip, cable holder and stance extensions.", "The minimum side margin uses a 1.5× slot-width centre-to-edge guardrail adapted from acrylic hole guidance; rectangular slots and the complete loaded assembly still require fabrication validation.", "Joint clearances, fasteners, load capacity and rail profiles require fabrication validation.", ...(config.busboard === "sinusoda" ? ["Sinusoda Juice envelope follows the supplied data sheet; the 28-hole pattern is photo-derived and approximate. Verify centres, diameters, mounting stack, module and electrical clearances against the physical board before fabrication."] : config.busboard === "trolley" ? ["Trolley Bus uses a 423 mm board and a conservative 435 mm installation envelope inferred from the setup drawing. Eight photo-estimated screw mounts adapt the manufacturer's adhesive mounting method; positions, diameters, insulation and clearances must be verified against hardware."] : [])],
   };
 }

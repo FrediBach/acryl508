@@ -9,6 +9,7 @@ import { caseLift } from "@/lib/acrylic-profiles";
 import { cableHolderLayout } from "@/lib/cable-holder";
 import type { CasePanels } from "@/lib/case-panels";
 import { panelEdgePoints } from "@/lib/panel-edges";
+import { TrolleyPreview } from "@/components/trolley-preview";
 import { SinusodaPreview } from "@/components/sinusoda-preview";
 
 export type CameraView = "perspective" | "front" | "top";
@@ -94,11 +95,7 @@ function AcrylicCase({ config, panels, exploded, modules }: Pick<Props, "config"
         return <group key={row.index}>{[-1, 1].map(end => <group key={end}><Rail width={w - 2 * t} y={h - 0.07 + explode} z={z + end * railOffset} />{[-1, 1].map(side => <RailFastener key={side} side={side} width={w} thickness={t} y={h - 0.07} z={z + end * railOffset} explode={explode} />)}</group>)}{modules && <ExampleModules width={w - 2 * t - 0.02} y={h + explode * 2} z={z} units={row.units} length={length} />}</group>;
       })}
       {config.busboard === "sinusoda" && panels.powerBoard?.fits && <SinusodaPreview baseTop={baseTop - explode} />}
-      {config.busboard === "trolley" && <group position={[0, baseTop + 0.08, 0]}>
-        <mesh><boxGeometry args={[Math.min(w - 0.3, 2.8), 0.018, 0.31]} /><meshStandardMaterial color="#174b35" roughness={0.65} /></mesh>
-        {Array.from({ length: Math.max(2, Math.floor(Math.min(w - 0.3, 2.8) / 0.25)) }, (_, i) => <mesh key={i} position={[-Math.min(w - 0.3, 2.8) / 2 + 0.14 + i * 0.25, 0.044, 0]}><boxGeometry args={[0.15, 0.075, 0.13]} /><meshStandardMaterial color="#181c1c" roughness={0.75} /></mesh>)}
-        {[-1, 1].map(side => <Screw key={side} position={[side * (Math.min(w - 0.3, 2.8) / 2 - 0.045), 0.03, 0.105]} />)}
-      </group>}
+      {config.busboard === "trolley" && panels.powerBoard?.fits && <TrolleyPreview baseTop={baseTop - explode} offsetX={panels.powerBoard.x} />}
     </group>
   </group>;
 }

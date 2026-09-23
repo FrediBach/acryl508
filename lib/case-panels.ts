@@ -5,6 +5,7 @@ import { createPanelProfiles } from "./panel-joints";
 import { createBottomVentLayout, type VentBounds } from "./bottom-vents";
 import { cableHolderLayout, cableHolderTopEdge } from "./cable-holder";
 import { sinusodaHoles, sinusodaJuice, sinusodaPlacement } from "./sinusoda";
+import { trolleyBus, trolleyMountingHoles, trolleyPlacement } from "./trolley";
 import { cutoutSides, mapPolygons, placedCutout, polygonBounds, polygonsToShapes, shapesToPolygons, subtractCutouts, type CutoutSide } from "./custom-cutouts";
 
 function hole(shape: Shape, x: number, y: number, radius: number) {
@@ -19,9 +20,10 @@ export function createCasePanels(config: CaseConfiguration) {
   const panels = createPanelProfiles(w, l, h, t, edgeMargin, config.cableHolder ? shape => cableHolderTopEdge(shape, h, holder) : undefined);
   const { innerLength } = panels.layout;
   const base = panels.base;
-  const powerBoard = config.busboard === "sinusoda" ? sinusodaPlacement(panels.layout.innerWidth * 100, innerLength * 100, config.depth) : null;
-  const mountingHoles = powerBoard?.fits ? sinusodaHoles : [];
-  const mountingRadius = sinusodaJuice.holeDiameter / 200;
+  const placeBoard = config.busboard === "sinusoda" ? sinusodaPlacement : config.busboard === "trolley" ? trolleyPlacement : null;
+  const powerBoard = placeBoard?.(panels.layout.innerWidth * 100, innerLength * 100, config.depth) ?? null;
+  const mountingHoles = powerBoard?.fits ? config.busboard === "trolley" ? trolleyMountingHoles() : sinusodaHoles : [];
+  const mountingRadius = (config.busboard === "trolley" ? trolleyBus : sinusodaJuice).holeDiameter / 200;
   const exclusions: VentBounds[] = (config.cutouts ?? []).filter(cutout => cutout.side === "bottom").flatMap(cutout => placedCutout(cutout).map(polygon =>
     polygonBounds(mapPolygons([polygon], (x, y) => [-x / 100, y / 100]))));
   const mountingConflicts = mountingHoles.filter(({ x, y }) => exclusions.some(box =>
