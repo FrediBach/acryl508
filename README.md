@@ -235,3 +235,31 @@ The bottom, preview and exports share all eight translated mounting points.
 Vents reserve one sheet thickness around each hole; nearby custom cutouts are
 flagged using their bounds. JSON and SVG record the dimensional discrepancy,
 mounting assumptions, and omission of mounting holes when the board cannot fit.
+
+## Konstant Lab CompactPWR
+
+Select **CompactPWR** for one centred 174 × 79 × 20 mm board with two rows of
+10 vertical IDC headers. Dimensions use the manufacturer's explicit **SIZE**
+specification and manual, rather than the rounded 18 × 8 × 2 cm shop field.
+References: [product page](https://konstantlab.audio/shop/compactpwr-35w-eurorack-power-supply/),
+[manual](https://konstantlab.audio/shop/compactpwr-35w-eurorack-power-supply/?attachment_id=2571&download_file=5c8534d9f9f22),
+and [top photo](https://konstantlab.audio/wp-content/uploads/2025/03/CompactPWR2.jpg).
+
+The manual supplies no dimensioned board mounting pattern. Four corner mounts
+are **photo-derived estimates** at X = ±83 mm, Y = ±34.5 mm from the PCB/base
+centre (166 × 69 mm pitch), with X right and Y toward the rear viewed from
+above. The underside editor mirrors X. Ø3.2 mm screw holes, 1.6 mm PCB thickness,
+5 mm insulating standoffs, washers and component envelopes are assumptions.
+Verify these against the physical board and supplied hardware before drilling.
+The separate inlet drawing must not be used as a board mounting template.
+
+The preview shows the black PCB, 20 headers, converter blocks, red input choke,
+capacitors, trimmers and orange/grey input terminal. It stays at full size and
+requires at least 35 HP and 2U total. Preview and bottom holes are omitted when
+it cannot fit. Clearance above the board deducts its 20 mm height and assumed
+5 mm standoffs. The separate barrel/switch or USB-C inlet, its panel cutout and
+cable routing are not modelled or reserved.
+
+All four mounts share their coordinates with bottom geometry and exports.
+Vents retain a sheet-thickness web around the holes, and nearby custom cuts
+trigger a warning. JSON and SVG retain the source, estimates and fit limitations.

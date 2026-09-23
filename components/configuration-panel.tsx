@@ -107,6 +107,11 @@ export function ConfigurationPanel({ config, panels, onChange, onCutoutAction }:
         <p className="control-note" role="status">{panels.powerBoard?.fits ? `${panels.powerBoard.moduleClearance.toFixed(1)} mm remains above the cover for modules and cables.` : "Board does not fit: allow 435 × 80 mm inside the case (86 HP and at least 2U total). Preview and bottom mounting holes are omitted."} The separate 4HP ON/OFF module and cable routing are not reserved.</p>
         {panels.mountingConflicts > 0 && <p className="control-note" role="alert">Bottom custom cutouts overlap or approach {panels.mountingConflicts} mounting points. Move these cuts to preserve the mounts.</p>}
       </>}
+      {config.busboard === "compactpwr" && <>
+        <p className="control-note board-note">CompactPWR · 174 × 79 × 20 mm · 20 headers. Centred on the base, with four photo-estimated corner mounts (Ø3.2 mm assumed). Verify the hole pattern and hardware before drilling.</p>
+        <p className="control-note" role="status">Preview assumes 5 mm insulating standoffs. {panels.powerBoard?.fits ? `${panels.powerBoard.moduleClearance.toFixed(1)} mm remains above the board for modules and cables.` : "Board does not fit: allow at least 174 × 79 mm inside the case (35 HP and at least 2U total). Preview and bottom mounting holes are omitted."} The separate barrel/switch or USB-C inlet and its cables are not reserved.</p>
+        {panels.mountingConflicts > 0 && <p className="control-note" role="alert">Bottom custom cutouts overlap or approach {panels.mountingConflicts} mounting points. Move these cuts to preserve the mounts.</p>}
+      </>}
       <div className="hardware-note"><span className="hardware-dot" />Black hardware <span>Mechanical assembly · no glue</span></div>
       <p className="control-note">Case panels interlock in closed slots. Rail-end screws retain the sides; removing one side releases the panels.</p>
     </section>

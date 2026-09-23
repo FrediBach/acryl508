@@ -4,9 +4,10 @@ import { defaultVentDesign, normalizeVentDesign, type VentDesign } from "./vent-
 import { cableHolderLayout } from "./cable-holder";
 import { sinusodaHoles, sinusodaJuice, sinusodaPlacement } from "./sinusoda";
 import { trolleyBus, trolleyHoles, trolleyMountingHoles, trolleyPlacement } from "./trolley";
+import { compactPwr, compactPwrHoles, compactPwrPlacement } from "./compactpwr";
 
 export type AcrylicTint = { id: string; label: string; color: string };
-export type Busboard = "none" | "sinusoda" | "trolley";
+export type Busboard = "none" | "sinusoda" | "trolley" | "compactpwr";
 export type FootShape = "wedge" | "arch" | "sled";
 export type RackUnit = 1 | 3;
 export type VentStyle = "long-slits" | "short-slits" | "round" | "hexagonal" | "mixed";
@@ -35,7 +36,7 @@ export const maxRackUnits = 9;
 export const rackUnitPitch = 44.45;
 export const minSideMarginRatio = 1;
 export const maxSideMarginRatio = 2;
-export const busboards: Record<Busboard, string> = { none: "No busboard", sinusoda: "Sinusoda Juice", trolley: "Trolley Bus" };
+export const busboards: Record<Busboard, string> = { none: "No busboard", sinusoda: "Sinusoda Juice", trolley: "Trolley Bus", compactpwr: "CompactPWR" };
 export const footShapes: { value: FootShape; label: string; description: string }[] = [
   { value: "wedge", label: "Wedge", description: "Solid side panels extend to the floor." },
   { value: "arch", label: "Arch", description: "An arch in each side panel leaves two contact points." },
@@ -143,6 +144,13 @@ export function configurationExport(config: CaseConfiguration, cutoutReports: Cu
       coordinates: "Base-centred millimetres viewed from above; X right, Y rear. PCB is shifted 6 mm left to centre the inferred connector-inclusive 435 mm envelope. Underside editor mirrors X.",
       bottomHolePolicy: "Eight approximate screw holes when the installation envelope fits; cover screws excluded. Vents retain one sheet thickness around holes. Review custom-cutout conflicts.",
       inputModule: "Separate 4HP/3U ON/OFF module and cabling not modelled or reserved.",
+    } : config.busboard === "compactpwr" ? {
+      ...compactPwr,
+      placement: compactPwrPlacement(config.hp * 5.08, rackRowLayout(config).reduce((sum, row) => sum + row.length, 0), config.depth),
+      mountingHoleCentersMm: compactPwrHoles,
+      coordinates: "Centred on base, viewed from above; X right, Y rear. Underside editor mirrors X. No automatic rotation or scaling.",
+      bottomHolePolicy: "Four approximate corner screw holes when the board fits. Vents retain one sheet thickness around each hole. Review custom-cutout conflicts.",
+      inputModule: "Separate barrel/switch or USB-C inlet and cabling not modelled or reserved; no inlet cutout added.",
     } : null,
     customCutouts: {
       placement: "Viewed from outside each panel; x/y in mm from panel centre, x right, y up; rotation in degrees counterclockwise; width uniformly scales the normalized outlines. Bottom is viewed from below with rear at the top.",
@@ -166,6 +174,6 @@ export function configurationExport(config: CaseConfiguration, cutoutReports: Cu
     handles: { method: "Integral side-panel grips", mode: config.handleMode ?? "auto", count: handleCount(config), widthMm: handleDimensions(config).width, riseMm: handleDimensions(config).height, roundedRoots: true, sides: handleCount(config) === 2 ? ["left", "right"] : handleCount(config) === 1 ? ["left"] : [], additionalParts: 0 },
     footAttachment: null,
     cableHolder: { enabled: Boolean(config.cableHolder), method: "Integral fingers along the rear panel top edge", heightMm: holder.height, slitWidthMm: holder.slitWidth, slitCount: config.cableHolder ? holder.slitCount : 0, fingerWidthMm: holder.fingerWidth, pitchMm: holder.pitch, slitCentersMm: config.cableHolder ? holder.slitCenters : [], roundedTips: true, roundedSlitRoots: true, additionalParts: 0 },
-    notes: ["Configuration specification only; not a cutting template.", "Outer dimensions describe the enclosure, excluding the integral grip, cable holder and stance extensions.", "The minimum side margin uses a 1.5× slot-width centre-to-edge guardrail adapted from acrylic hole guidance; rectangular slots and the complete loaded assembly still require fabrication validation.", "Joint clearances, fasteners, load capacity and rail profiles require fabrication validation.", ...(config.busboard === "sinusoda" ? ["Sinusoda Juice envelope follows the supplied data sheet; the 28-hole pattern is photo-derived and approximate. Verify centres, diameters, mounting stack, module and electrical clearances against the physical board before fabrication."] : config.busboard === "trolley" ? ["Trolley Bus uses a 423 mm board and a conservative 435 mm installation envelope inferred from the setup drawing. Eight photo-estimated screw mounts adapt the manufacturer's adhesive mounting method; positions, diameters, insulation and clearances must be verified against hardware."] : [])],
+    notes: ["Configuration specification only; not a cutting template.", "Outer dimensions describe the enclosure, excluding the integral grip, cable holder and stance extensions.", "The minimum side margin uses a 1.5× slot-width centre-to-edge guardrail adapted from acrylic hole guidance; rectangular slots and the complete loaded assembly still require fabrication validation.", "Joint clearances, fasteners, load capacity and rail profiles require fabrication validation.", ...(config.busboard === "sinusoda" ? ["Sinusoda Juice envelope follows the supplied data sheet; the 28-hole pattern is photo-derived and approximate. Verify centres, diameters, mounting stack, module and electrical clearances against the physical board before fabrication."] : config.busboard === "trolley" ? ["Trolley Bus uses a 423 mm board and a conservative 435 mm installation envelope inferred from the setup drawing. Eight photo-estimated screw mounts adapt the manufacturer's adhesive mounting method; positions, diameters, insulation and clearances must be verified against hardware."] : config.busboard === "compactpwr" ? ["CompactPWR uses the manufacturer’s 174 × 79 × 20 mm envelope. Its four corner screw mounts are photo-derived estimates; verify centres, diameters, mounting stack and clearances against hardware before drilling."] : [])],
   };
 }
