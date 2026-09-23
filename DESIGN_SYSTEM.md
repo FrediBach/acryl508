@@ -38,6 +38,12 @@ clearances, rail profiles, panel joints, load capacity, and busboard mounting pa
 are not yet validated. Sinusoda and Trolley Bus are board-family preferences, with an
 illustrative board preview. JSON export states these limits explicitly.
 
+Optional accessories use the same sheet thickness and tint: one rear handle panel
+with a rounded hand opening, and two feet in wedge, arch, or sled profiles. Feet
+follow the selected 10°, 20°, or 30° stance; no feet preserves the saved profile.
+The summary and JSON export include all acrylic panels (5–8). Displayed case
+dimensions describe the enclosure, excluding accessories.
+
 ## Social card
 
 `public/og.png` was generated with the built-in image-generation tool. The final

@@ -187,6 +187,12 @@
 .control-note { margin: 9px 0 0; font-size: 8px; line-height: 1.6; color: var(--muted-foreground); }
 .stance-control { grid-template-columns: repeat(4, 1fr); margin: 0; }
 .stance-control .segment { font-size: 9px; }
+.foot-shape-field { border: 0; padding: 0; margin: 14px 0 0; min-width: 0; }
+.foot-shape-field legend { display: flex; justify-content: space-between; gap: 12px; width: 100%; padding: 0; font-size: 10px; }
+.foot-shape-field:disabled .foot-shape-control { opacity: .45; }
+.segment:disabled:hover { background: transparent; color: var(--muted-foreground); }
+.segment-active:disabled:hover { background: var(--selection); color: var(--selection-text); }
+.handle-note { margin: 7px 0 14px; }
 .toggle { width: 30px; height: 17px; border-radius: 3px; background: var(--border); padding: 2px; display: flex; align-items: center; transition: background 150ms; }
 .toggle > span { height: 13px; width: 13px; border-radius: 2px; background: var(--card); display: grid; place-items: center; color: var(--muted-foreground); transition: transform 150ms; }
 .toggle-on { background: var(--signal); }
@@ -248,7 +254,7 @@
   .control-panel { padding: 0 17px; }
   .summary-panel { grid-template-columns: 1fr auto; padding: 14px 18px; gap: 12px; }
   .summary-title h2 { font-size: 16px; }
-  .spec-list { grid-column: 1 / -1; grid-row: 2; flex-direction: row; justify-content: space-between; gap: 12px; }
+  .spec-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-column: 1 / -1; grid-row: 2; gap: 12px; }
   .spec-list > div { flex-direction: column; align-items: flex-start; gap: 3px; }
   .spec-list dd { font-size: 8px; }
   .stage-material { display: none; }
@@ -305,7 +311,7 @@
   .panel-heading h2 { font-size: 14px; }
   .control-section { padding: 18px 0; }
   .section-heading h3 { font-size: 12px; }
-  .field-heading, .inline-field { font-size: 12px; }
+  .field-heading, .inline-field, .foot-shape-field legend { font-size: 12px; }
   .segment { height: 35px; font-size: 12px; }
   .number-field { font-size: 11px; padding: 4px 9px; }
   .range-input { height: 4px; margin: 21px 0 15px; }

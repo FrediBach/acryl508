@@ -1,8 +1,10 @@
 export type AcrylicTint = { id: string; label: string; color: string };
 export type Busboard = "none" | "sinusoda" | "trolley";
+export type FootShape = "wedge" | "arch" | "sled";
 export type CaseConfiguration = {
   hp: number; rows: number; depth: number; thickness: number;
   tint: AcrylicTint; angle: number; vents: boolean; busboard: Busboard;
+  handle: boolean; footShape: FootShape;
 };
 export const acrylicTints: AcrylicTint[] = [
   { id: "clear", label: "Crystal", color: "#cae5e1" },
@@ -13,9 +15,18 @@ export const acrylicTints: AcrylicTint[] = [
 ];
 export const rowOptions = [{ label: "3U", value: 1 }, { label: "6U", value: 2 }, { label: "9U", value: 3 }];
 export const busboards: Record<Busboard, string> = { none: "No busboard", sinusoda: "Sinusoda", trolley: "Trolley Bus" };
+export const footShapes: { value: FootShape; label: string; description: string }[] = [
+  { value: "wedge", label: "Wedge", description: "Solid side supports with a straight profile." },
+  { value: "arch", label: "Arch", description: "An open arch with two contact points per side." },
+  { value: "sled", label: "Sled", description: "A continuous runner with a tapered cutout." },
+];
 export const defaultConfiguration: CaseConfiguration = {
   hp: 84, rows: 1, depth: 75, thickness: 5, tint: acrylicTints[1], angle: 0, vents: true, busboard: "none",
+  handle: false, footShape: "wedge",
 };
+export function panelCount(config: CaseConfiguration) {
+  return 5 + (config.angle > 0 ? 2 : 0) + (config.handle ? 1 : 0);
+}
 // All dimensions are millimetres; the preview converts these to scene units.
 export function caseDimensions(config: CaseConfiguration) {
   return { width: config.hp * 5.08 + config.thickness * 2, length: config.rows * 133.35 + config.thickness * 2, height: config.depth + config.thickness };
@@ -25,6 +36,7 @@ export function configurationExport(config: CaseConfiguration) {
     product: "Acryl508", version: 1, units: "mm", status: "design-concept",
     configuration: { ...config, material: "GS cast acrylic", fasteners: "Black socket-head screws", assembly: "Mechanical; no glue" },
     outerDimensions: caseDimensions(config),
-    notes: ["Configuration specification only; not a cutting template.", "Joint clearances, fasteners, load capacity and rail profiles require fabrication validation.", ...(config.busboard !== "none" ? [busboards[config.busboard] + " is a requested board family. Board dimensions, mounting holes and electrical clearances must be verified against the exact model. The preview is illustrative."] : [])],
+    acrylicParts: { enclosurePanels: 5, footPanels: config.angle > 0 ? 2 : 0, handlePanels: config.handle ? 1 : 0, totalPanels: panelCount(config) },
+    notes: ["Configuration specification only; not a cutting template.", "Outer dimensions describe the enclosure, excluding the optional handle and feet.", "Joint clearances, fasteners, load capacity and rail profiles require fabrication validation.", ...(config.busboard !== "none" ? [busboards[config.busboard] + " is a requested board family. Board dimensions, mounting holes and electrical clearances must be verified against the exact model. The preview is illustrative."] : [])],
   };
 }
