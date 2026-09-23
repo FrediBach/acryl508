@@ -1,10 +1,14 @@
 import { ArrowUpRight, Moon, Sun } from "lucide-react";
-type Props = { dark: boolean; onThemeChange: () => void; onInfo: (tab: "materials" | "guide") => void; onExport: () => void };
-export function ConfiguratorHeader({ dark, onThemeChange, onInfo, onExport }: Props) {
+export type DesignerMode = "case" | "stand";
+type Props = { mode: DesignerMode; onModeChange: (mode: DesignerMode) => void; dark: boolean; onThemeChange: () => void; onInfo: (tab: "materials" | "guide") => void; onExport: () => void };
+export function ConfiguratorHeader({ mode, onModeChange, dark, onThemeChange, onInfo, onExport }: Props) {
   return <header className="app-header">
     <a href="#configure" className="brand" aria-label="Acryl508 home"><span className="brand-symbol" aria-hidden="true"><i /><i /><i /></span><span>acryl<span className="brand-number">508</span><span className="brand-period">.</span></span></a>
+    <div className="designer-mode-switch" role="group" aria-label="Designer mode">
+      <button aria-pressed={mode === "case"} className={mode === "case" ? "mode-active" : ""} onClick={() => onModeChange("case")}>Case designer</button>
+      <button aria-pressed={mode === "stand"} className={mode === "stand" ? "mode-active" : ""} onClick={() => onModeChange("stand")}>Synth stand</button>
+    </div>
     <nav className="primary-nav" aria-label="Primary navigation">
-      <a href="#configure" className="nav-link nav-link-active" aria-current="page">Configurator</a>
       <button className="nav-link" onClick={() => onInfo("materials")}>Material library</button>
       <button className="nav-link" onClick={() => onInfo("guide")}>Build notes <ArrowUpRight size={12} /></button>
     </nav>

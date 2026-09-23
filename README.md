@@ -21,6 +21,8 @@ This starter does not use `wrangler.jsonc`.
 ## Included
 
 - responsive configurator shell under `app/`
+- top-bar Case designer / Synth stand modes with independent in-session configurations
+- automatic slotted acrylic synth stands with solid ribs, three cross braces, 3D and cutting layouts, and JSON/SVG export
 - interactive Three.js case preview with ordered, mix-and-match 1U/3U rows, live dimensions, and optional per-sheet acrylic tints
 - interlocking case panels retained by rail-end screws, with stance and handles integral to the side panels
 - adjustable side-panel retaining margins from the original 2× sheet thickness to a guarded near-flush 1× profile
@@ -54,6 +56,42 @@ defined in `app/layout.tsx`. Absolute sharing URLs use the incoming request host
 so they work on Vercel previews and custom domains without a hardcoded domain.
 The 1200 × 630 social card is `public/og.png`; the favicon and Apple touch icon
 reuse the stacked-panel brand mark.
+
+## Synth stands
+
+Choose **Synth stand** in the top bar and enter the instrument width, depth,
+height and playing angle (0–45°). The generator creates solid inclined support
+ribs with integral front stops and three full-width half-lap cross braces.
+Ribs are added automatically to keep support spacing at or below 220 mm. This
+is a layout heuristic, not a strength calculation or load rating.
+
+All stand parts use one measured GS acrylic thickness (5–10 mm). Slot width is
+sheet thickness plus the selected clearance (0–0.4 mm); slot roots have circular
+relief so square shoulders can seat. Joint shoulders have 0.2 mm total vertical
+clearance. The front deck is 11 sheet thicknesses above the floor, leaving a
+solid web above the 8-thickness-high braces. The footprint extends 30 mm behind
+the body and beyond its tilted front projection. Height is measured normal to
+the synth base; actual feet and underside geometry are not modelled.
+
+Perspective, side, top, exploded and optional synth-envelope views use the
+same polygons as the cutting layout and exported SVG. JSON includes every
+resolved part outline and assembly location. SVG is full-size in millimetres,
+with one named group per part and no visible text in the cut paths; the layout
+is not stock-sheet nesting. Apply kerf compensation once in CAM. There are no
+screws, adhesive or bent parts. Stand the braces slots-up, then lower the ribs
+slots-down. These open joints lift apart: remove the instrument before moving
+the stand.
+
+Cut a fit coupon and validate the prototype for fit, flex, racking, grip and
+tipping before use. The model does not calculate mass, centre of gravity,
+material stress or playing forces. Check front controls, feet, vents and cables
+against the actual instrument. Manufacturer reference:
+[ACRYLITE laser machining guidance](https://www.acrylite.co/resources/fabrication-manuals/laser-machining-acrylite).
+
+`lib/synth-stand.ts` owns the geometry, normalization and exports. The stand
+tests check connected parts and mating-slot clearance across 216 extreme
+configurations, layout separation and export units. The mode interaction test
+checks configuration retention, material targeting and active-mode downloads.
 
 ## Bottom ventilation
 

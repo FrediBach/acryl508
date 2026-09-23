@@ -98,6 +98,22 @@
 .brand-symbol i:nth-child(2) { left: 5px; top: 4px; }
 .brand-symbol i:nth-child(3) { left: 10px; top: 7px; border-color: var(--signal); background: transparent; }
 .primary-nav { display: flex; align-self: stretch; gap: 30px; margin-left: 30px; }
+.designer-mode-switch { display: flex; flex-shrink: 0; gap: 3px; padding: 3px; border: 1px solid var(--strong-border); border-radius: 4px; background: var(--surface); }
+.designer-mode-switch button { padding: 8px 13px; min-height: 34px; font-size: 11px; font-weight: 550; border-radius: 2px; color: var(--muted-foreground); white-space: nowrap; }
+.designer-mode-switch button:hover { color: var(--foreground); }
+.designer-mode-switch .mode-active { background: var(--selection); color: var(--selection-text); }
+.designer-mode-switch .mode-active:hover { color: var(--selection-text); }
+.app-header:has(.designer-mode-switch) .primary-nav { margin-left: auto; }
+.stand-cutting-layout { position: absolute; inset: 75px 70px 100px 28px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; }
+.stand-cutting-layout svg { width: 100%; min-height: 0; flex: 1; }
+.stand-cutting-layout p { font-size: 10px; color: var(--muted-foreground); text-align: center; }
+.stand-intro { margin-top: 0; margin-bottom: 18px; }
+.stand-parts { display: grid; gap: 14px; }
+.stand-parts > div { display: flex; align-items: center; gap: 15px; }
+.stand-parts strong { font-family: var(--font-geist-mono), monospace; font-size: 23px; font-weight: 400; color: var(--signal); min-width: 36px; }
+.stand-parts span { font-size: 12px; }
+.stand-parts small { display: block; font-family: var(--font-geist-mono), monospace; font-size: 10px; color: var(--muted-foreground); margin-top: 4px; }
+.stand-prototype-note { border-left: 2px solid var(--signal); padding-left: 10px; margin-top: 16px; color: var(--muted-foreground); font-size: 10px; line-height: 1.7; }
 .nav-link { display: inline-flex; align-items: center; gap: 6px; position: relative; color: var(--muted-foreground); font-size: 12px; }
 .nav-link:hover { color: var(--foreground); }
 .nav-link-active { color: var(--foreground); }
@@ -318,7 +334,12 @@
   .stage-hint { display: none; }
   .primary-nav { margin-left: 0; gap: 22px; }
 }
+@media (max-width: 1100px) {
+  .app-header:has(.designer-mode-switch) .primary-nav { display: none; }
+}
 @media (max-width: 900px) {
+  .app-header:has(.designer-mode-switch) { gap: 14px; }
+  .app-header:has(.designer-mode-switch) .primary-nav { display: none; }
   .header-actions { gap: 10px; }
   .header-divider { display: none; }
   .primary-nav { gap: 16px; }
@@ -355,6 +376,11 @@
   .stage-topline { top: 20px; }
 }
 @media (max-width: 700px) {
+  .app-header:has(.designer-mode-switch) { padding-top: 14px; padding-bottom: 12px; }
+  .designer-mode-switch { order: 3; flex-basis: 100%; }
+  .designer-mode-switch button { flex: 1; min-height: 38px; }
+  .stand-cutting-layout { inset: 62px 48px 94px 14px; }
+  .stand-cutting-layout p { font-size: 8px; }
   .app-shell { height: auto; min-height: 100dvh; }
   .app-header { flex-basis: 68px; min-height: 68px; padding: 0 20px; gap: 12px; flex-wrap: wrap; }
   .brand { font-size: 26px; }

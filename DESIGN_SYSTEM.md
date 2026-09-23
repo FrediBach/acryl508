@@ -33,6 +33,19 @@ clear hierarchy, restrained colour, and controls that show what they change.
 
 ## Product constraints
 
+The top bar offers Case designer and Synth stand modes. Both share the theme,
+material palette and visual controls while retaining independent in-session
+configurations. On narrow screens, the mode switch occupies a full second row.
+The active mode owns material-library selections, build notes and both exports.
+
+Synth stands use solid support ribs with front stops and three slotted cross
+braces, all cut from a single thickness of acrylic. The 220 mm maximum rib
+spacing is a layout heuristic. Part counts, dimensions and slot clearance are
+live; the UI and exports clearly identify the design as an unvalidated
+prototype with no load rating. The 3D model and flat cutting layout share the
+exported polygons. Exploded view separates the ribs vertically along the
+actual assembly direction. No hardware, adhesive or bent parts are included.
+
 The geometry uses millimetres and the 5.08 mm HP pitch. Every acrylic panel uses
 one selected GS sheet thickness. The case is an engineering concept: fabrication
 clearances, rail profiles, panel joints, load capacity, and busboard mounting patterns
