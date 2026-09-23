@@ -91,6 +91,14 @@ connector, since cables must thread through these closed holes. The option is
 off by default, and the holes appear in 3D, the cutting layout and both exports.
 JSON includes requested/resolved diameters and brace-local hole centres.
 
+Enable **Rounded edges** under **Material & fit** to round the convex outside
+corners of the ribs, front stops and braces. The corner radius is adjustable
+from 1–10 mm (3 mm default), locally reduced on short edges to keep fillets
+from overlapping. Concave synth-contact corners, slot widths, slot-root relief
+and cable holes are preserved. Rounding removes material from the flat cutting
+outline; it does not bevel the sheet thickness. The same rounded profiles are
+used in both previews and exports. The option is off by default.
+
 Cut a fit coupon and validate the prototype for fit, flex, racking, grip and
 tipping before use. The model does not calculate mass, centre of gravity,
 material stress or playing forces. Check front controls, feet, vents and cables

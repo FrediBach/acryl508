@@ -7,6 +7,10 @@ const { createSynthStand, defaultStandConfiguration, standExport, standSvg, stan
 const near = (a, b) => assert.ok(Math.abs(a - b) < 1e-7, `${a} ≈ ${b}`);
 const rect = (x1, y1, x2, y2) => [[[[x1, y1], [x2, y1], [x2, y2], [x1, y2], [x1, y1]]]];
 const ys = polygons => polygons.flat(2).map(point => point[1]);
+const area = polygons => polygons.reduce((sum, polygon) => sum + polygon.reduce((total, ring, index) => {
+  const signed = ring.slice(1).reduce((value, point, i) => value + ring[i][0] * point[1] - point[0] * ring[i][1], 0) / 2;
+  return total + (index ? -1 : 1) * Math.abs(signed);
+}, 0), 0);
 
 test("stand support edge follows synth depth and angle, with extra ribs for wider instruments", () => {
   for (const width of [180, 490, 550, 1000, 1400]) {
@@ -140,4 +144,50 @@ test("cable-hole exports include the resolved diameter and holes, with unchanged
   assert.deepEqual(createSynthStand(legacy).parts, createSynthStand(defaultStandConfiguration).parts);
   assert.deepEqual(createSynthStand({ ...config, cableHoles: false }).parts, createSynthStand({ ...defaultStandConfiguration, thickness: 5 }).parts);
   assert.equal(createSynthStand({ ...config, cableHoleDiameter: NaN }).config.cableHoleDiameter, 20);
+});
+
+test("rounded outlines stay connected, remove only outer material and preserve slots and cable holes", () => {
+  for (const width of [180, 550, 1400]) for (const angle of [0, 1, 25, 45]) for (const thickness of [5, 10]) for (const cornerRadius of [1, 3, 10]) {
+    const config = { ...defaultStandConfiguration, width, depth: 120, height: 20, angle, thickness, clearance: 0.4, cableHoles: true, cableHoleDiameter: 32, cornerRadius };
+    const square = createSynthStand(config), rounded = createSynthStand({ ...config, roundedEdges: true });
+    for (const part of rounded.parts) {
+      const original = square.parts.find(other => other.id === part.id);
+      assert.equal(part.polygons.length, 1);
+      assert.equal(part.polygons[0].length, original.polygons[0].length);
+      assert.ok(part.polygons.flat(2).every(point => point.every(Number.isFinite)));
+      assert.ok(area(polygonClipping.difference(part.polygons, original.polygons)) < 1e-7, "rounding must not add material into the synth envelope (within floating-point tolerance)");
+      assert.ok(polygonClipping.difference(original.polygons, part.polygons).length, "outside corners are actually removed");
+      near(Math.min(...ys(part.polygons)), 0);
+      near(Math.max(...ys(part.polygons)), part.height);
+      const centers = part.kind === "rib" ? rounded.bracePositions : rounded.ribPositions;
+      const halfSlot = rounded.slotWidth / 2 + rounded.reliefRadius + 0.01;
+      for (const x of centers) {
+        const jointZone = rect(x - halfSlot, -1, x + halfSlot, rounded.braceHeight + 1);
+        assert.deepEqual(polygonClipping.intersection(part.polygons, jointZone), polygonClipping.intersection(original.polygons, jointZone));
+      }
+      if (part.kind === "brace") part.polygons[0].slice(1).forEach((ring, index) => {
+        const originalRing = original.polygons[0][index + 1];
+        assert.equal(ring.length, originalRing.length);
+        ring.forEach(([x, y], i) => { near(x, originalRing[i][0]); near(y, originalRing[i][1]); });
+      });
+    }
+  }
+});
+
+test("brace corners use the selected circular radius and rounding survives exports and legacy defaults", () => {
+  const stand = createSynthStand({ ...defaultStandConfiguration, roundedEdges: true, cornerRadius: 7 });
+  const brace = stand.parts.find(part => part.kind === "brace");
+  const corner = [-stand.braceWidth / 2, 0], center = [corner[0] + 7, 7];
+  const arc = brace.polygons[0][0].filter(([x, y]) => x <= center[0] + 1e-8 && y <= center[1] + 1e-8);
+  assert.ok(arc.length > 10);
+  for (const [x, y] of arc) near(Math.hypot(x - center[0], y - center[1]), 7);
+  assert.equal(standExport(stand).edgeRounding.requestedRadius, 7);
+  assert.equal(standExport(stand).edgeRounding.throughThicknessBevel, false);
+  assert.deepEqual(standExport(stand).parts, stand.parts);
+  assert.match(standSvg(stand), /Outer corners: up to 7 mm radius/);
+  const { roundedEdges, cornerRadius, ...legacy } = defaultStandConfiguration;
+  assert.equal(roundedEdges, false); assert.equal(cornerRadius, 3);
+  assert.deepEqual(createSynthStand(legacy).parts, createSynthStand(defaultStandConfiguration).parts);
+  assert.deepEqual(createSynthStand({ ...stand.config, roundedEdges: false }).parts, createSynthStand(defaultStandConfiguration).parts);
+  assert.equal(createSynthStand({ ...stand.config, cornerRadius: Infinity }).config.cornerRadius, 3);
 });

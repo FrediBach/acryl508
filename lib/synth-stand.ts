@@ -5,23 +5,26 @@ export type StandConfiguration = {
   width: number; depth: number; height: number; angle: number;
   thickness: number; clearance: number; tint: AcrylicTint;
   cableHoles: boolean; cableHoleDiameter: number;
+  roundedEdges: boolean; cornerRadius: number;
 };
 export const standLimits = {
   width: { min: 180, max: 1400 }, depth: { min: 120, max: 600 },
   height: { min: 20, max: 200 }, angle: { min: 0, max: 45 },
   thickness: { min: 5, max: 10 }, clearance: { min: 0, max: 0.4 },
   cableHoleDiameter: { min: 8, max: 32 },
+  cornerRadius: { min: 1, max: 10 },
 };
 export const defaultStandConfiguration: StandConfiguration = {
   width: 550, depth: 280, height: 70, angle: 25, thickness: 6, clearance: 0.15, tint: acrylicTints[1],
   cableHoles: false, cableHoleDiameter: 20,
+  roundedEdges: false, cornerRadius: 3,
 };
 export type StandPart = {
   id: string; label: string; kind: "rib" | "brace"; position: number;
   polygons: MultiPolygon; width: number; height: number; minX: number;
 };
 export function normalizeStandConfiguration(input: StandConfiguration): StandConfiguration {
-  const config = { ...input, cableHoles: input.cableHoles === true };
+  const config = { ...input, cableHoles: input.cableHoles === true, roundedEdges: input.roundedEdges === true };
   for (const key of Object.keys(standLimits) as (keyof typeof standLimits)[]) {
     const { min, max } = standLimits[key];
     config[key] = Math.max(min, Math.min(max, Number.isFinite(input[key]) ? input[key] : defaultStandConfiguration[key]));
@@ -29,6 +32,43 @@ export function normalizeStandConfiguration(input: StandConfiguration): StandCon
   return config;
 }
 const rectangle = (left: number, bottom: number, right: number, top: number): MultiPolygon => [[[[left, bottom], [right, bottom], [right, top], [left, top], [left, bottom]]]];
+// Fillet only convex corners of the CCW outer profile, before cutting joints.
+// This removes material; concave synth-contact corners stay exact. Limit each
+// tangent run to 45% of its edge so adjacent fillets cannot overlap.
+function roundedOutline(outline: Pair[], radius: number): MultiPolygon {
+  if (!radius) return [[outline]];
+  const points = outline.slice(0, -1);
+  const rounded: Pair[] = [];
+  points.forEach((point, index) => {
+    const previous = points[(index + points.length - 1) % points.length], next = points[(index + 1) % points.length];
+    const incoming = [point[0] - previous[0], point[1] - previous[1]];
+    const outgoing = [next[0] - point[0], next[1] - point[1]];
+    const beforeLength = Math.hypot(...incoming), afterLength = Math.hypot(...outgoing);
+    const cross = incoming[0] * outgoing[1] - incoming[1] * outgoing[0];
+    if (cross <= 1e-8 || beforeLength < 1e-8 || afterLength < 1e-8) { rounded.push(point); return; }
+    const before = [-incoming[0] / beforeLength, -incoming[1] / beforeLength];
+    const after = [outgoing[0] / afterLength, outgoing[1] / afterLength];
+    const halfAngle = Math.acos(Math.max(-1, Math.min(1, before[0] * after[0] + before[1] * after[1]))) / 2;
+    const tangent = Math.min(radius / Math.tan(halfAngle), beforeLength * 0.45, afterLength * 0.45);
+    const actualRadius = tangent * Math.tan(halfAngle);
+    const bisectorLength = Math.hypot(before[0] + after[0], before[1] + after[1]);
+    const offset = actualRadius / Math.sin(halfAngle) / bisectorLength;
+    const center = [point[0] + (before[0] + after[0]) * offset, point[1] + (before[1] + after[1]) * offset];
+    const entry: Pair = [point[0] + before[0] * tangent, point[1] + before[1] * tangent];
+    const exit: Pair = [point[0] + after[0] * tangent, point[1] + after[1] * tangent];
+    const start = Math.atan2(entry[1] - center[1], entry[0] - center[0]);
+    const sweep = Math.PI - 2 * halfAngle;
+    // At most 5° per segment; the largest permitted radius has <0.01 mm sag.
+    const steps = Math.max(2, Math.ceil(sweep / (Math.PI / 36)));
+    rounded.push(entry);
+    for (let i = 1; i < steps; i++) {
+      const angle = start + sweep * i / steps;
+      rounded.push([center[0] + actualRadius * Math.cos(angle), center[1] + actualRadius * Math.sin(angle)]);
+    }
+    rounded.push(exit);
+  });
+  return [[ [...rounded, rounded[0]] ]];
+}
 function circle(x: number, y: number, radius: number, segments = 24): MultiPolygon {
   const ring: Pair[] = Array.from({ length: segments }, (_, index) => {
     const angle = index / segments * Math.PI * 2;
@@ -79,11 +119,12 @@ export function createSynthStand(input: StandConfiguration) {
     [-stopHeight * sin - stopDepth * cos, frontHeight + stopHeight * cos - stopDepth * sin],
     [-stopDepth * cos, frontHeight - stopDepth * sin], [front, frontHeight - stopDepth * sin], [front, 0],
   ];
-  const ribPolygons = polygonClipping.difference([[profile]], ...bracePositions.map(center => slot(center, slotWidth, jointCenter + 0.1, -1, reliefRadius)));
-  const bracePolygons = polygonClipping.difference(rectangle(-braceWidth / 2, 0, braceWidth / 2, braceHeight),
+  const cornerRadius = config.roundedEdges ? config.cornerRadius : 0;
+  const ribPolygons = polygonClipping.difference(roundedOutline(profile, cornerRadius), ...bracePositions.map(center => slot(center, slotWidth, jointCenter + 0.1, -1, reliefRadius)));
+  const bracePolygons = polygonClipping.difference(roundedOutline(rectangle(-braceWidth / 2, 0, braceWidth / 2, braceHeight)[0][0], cornerRadius),
     ...ribPositions.map(center => slot(center, slotWidth, jointCenter - 0.1, braceHeight + 1, reliefRadius)),
     ...cableHoleCenters.map(({ x, y }) => circle(x, y, cableHoleDiameter / 2, 64)));
-  const ribHeight = Math.max(...profile.map(point => point[1]));
+  const ribHeight = Math.max(...ribPolygons.flat(2).map(point => point[1]));
   const parts: StandPart[] = [
     ...ribPositions.map((position, i): StandPart => ({ id: `rib-${i + 1}`, label: `Support rib ${i + 1}`, kind: "rib", position, polygons: ribPolygons, width: rear - front, height: ribHeight, minX: front })),
     ...bracePositions.map((position, i): StandPart => ({ id: `brace-${i + 1}`, label: `${["Front", "Middle", "Rear"][i]} cross brace`, kind: "brace", position, polygons: bracePolygons, width: braceWidth, height: braceHeight, minX: -braceWidth / 2 })),
@@ -124,16 +165,17 @@ export function standSvg(stand: SynthStand) {
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${number(layout.width)}mm" height="${number(layout.height)}mm" viewBox="0 0 ${number(layout.width)} ${number(layout.height)}" fill="none" stroke="#000000" stroke-width="0.2" data-units="mm">
   <title>Acryl508 synth stand / ${stand.config.angle} degrees / ${stand.parts.length} parts</title>
-  <desc>Prototype design. GS acrylic ${stand.config.thickness} mm; slot width ${number(stand.slotWidth)} mm. Cable holes: ${stand.cableHoles.totalCount}${stand.cableHoles.enabled ? ` at ${number(stand.cableHoles.diameter)} mm diameter, aligned across all three braces` : ""}. Finished-edge outlines; kerf compensation must be applied in CAM. No validated load rating. Test fit, strength and stability before use. Layout is not nested to a stock sheet size.</desc>
+  <desc>Prototype design. GS acrylic ${stand.config.thickness} mm; slot width ${number(stand.slotWidth)} mm. Outer corners: ${stand.config.roundedEdges ? `up to ${number(stand.config.cornerRadius)} mm radius, locally limited on short edges` : "square"}. Cable holes: ${stand.cableHoles.totalCount}${stand.cableHoles.enabled ? ` at ${number(stand.cableHoles.diameter)} mm diameter, aligned across all three braces` : ""}. Finished-edge outlines; kerf compensation must be applied in CAM. No validated load rating. Test fit, strength and stability before use. Layout is not nested to a stock sheet size.</desc>
 ${layout.parts.map(({ part, x, y }) => `  <g id="${part.id}" transform="translate(${number(x)} ${number(y)})"><title>${part.label}</title><path d="${standPathData(part.polygons)}" /></g>`).join("\n")}
 </svg>\n`;
 }
 export function standExport(stand: SynthStand) {
-  return { product: "Acryl508", mode: "synth-stand", version: 2, units: "mm", status: "unvalidated-prototype",
+  return { product: "Acryl508", mode: "synth-stand", version: 3, units: "mm", status: "unvalidated-prototype",
     configuration: stand.config, material: "GS cast acrylic", dimensions: stand.dimensions,
     construction: { method: "Open half-lap slots", ribCount: stand.ribCount, braceCount: 3, totalParts: stand.parts.length, hardware: 0, adhesive: false, supportSpacing: stand.supportSpacing, slotWidth: stand.slotWidth, slotRootReliefRadius: stand.reliefRadius, kerfCompensated: false, loadRating: null },
     coordinates: "Part outlines: X right, Y up. Ribs: X is front-to-rear depth, position is width-axis centre. Braces: X is width, position is front-to-rear depth. All part bottoms sit at Y=0. Instrument front underside is at depth=0 and Y=frontHeight.",
     cableManagement: { ...stand.cableHoles, requestedDiameter: stand.config.cableHoleDiameter, method: "Round closed holes between ribs, aligned across all three braces", coordinates: "Brace-local X right and Y up, in millimetres" },
+    edgeRounding: { enabled: stand.config.roundedEdges, requestedRadius: stand.config.cornerRadius, method: "Convex outer corners of flat cutting outlines; tangent circular fillets limited to 45% of each adjacent edge", preserves: "Joint slots, slot-root relief, concave synth-contact corners and cable holes", throughThicknessBevel: false, maximumArcStepDegrees: 5 },
     frontHeight: stand.frontHeight, parts: stand.parts, notes: [...standBuildNotes, ...(stand.cableHoles.enabled ? ["Cable holes retain at least two sheet thicknesses to brace edges and joint relief. Diameter is reduced automatically to preserve this web. Check the widest connector fits the resolved hole diameter; holes are closed and require threading the cable through. These geometry limits do not establish strength."] : [])],
   };
 }
