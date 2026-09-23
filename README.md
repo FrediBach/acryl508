@@ -2,7 +2,7 @@
 
 A modern foundation for the Acryl508 acrylic Eurorack case creator. It combines
 React 19, Vite 8 via vinext, Three.js, React Three Fiber, shadcn, Tailwind CSS 4,
-and React Doctor in a Cloudflare-ready application.
+and React Doctor, with production builds for Cloudflare Sites and Vercel.
 
 ## Prerequisites
 
@@ -31,9 +31,25 @@ This starter does not use `wrangler.jsonc`.
 
 - `npm run dev`: start local development
 - `npm run build`: verify the production build
+- `npm run build:vercel`: build with native Next.js for Vercel
+- `npm run start:vercel`: serve the native Next.js production build locally
 - `npm run lint`: run ESLint
 - `npm run doctor`: scan the React codebase for health issues
 - `npm test`: build and verify the application contract and output
+
+## Vercel
+
+Import this repository into Vercel with the repository root as the project root.
+`vercel.json` selects the Next.js framework, installs from the npm lockfile, and
+runs `npm run build:vercel` (Next.js with Webpack) with `.next` as the output directory. No environment
+variables are required. The existing `dev`, `build`, and `start` scripts retain
+the vinext / Cloudflare Sites workflow.
+
+The page title, description, canonical URL, Open Graph tags, and X card are
+defined in `app/layout.tsx`. Absolute sharing URLs use the incoming request host,
+so they work on Vercel previews and custom domains without a hardcoded domain.
+The 1200 × 630 social card is `public/og.png`; the favicon and Apple touch icon
+reuse the stacked-panel brand mark.
 
 ## Learn More
 

@@ -12,13 +12,38 @@ export async function generateMetadata(): Promise<Metadata> {
   const host = requestHeaders.get("host") ?? "acryl508.osxcode.chatgpt.site";
   const protocol = host.startsWith("localhost") || host.startsWith("127.0.0.1") ? "http" : "https";
   const origin = new URL(`${protocol}://${host}`);
-  const description = "Less enclosure. More possibility. Shape your own GS acrylic Eurorack case with a live 3D preview.";
+  const title = "acryl508. — Eurorack Case Configurator";
+  const description = "Design your own GS acrylic Eurorack case with a live 3D preview. Explore dimensions, colours and construction, then export your configuration.";
+  const socialImage = {
+    url: new URL("/og.png", origin).href,
+    width: 1200,
+    height: 630,
+    type: "image/png",
+    alt: "acryl508. Eurorack case configurator — exploded view of a signal-orange acrylic case with black rails, handle and removable feet.",
+  };
   return {
     metadataBase: origin,
-    title: { default: "Acryl508 — Eurorack Case Creator", template: "%s · Acryl508" },
+    applicationName: "acryl508.",
+    title: { default: title, template: "%s · acryl508." },
     description,
-    openGraph: { title: "acryl508. — The open case system", description, type: "website", images: [{ url: new URL("/og.png", origin).href, width: 1733, height: 907, alt: "acryl508. Less enclosure. More possibility. A transparent orange acrylic Eurorack case." }] },
-    twitter: { card: "summary_large_image", title: "acryl508. — The open case system", description, images: [new URL("/og.png", origin).href] },
+    alternates: { canonical: "/" },
+    icons: {
+      icon: [
+        { url: "/favicon.ico", sizes: "16x16 32x32 48x48", type: "image/x-icon" },
+        { url: "/favicon.png", sizes: "32x32", type: "image/png" },
+      ],
+      apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+    },
+    openGraph: {
+      title,
+      description,
+      type: "website",
+      url: origin.href,
+      siteName: "acryl508.",
+      locale: "en_US",
+      images: [socialImage],
+    },
+    twitter: { card: "summary_large_image", title, description, images: [socialImage] },
   };
 }
 
