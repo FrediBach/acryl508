@@ -10,7 +10,7 @@ export const footPanelGap = 0.01;
 
 export function footMountLayout(length: number, angle: number, thickness: number) {
   const radians = angle * Math.PI / 180;
-  const caseY = thickness + 0.12;
+  const caseY = 3 * thickness + 0.12;
   return [-1, 1].map(end => {
     const caseZ = end * length * 0.29;
     return {
@@ -32,7 +32,7 @@ export function createFootProfile(length: number, angle: number, thickness: numb
   // Local X is -Z in the assembled preview. The body stays below the base;
   // the upper flange overlaps the outside of the case wall for through-bolts.
   const top = (x: number) => center + x * Math.tan(radians);
-  const flange = thickness + 0.24;
+  const flange = 3 * thickness + 0.24;
   const band = Math.max(thickness * 1.5, 0.06);
   const shape = new Shape();
 

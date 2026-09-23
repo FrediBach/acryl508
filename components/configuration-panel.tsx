@@ -47,6 +47,7 @@ export function ConfigurationPanel({ config, onChange }: Props) {
       <div className="inline-field"><label htmlFor="busboard">Busboard</label><div className="select-wrap board-select"><select id="busboard" value={config.busboard} onChange={event => onChange({ busboard: event.target.value as CaseConfiguration["busboard"] })}>{Object.entries(busboards).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select><ChevronDown size={12} /></div></div>
       {config.busboard !== "none" && <p className="control-note board-note">Layout concept. Exact board fit and hole patterns need verification.</p>}
       <div className="hardware-note"><span className="hardware-dot" />Black hardware <span>Mechanical assembly · no glue</span></div>
+      <p className="control-note">Case panels interlock in closed slots. Rail-end screws retain the sides; removing one side releases the panels.</p>
     </section>
   </aside>;
 }

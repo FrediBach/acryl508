@@ -22,6 +22,7 @@ This starter does not use `wrangler.jsonc`.
 
 - responsive configurator shell under `app/`
 - interactive Three.js case preview with live dimension and tint controls
+- interlocking case panels retained by rail-end screws, plus removable acrylic feet and handle
 - shadcn component configuration and reusable UI primitives
 - optional hosting bindings declared in `.openai/hosting.json`
 - React Doctor, lint, build, and server-render smoke checks

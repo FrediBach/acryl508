@@ -29,7 +29,7 @@ export function panelCount(config: CaseConfiguration) {
 }
 // All dimensions are millimetres; the preview converts these to scene units.
 export function caseDimensions(config: CaseConfiguration) {
-  return { width: config.hp * 5.08 + config.thickness * 2, length: config.rows * 133.35 + config.thickness * 2, height: config.depth + config.thickness };
+  return { width: config.hp * 5.08 + config.thickness * 2, length: config.rows * 133.35 + config.thickness * 6, height: config.depth + config.thickness * 3 };
 }
 export function configurationExport(config: CaseConfiguration) {
   return {
@@ -37,6 +37,14 @@ export function configurationExport(config: CaseConfiguration) {
     configuration: { ...config, material: "GS cast acrylic", fasteners: "Black socket-head screws", assembly: "Mechanical; no glue" },
     outerDimensions: caseDimensions(config),
     acrylicParts: { enclosurePanels: 5, footPanels: config.angle > 0 ? 2 : 0, handlePanels: config.handle ? 1 : 0, totalPanels: panelCount(config) },
+    panelAssembly: {
+      method: "Base and end-panel tabs captured in closed side-panel slots; rail-end screws retain the side panels",
+      railCount: config.rows * 2, railEndScrewCount: config.rows * 4,
+      additionalPanelFasteners: 0, adhesive: false,
+      baseUndersideHeight: config.thickness * 2, endRetainingMargin: config.thickness * 2,
+      disassembly: "Support the case, remove the rail-end screws on one side, withdraw that side panel, then slide the base and end-panel tabs out of the remaining side panel. Feet and handle can stay on their panels.",
+      status: "Concept; kerf, sheet tolerances, corner relief, rail threads, screw engagement and loaded retention require fabrication validation",
+    },
     footAttachment: config.angle > 0 ? { method: "Overlapping side panels with removable through-bolts", boltsPerFoot: 2, boltCount: 4, washerCount: 8, spacerCount: 4, locknutCount: 4, adhesive: false, status: "Concept; hole clearances, tightening and loads require fabrication validation" } : null,
     notes: ["Configuration specification only; not a cutting template.", "Outer dimensions describe the enclosure, excluding the optional handle and feet.", "Joint clearances, fasteners, load capacity and rail profiles require fabrication validation.", ...(config.busboard !== "none" ? [busboards[config.busboard] + " is a requested board family. Board dimensions, mounting holes and electrical clearances must be verified against the exact model. The preview is illustrative."] : [])],
   };
