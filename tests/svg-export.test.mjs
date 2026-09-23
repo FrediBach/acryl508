@@ -64,6 +64,8 @@ test("custom handle sizes reach both side sheets and JSON with consistent defaul
   assert.equal(data.handles.roundedRoots, true);
   assert.equal(data.stance.minimumWebMm, 12.5);
   assert.equal(data.stance.innerCorners, "Rounded");
+  assert.deepEqual(handleDimensions({ handleHeight: 50 }), { width: 160, height: 50 });
+  assert.deepEqual(handleDimensions({ handleHeight: 20 }), { width: 160, height: 50 });
   assert.deepEqual(handleDimensions({}), { width: 160, height: 70 });
   assert.deepEqual(handleDimensions({ handleWidth: -100, handleHeight: 1000 }), { width: 130, height: 110 });
   assert.deepEqual(handleDimensions({ handleWidth: NaN, handleHeight: Infinity }), { width: 160, height: 70 });

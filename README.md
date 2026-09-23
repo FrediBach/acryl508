@@ -107,7 +107,7 @@ Enable integrated handles to extend one or both sides above the rim. Auto
 uses one left-side grip up to 84 HP and below 6U, and a pair for wider or taller
 racks. One side / Both sides overrides this choice. Short 1U sides flare above
 the rim to retain the hand opening. Handle width is adjustable from 130–240 mm,
-and height above the rim from 70–110 mm. These are outer dimensions; the opening
+and height above the rim from 50–110 mm. These are outer dimensions; the opening
 is 32 mm narrower and 36 mm shorter. The default is 160 × 70 mm. Both grips share
 the dimensions, with rounded transitions into the side panels. Switching handles
 off preserves size and layout preferences. Preview, cutout editor and SVG share the same

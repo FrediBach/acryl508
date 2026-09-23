@@ -96,7 +96,7 @@ export function handleCount(config: CaseConfiguration): 0 | 1 | 2 {
   if (config.handleMode === "pair") return 2;
   return config.hp > 84 || totalRackUnits(config) >= 6 ? 2 : 1;
 }
-export const handleSizeLimits = { width: { min: 130, max: 240 }, height: { min: 70, max: 110 } };
+export const handleSizeLimits = { width: { min: 130, max: 240 }, height: { min: 50, max: 110 } };
 export function handleDimensions(config: Pick<CaseConfiguration, "handleWidth" | "handleHeight">) {
   const bounded = (value: number | undefined, fallback: number, limits: { min: number; max: number }) => Math.min(limits.max, Math.max(limits.min, Number.isFinite(value) ? value! : fallback));
   return { width: bounded(config.handleWidth, 160, handleSizeLimits.width), height: bounded(config.handleHeight, 70, handleSizeLimits.height) };

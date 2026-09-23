@@ -38,7 +38,8 @@ function roundedWindow(points: Vector2[], radius: number) {
 
 function gripOpening(width: number, height: number, rise: number) {
   const path = new Path();
-  const half = (width - 0.32) / 2, bottom = height + 0.2, top = height + rise - 0.16, radius = 0.08;
+  const half = (width - 0.32) / 2, bottom = height + 0.2, top = height + rise - 0.16;
+  const radius = Math.min(0.08, (top - bottom) / 2);
   path.moveTo(-half + radius, bottom);
   path.lineTo(half - radius, bottom);
   path.quadraticCurveTo(half, bottom, half, bottom + radius);

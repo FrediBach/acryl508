@@ -93,7 +93,7 @@ function checkTangency(path, curve) {
 }
 
 test("handle dimensions preserve open grips and smooth roots on flared and long panels", () => {
-  for (const length of [0.5645, 1.58, 1.6, 1.88, 2, 4.3]) for (const width of [1.3, 1.6, 2.4]) for (const height of [0.7, 0.9, 1.1]) {
+  for (const length of [0.5645, 1.58, 1.6, 1.88, 2, 4.3]) for (const width of [1.3, 1.6, 2.4]) for (const height of [0.5, 0.51, 0.7, 0.9, 1.1]) {
     const panelHeight = 0.9;
     const { side } = createPanelProfiles(4.4, length, panelHeight, 0.05);
     const profile = createSideProfile(side, length, panelHeight, 0.05, 20, "sled", true, { width, height });
