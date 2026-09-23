@@ -1,5 +1,5 @@
-import { Path, Shape } from "three";
-import type { FootShape } from "./configurator";
+import { Path, Shape, Vector2 } from "three";
+import { sledWebThickness, type FootShape } from "./configurator";
 
 // Preview units: 1 = 100 mm. Stance and grip are part of the side sheet.
 export const handleRise = 0.7;
@@ -9,15 +9,36 @@ export function caseLift(length: number, angle: number) {
   return angle > 0 ? Math.sin(angle * Math.PI / 180) * length / 2 + 0.08 : 0.035;
 }
 
-export function handleLayout(length: number) {
-  // Short 1U sides flare above the rim to retain a usable hand opening.
-  const width = Math.max(1.3, Math.min(1.6, length - 0.12));
-  return { width, neck: Math.min(width / 2, length / 2 - 0.02) };
+type HandleSize = { width: number; height: number };
+
+// Round inside a convex window: tangent circular fillets only add material.
+function roundedWindow(points: Vector2[], radius: number) {
+  const path = new Path();
+  const corners = points.map((point, index) => {
+    const before = points[(index + points.length - 1) % points.length].clone().sub(point);
+    const after = points[(index + 1) % points.length].clone().sub(point);
+    const beforeLength = before.length(), afterLength = after.length();
+    before.normalize(); after.normalize();
+    const halfAngle = Math.acos(Math.max(-1, Math.min(1, before.dot(after)))) / 2;
+    const distance = Math.min(radius / Math.tan(halfAngle), beforeLength * 0.45, afterLength * 0.45);
+    const actualRadius = distance * Math.tan(halfAngle);
+    const center = before.clone().add(after).normalize().multiplyScalar(actualRadius / Math.sin(halfAngle)).add(point);
+    return { entry: before.multiplyScalar(distance).add(point), exit: after.multiplyScalar(distance).add(point), center, radius: actualRadius };
+  });
+  path.moveTo(corners[0].entry.x, corners[0].entry.y);
+  for (const corner of corners) {
+    path.lineTo(corner.entry.x, corner.entry.y);
+    path.absarc(corner.center.x, corner.center.y, corner.radius,
+      Math.atan2(corner.entry.y - corner.center.y, corner.entry.x - corner.center.x),
+      Math.atan2(corner.exit.y - corner.center.y, corner.exit.x - corner.center.x), true);
+  }
+  path.closePath();
+  return path;
 }
 
-function gripOpening(width: number, height: number) {
+function gripOpening(width: number, height: number, rise: number) {
   const path = new Path();
-  const half = (width - 0.32) / 2, bottom = height + 0.2, top = height + handleRise - 0.16, radius = 0.08;
+  const half = (width - 0.32) / 2, bottom = height + 0.2, top = height + rise - 0.16, radius = 0.08;
   path.moveTo(-half + radius, bottom);
   path.lineTo(half - radius, bottom);
   path.quadraticCurveTo(half, bottom, half, bottom + radius);
@@ -31,7 +52,7 @@ function gripOpening(width: number, height: number) {
   return path;
 }
 
-export function createSideProfile(panel: Shape, length: number, height: number, thickness: number, angle: number, style: FootShape, handle: boolean) {
+export function createSideProfile(panel: Shape, length: number, height: number, thickness: number, angle: number, style: FootShape, handle: boolean, handleSize: HandleSize = { width: 1.6, height: handleRise }) {
   const shape = new Shape();
   shape.holes = panel.holes.map(hole => hole.clone());
   const half = length / 2;
@@ -51,34 +72,43 @@ export function createSideProfile(panel: Shape, length: number, height: number, 
   shape.lineTo(half, angle > 0 ? floor(half) : 0);
   shape.lineTo(half, height);
   if (handle) {
-    const { width, neck } = handleLayout(length);
-    const outer = width / 2, top = height + handleRise, radius = 0.1;
-    shape.lineTo(neck, height);
-    shape.lineTo(outer, height + 0.14);
+    const outer = handleSize.width / 2, top = height + handleSize.height, radius = 0.1, root = 0.14;
+    const widePanel = half > outer + root;
+    if (widePanel) {
+      shape.lineTo(outer + root, height);
+      shape.quadraticCurveTo(outer, height, outer, height + root);
+    } else {
+      // Narrow panels flow straight from the vertical side into the flared
+      // grip, with vertical tangents at both ends and no sharp shoulder.
+      shape.bezierCurveTo(half, height + 0.06, outer, height + 0.08, outer, height + root);
+    }
     shape.lineTo(outer, top - radius);
     shape.quadraticCurveTo(outer, top, outer - radius, top);
     shape.lineTo(-outer + radius, top);
     shape.quadraticCurveTo(-outer, top, -outer, top - radius);
-    shape.lineTo(-outer, height + 0.14);
-    shape.lineTo(-neck, height);
-    shape.holes.push(gripOpening(width, height));
-  }
-  shape.lineTo(-half, height);
+    shape.lineTo(-outer, height + root);
+    if (widePanel) {
+      shape.quadraticCurveTo(-outer, height, -outer - root, height);
+      shape.lineTo(-half, height);
+    } else {
+      shape.bezierCurveTo(-outer, height + 0.08, -half, height + 0.06, -half, height);
+    }
+    shape.holes.push(gripOpening(handleSize.width, height, handleSize.height));
+  } else shape.lineTo(-half, height);
   shape.closePath();
 
   if (angle > 0 && style === "sled") {
-    // Window stays below the enclosure, with a sheet-width web above the
-    // floor and below the base. Leave solid material on very shallow stances.
-    const left = Math.max(-half + band, (footFloor - caseLift(length, angle) + 2 * band * cos + band) / sin);
-    const right = half - band;
-    if (right - left > band) {
-      const window = new Path();
-      window.moveTo(left, -band);
-      window.lineTo(right, -band);
-      window.lineTo(right, floor(right) + band / cos);
-      window.lineTo(left, floor(left) + band / cos);
-      window.closePath();
-      shape.holes.push(window);
+    // Retain at least 12 mm or 2.5 sheet thicknesses around the opening.
+    // Offset the sloping floor perpendicularly, not just vertically.
+    const web = sledWebThickness(thickness * 100) / 100;
+    const radius = Math.max(0.08, thickness * 1.5);
+    const left = Math.max(-half + web, (footFloor - caseLift(length, angle) + (web + 2 * radius) * cos + web) / sin);
+    const right = half - web;
+    if (right - left > 2 * radius) {
+      shape.holes.push(roundedWindow([
+        new Vector2(left, -web), new Vector2(right, -web),
+        new Vector2(right, floor(right) + web / cos), new Vector2(left, floor(left) + web / cos),
+      ], radius));
     }
   }
   return shape;

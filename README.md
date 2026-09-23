@@ -89,7 +89,7 @@ border. Density is reduced when needed. Vents near the bounding box of each
 custom bottom cutout are omitted with a message; imported shapes may therefore
 reserve extra material. These are geometry limits, not certified structural,
 thermal or laser-cutting limits. Custom cutouts can still independently weaken
-the panel and need review. JSON version 6 includes the full `ventDesign` and
+the panel and need review. JSON version 7 includes the full `ventDesign` and
 the guardrail policy.
 
 ## Stance and handles
@@ -97,15 +97,21 @@ the guardrail policy.
 The side panels extend down to form the selected wedge, arch or sled stance.
 Their contact edges lie on the same horizontal floor at 10°, 20° or 30°;
 flat mode keeps the rectangular lower edge. Slots and rail holes remain in the
-same enclosure coordinates. No separate feet, grip sheets or attachment bolts
+same enclosure coordinates. Sled openings have tangent circular inner corners
+and retain at least 12 mm or 2.5× the sheet thickness on all sides, including the
+perpendicular distance to the sloping floor edge. Short, shallow stances stay
+solid when this opening cannot fit. No separate feet, grip sheets or attachment bolts
 are needed: every configuration has five acrylic panels.
 
 Enable integrated handles to extend one or both sides above the rim. Auto
 uses one left-side grip up to 84 HP and below 6U, and a pair for wider or taller
 racks. One side / Both sides overrides this choice. Short 1U sides flare above
-the rim to retain a 98 mm wide, 34 mm high hand opening. Switching handles off
-preserves the layout preference. Preview, cutout editor and SVG share the same
-outlines. JSON version 6 records the resolved grip count and integral stance;
+the rim to retain the hand opening. Handle width is adjustable from 130–240 mm,
+and height above the rim from 70–110 mm. These are outer dimensions; the opening
+is 32 mm narrower and 36 mm shorter. The default is 160 × 70 mm. Both grips share
+the dimensions, with rounded transitions into the side panels. Switching handles
+off preserves size and layout preferences. Preview, cutout editor and SVG share the same
+outlines. JSON version 7 records the resolved grip count, size and integral stance;
 legacy `handle` and `footShape` settings remain supported. Grip strength,
 loaded stability and fabrication tolerances still require prototype validation.
 
@@ -131,7 +137,7 @@ are removed, even if an island is larger than the remaining frame. Warnings
 report removed pieces, cuts outside the panel, and panels with no material left.
 Use stencil lettering when enclosed centres should remain attached.
 
-JSON version 6 includes the ordered 1U/3U row layout, adjustable side-panel margin, each cutout's source metadata, normalized outlines,
+JSON version 7 includes the ordered 1U/3U row layout, adjustable side-panel margin, each cutout's source metadata, normalized outlines,
 placement, and width, plus removal reports and the resolved panel outlines in
 millimetres. It remains a design specification requiring fabrication validation.
 Font copyrights and distribution licences are retained in the bundled JSON

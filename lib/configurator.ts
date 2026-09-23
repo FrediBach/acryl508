@@ -17,7 +17,7 @@ export type CaseConfiguration = {
   ventStyle: VentStyle; ventDensity: VentDensity;
   ventLayout: VentLayout; ventCoverage: VentCoverage; ventMix: VentMix;
   ventDesign: VentDesign;
-  handle: boolean; handleMode?: "auto" | "single" | "pair"; footShape: FootShape;
+  handle: boolean; handleMode?: "auto" | "single" | "pair"; handleWidth?: number; handleHeight?: number; footShape: FootShape;
   cutouts: CustomCutout[];
 };
 export const acrylicTints: AcrylicTint[] = [
@@ -35,7 +35,7 @@ export const busboards: Record<Busboard, string> = { none: "No busboard", sinuso
 export const footShapes: { value: FootShape; label: string; description: string }[] = [
   { value: "wedge", label: "Wedge", description: "Solid side panels extend to the floor." },
   { value: "arch", label: "Arch", description: "An arch in each side panel leaves two contact points." },
-  { value: "sled", label: "Sled", description: "Each side panel forms a continuous runner with a tapered opening." },
+  { value: "sled", label: "Sled", description: "Thicker runners surround a tapered opening with rounded inner corners." },
 ];
 export const ventStyles: { value: VentStyle; label: string }[] = [
   { value: "long-slits", label: "Long slits" },
@@ -58,7 +58,7 @@ export const ventDensities: { value: VentDensity; label: string }[] = [
 ];
 export const defaultConfiguration: CaseConfiguration = {
   hp: 84, rows: 1, rowUnits: [3], depth: 75, thickness: 5, sideMarginRatio: 2, tint: acrylicTints[1], angle: 0, vents: true, busboard: "none",
-  handle: false, handleMode: "auto", footShape: "wedge", cutouts: [], ventStyle: "long-slits", ventDensity: "medium",
+  handle: false, handleMode: "auto", handleWidth: 160, handleHeight: 70, footShape: "wedge", cutouts: [], ventStyle: "long-slits", ventDensity: "medium",
   ventDesign: defaultVentDesign,
   ventLayout: "aligned", ventCoverage: "bands", ventMix: "checkerboard",
 };
@@ -96,6 +96,12 @@ export function handleCount(config: CaseConfiguration): 0 | 1 | 2 {
   if (config.handleMode === "pair") return 2;
   return config.hp > 84 || totalRackUnits(config) >= 6 ? 2 : 1;
 }
+export const handleSizeLimits = { width: { min: 130, max: 240 }, height: { min: 70, max: 110 } };
+export function handleDimensions(config: Pick<CaseConfiguration, "handleWidth" | "handleHeight">) {
+  const bounded = (value: number | undefined, fallback: number, limits: { min: number; max: number }) => Math.min(limits.max, Math.max(limits.min, Number.isFinite(value) ? value! : fallback));
+  return { width: bounded(config.handleWidth, 160, handleSizeLimits.width), height: bounded(config.handleHeight, 70, handleSizeLimits.height) };
+}
+export function sledWebThickness(thickness: number) { return Math.max(12, thickness * 2.5); }
 export function panelCount() { return 5; }
 // All dimensions are millimetres; the preview converts these to scene units.
 export function caseDimensions(config: CaseConfiguration) {
@@ -105,8 +111,8 @@ export function caseDimensions(config: CaseConfiguration) {
 }
 export function configurationExport(config: CaseConfiguration, cutoutReports: CutoutReport[] = [], resolvedPanels: Partial<Record<CutoutSide, MultiPolygon>> = {}) {
   return {
-    product: "Acryl508", version: 6, units: "mm", status: "design-concept",
-    configuration: { ...config, ventLayout: config.ventLayout ?? "aligned", ventCoverage: config.ventCoverage ?? "bands", ventMix: config.ventMix ?? "checkerboard", ventDesign: normalizeVentDesign(config.ventDesign), material: "GS cast acrylic", fasteners: "Black socket-head screws", assembly: "Mechanical; no glue" },
+    product: "Acryl508", version: 7, units: "mm", status: "design-concept",
+    configuration: { ...config, handleWidth: handleDimensions(config).width, handleHeight: handleDimensions(config).height, ventLayout: config.ventLayout ?? "aligned", ventCoverage: config.ventCoverage ?? "bands", ventMix: config.ventMix ?? "checkerboard", ventDesign: normalizeVentDesign(config.ventDesign), material: "GS cast acrylic", fasteners: "Black socket-head screws", assembly: "Mechanical; no glue" },
     ventilation: {
       minimumWebMm: Math.max(3, config.thickness), borderMm: Math.max(8, 2 * config.thickness),
       coverage: "Two bands or a full field with a solid centre strip. Staggered rows are offset by half a column pitch and shortened at the borders. Mixed openings alternate round dots and short slits by opening, row or column.",
@@ -133,8 +139,8 @@ export function configurationExport(config: CaseConfiguration, cutoutReports: Cu
       disassembly: "Support the case, remove the rail-end screws on one side, withdraw that side panel, then slide the base and end-panel tabs out of the remaining side panel. Stance and handles are integral to the side panels.",
       status: "Concept; kerf, sheet tolerances, corner relief, rail threads, screw engagement and loaded retention require fabrication validation",
     },
-    stance: { method: "Integral side-panel profile", angle: config.angle, shape: config.footShape, additionalParts: 0 },
-    handles: { method: "Integral side-panel grips", mode: config.handleMode ?? "auto", count: handleCount(config), sides: handleCount(config) === 2 ? ["left", "right"] : handleCount(config) === 1 ? ["left"] : [], additionalParts: 0 },
+    stance: { method: "Integral side-panel profile", angle: config.angle, shape: config.footShape, minimumWebMm: config.footShape === "sled" && config.angle > 0 ? sledWebThickness(config.thickness) : null, innerCorners: config.footShape === "sled" ? "Rounded" : null, additionalParts: 0 },
+    handles: { method: "Integral side-panel grips", mode: config.handleMode ?? "auto", count: handleCount(config), widthMm: handleDimensions(config).width, riseMm: handleDimensions(config).height, roundedRoots: true, sides: handleCount(config) === 2 ? ["left", "right"] : handleCount(config) === 1 ? ["left"] : [], additionalParts: 0 },
     footAttachment: null,
     notes: ["Configuration specification only; not a cutting template.", "Outer dimensions describe the enclosure, excluding the integral grip and stance extensions.", "The minimum side margin uses a 1.5× slot-width centre-to-edge guardrail adapted from acrylic hole guidance; rectangular slots and the complete loaded assembly still require fabrication validation.", "Joint clearances, fasteners, load capacity and rail profiles require fabrication validation.", ...(config.busboard !== "none" ? [busboards[config.busboard] + " is a requested board family. Board dimensions, mounting holes and electrical clearances must be verified against the exact model. The preview is illustrative."] : [])],
   };

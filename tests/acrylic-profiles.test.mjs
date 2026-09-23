@@ -82,3 +82,53 @@ test("automatic and explicit handle layouts shape only the selected sides withou
     assert.equal(panels.faces.rear.shapes[0].holes.length, 0);
   }
 });
+
+function checkTangency(path, curve) {
+  const curves = path.curves.filter(part => part.getLength() > 1e-8);
+  const index = curves.indexOf(curve);
+  const previous = curves[(index + curves.length - 1) % curves.length];
+  const next = curves[(index + 1) % curves.length];
+  assert.ok(previous.getTangent(1).dot(curve.getTangent(0)) > 0.999, "smooth entry tangent");
+  assert.ok(curve.getTangent(1).dot(next.getTangent(0)) > 0.999, "smooth exit tangent");
+}
+
+test("handle dimensions preserve open grips and smooth roots on flared and long panels", () => {
+  for (const length of [0.5645, 1.58, 1.6, 1.88, 2, 4.3]) for (const width of [1.3, 1.6, 2.4]) for (const height of [0.7, 0.9, 1.1]) {
+    const panelHeight = 0.9;
+    const { side } = createPanelProfiles(4.4, length, panelHeight, 0.05);
+    const profile = createSideProfile(side, length, panelHeight, 0.05, 20, "sled", true, { width, height });
+    const opening = profile.holes[side.holes.length].getPoints(24);
+    near(Math.max(...opening.map(p => p.x)) - Math.min(...opening.map(p => p.x)), width - 0.32);
+    near(Math.max(...opening.map(p => p.y)) - Math.min(...opening.map(p => p.y)), height - 0.36);
+    near(Math.max(...profile.getPoints().map(p => p.y)), panelHeight + height);
+    const roots = profile.curves.filter(curve => curve.type !== "LineCurve" && curve.getPoints().every(p => p.y >= panelHeight - 1e-8 && p.y <= panelHeight + 0.14 + 1e-8));
+    assert.equal(roots.length, 2);
+    roots.forEach(curve => checkTangency(profile, curve));
+    checkExtrusion(profile, 0.05);
+  }
+});
+
+test("sled inner corners are tangent arcs and retain thicker webs across all stance sizes", () => {
+  let openings = 0, solid = 0;
+  for (const length of [0.5645, 1.6335, 2.967, 4.3005]) for (const thickness of [0.03, 0.04, 0.05, 0.06]) for (const angle of [10, 20, 30]) {
+    const { side } = createPanelProfiles(4.4, length, 0.9, thickness);
+    const profile = createSideProfile(side, length, 0.9, thickness, angle, "sled", false);
+    if (profile.holes.length === side.holes.length) { solid++; continue; }
+    openings++;
+    const window = profile.holes.at(-1);
+    const web = Math.max(0.12, 2.5 * thickness);
+    const radians = angle * Math.PI / 180;
+    for (const point of window.getPoints(32)) {
+      assert.ok(point.x >= -length / 2 + web - 1e-9);
+      assert.ok(point.x <= length / 2 - web + 1e-9);
+      assert.ok(point.y <= -web + 1e-9);
+      const floorDistance = caseLift(length, angle) + point.y * Math.cos(radians) + point.x * Math.sin(radians) - footFloor;
+      assert.ok(floorDistance >= web - 1e-9, "perpendicular web at floor");
+    }
+    const arcs = window.curves.filter(curve => curve.type === "EllipseCurve");
+    assert.equal(arcs.length, 4);
+    arcs.forEach(curve => checkTangency(window, curve));
+    checkExtrusion(profile, thickness);
+  }
+  assert.ok(openings > 0 && solid > 0, "small stances retain solid material");
+});

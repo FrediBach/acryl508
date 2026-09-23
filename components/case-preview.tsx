@@ -4,8 +4,8 @@ import { ContactShadows, Environment, Lightformer, Line, OrbitControls } from "@
 import { Canvas, useThree } from "@react-three/fiber";
 import { Path, Shape, Vector3, type MeshPhysicalMaterialParameters } from "three";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
-import { caseDimensions, rackRowLayout, type CaseConfiguration } from "@/lib/configurator";
-import { caseLift, handleRise } from "@/lib/acrylic-profiles";
+import { caseDimensions, handleDimensions, rackRowLayout, type CaseConfiguration } from "@/lib/configurator";
+import { caseLift } from "@/lib/acrylic-profiles";
 import type { CasePanels } from "@/lib/case-panels";
 import { panelEdgePoints } from "@/lib/panel-edges";
 
@@ -104,18 +104,21 @@ function CameraRig({ config, view, resetKey, exploded }: Pick<Props, "config" | 
   const { camera, size, invalidate } = useThree();
   const dimensions = caseDimensions(config);
   const width = dimensions.width * unit, length = dimensions.length * unit, height = dimensions.height * unit;
+  const handleSize = handleDimensions(config);
+  const gripWidth = config.handle ? handleSize.width * unit : 0;
+  const gripRise = config.handle ? handleSize.height * unit : 0;
   useEffect(() => {
     const aspect = size.width / size.height;
     const radians = config.angle * Math.PI / 180;
-    const totalHeight = caseLift(length, config.angle) + Math.sin(radians) * length / 2 + Math.cos(radians) * (height + (config.handle ? handleRise : 0));
-    const fit = Math.max(width / aspect, length * 0.85, totalHeight * 1.3, 1.85) * (exploded ? 2.8 : 2.35);
+    const totalHeight = caseLift(length, config.angle) + Math.sin(radians) * Math.max(length, gripWidth) / 2 + Math.cos(radians) * (height + gripRise);
+    const fit = Math.max(width / aspect, Math.max(length, gripWidth) * 0.85, totalHeight * 1.3, 1.85) * (exploded ? 2.8 : 2.35);
     const target = new Vector3(0, totalHeight / 2, 0);
     const direction = view === "top" ? new Vector3(0, 1, 0.001) : view === "front" ? new Vector3(0, 0.1, 1) : new Vector3(0.65, 0.72, 1).normalize();
     camera.position.copy(target).addScaledVector(direction, fit);
     camera.lookAt(target);
     if (controls.current) { controls.current.target.copy(target); controls.current.update(); }
     invalidate();
-  }, [camera, size.width, size.height, width, length, height, config.angle, config.handle, view, resetKey, exploded, invalidate]);
+  }, [camera, size.width, size.height, width, length, height, config.angle, gripWidth, gripRise, view, resetKey, exploded, invalidate]);
   return <OrbitControls ref={controls} makeDefault enablePan={false} enableDamping minDistance={1.3} maxDistance={28} maxPolarAngle={Math.PI / 2 - 0.03} />;
 }
 class PreviewBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {

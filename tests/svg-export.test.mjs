@@ -47,3 +47,28 @@ test("SVG export integrates stance and handles into side sheets alongside resolv
   assert.ok((group(svg, "front").match(/\bM/g) ?? []).length >= 2, "front sheet includes the custom cutout loop");
   assert.match(svg, /Acryl508 1U \+ 3U \/ 84HP panel layout/);
 });
+
+test("custom handle sizes reach both side sheets and JSON with consistent defaults and bounds", async () => {
+  const { configurationExport, handleDimensions } = await loadTypescript("../lib/configurator.ts");
+  const config = { ...defaultConfiguration, handle: true, handleMode: "pair", handleWidth: 230, handleHeight: 100, angle: 20, footShape: "sled" };
+  const svg = configurationSvg(config, createCasePanels(config));
+  for (const side of ["left", "right"]) {
+    const bounds = pathBounds(group(svg, side));
+    assert.ok(Math.abs(bounds.width - 230) < 0.001);
+    assert.ok(bounds.height > caseDimensions(config).height + 100);
+  }
+  const data = configurationExport(config);
+  assert.equal(data.handles.widthMm, 230);
+  assert.equal(data.handles.riseMm, 100);
+  assert.equal(data.handles.count, 2);
+  assert.equal(data.handles.roundedRoots, true);
+  assert.equal(data.stance.minimumWebMm, 12.5);
+  assert.equal(data.stance.innerCorners, "Rounded");
+  assert.deepEqual(handleDimensions({}), { width: 160, height: 70 });
+  assert.deepEqual(handleDimensions({ handleWidth: -100, handleHeight: 1000 }), { width: 130, height: 110 });
+  assert.deepEqual(handleDimensions({ handleWidth: NaN, handleHeight: Infinity }), { width: 160, height: 70 });
+  const off = configurationExport({ ...config, handle: false });
+  assert.equal(off.handles.count, 0);
+  assert.equal(off.configuration.handleWidth, 230);
+  assert.equal(off.configuration.handleHeight, 100);
+});
