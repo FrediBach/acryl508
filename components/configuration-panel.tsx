@@ -1,191 +1,43 @@
-import { CircleHelp, ShieldCheck } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import { Slider } from "@/components/ui/slider";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { cn } from "@/lib/utils";
-import {
-  acrylicTints,
-  rowOptions,
-  type AcrylicTint,
-} from "@/lib/configurator";
+import { Check, ChevronDown, Minus, Plus } from "lucide-react";
+import { useState, type CSSProperties, type ReactNode } from "react";
+import { acrylicTints, busboards, rowOptions, type CaseConfiguration } from "@/lib/configurator";
 
-type ConfigurationPanelProps = {
-  depth: number;
-  hp: number;
-  rows: number;
-  tint: AcrylicTint;
-  onDepthChange: (value: number) => void;
-  onHpChange: (value: number) => void;
-  onRowsChange: (value: number) => void;
-  onTintChange: (value: AcrylicTint) => void;
-};
-
-function FieldLabel({
-  children,
-  value,
-}: {
-  children: React.ReactNode;
-  value: string;
-}) {
-  return (
-    <div className="flex items-end justify-between gap-4">
-      <span className="text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-zinc-500">
-        {children}
-      </span>
-      <span className="font-mono text-sm text-zinc-200">{value}</span>
-    </div>
-  );
+type Props = { config: CaseConfiguration; onChange: (update: Partial<CaseConfiguration>) => void };
+function SectionTitle({ number, children, detail }: { number: string; children: ReactNode; detail?: string }) {
+  return <div className="section-heading"><span className="section-number">{number}</span><h3>{children}</h3>{detail && <span className="section-detail">{detail}</span>}</div>;
 }
-
-function sliderValue(value: number | readonly number[]) {
-  return Array.isArray(value) ? value[0] : value;
+function RangeField({ label, value, min, max, unit, onChange }: { label: string; value: number; min: number; max: number; unit: string; onChange: (value: number) => void }) {
+  const [draft, setDraft] = useState(String(value));
+  const [editing, setEditing] = useState(false);
+  function commitDraft() {
+    const number = Number(draft);
+    if (draft.trim() && Number.isFinite(number)) onChange(Math.min(max, Math.max(min, Math.round(number))));
+    setEditing(false);
+  }
+  return <div className="range-field"><div className="field-heading"><label htmlFor={`range-${unit}`}>{label}</label><div className="number-field"><input type="number" aria-label={`${label} in ${unit}`} min={min} max={max} step={1} value={editing ? draft : value} inputMode="numeric" onFocus={() => { setDraft(String(value)); setEditing(true); }} onBlur={commitDraft} onKeyDown={event => { if (event.key === "Enter") event.currentTarget.blur(); }} onChange={event => { setDraft(event.target.value); const number = Number(event.target.value); if (event.target.value && Number.isInteger(number) && number >= min && number <= max) onChange(number); }} /><span>{unit}</span></div></div><input id={`range-${unit}`} className="range-input" type="range" min={min} max={max} step={1} value={value} style={{ "--range-progress": `${(value - min) / (max - min) * 100}%` } as CSSProperties} onChange={event => onChange(event.currentTarget.valueAsNumber)} /><div className="range-labels"><span>{min} {unit}</span><span>{max} {unit}</span></div></div>;
 }
-
-export function ConfigurationPanel({
-  depth,
-  hp,
-  rows,
-  tint,
-  onDepthChange,
-  onHpChange,
-  onRowsChange,
-  onTintChange,
-}: ConfigurationPanelProps) {
-  return (
-    <aside
-      className="control-panel order-2 lg:order-1"
-      aria-label="Case controls"
-    >
-      <div>
-        <div className="mb-3 flex items-center justify-between">
-          <Badge className="bg-[#ff5b42]/10 text-[#ff755f]">
-            Concept 01
-          </Badge>
-          <Tooltip>
-            <TooltipTrigger
-              render={
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  aria-label="About case geometry"
-                />
-              }
-            >
-              <CircleHelp />
-            </TooltipTrigger>
-            <TooltipContent>
-              Dimensions update the 3D case instantly.
-            </TooltipContent>
-          </Tooltip>
-        </div>
-        <h1 className="text-[2rem] font-semibold leading-[1.05] tracking-[-0.045em]">
-          Shape your
-          <br />
-          signal space.
-        </h1>
-        <p className="mt-3 max-w-[28ch] text-sm leading-6 text-zinc-500">
-          Configure a precise acrylic enclosure around the way you patch.
-        </p>
-      </div>
-
-      <Separator className="bg-white/[0.07]" />
-
-      <section className="space-y-3" aria-labelledby="rack-size-label">
-        <FieldLabel value={`${rows * 3}U`}>Rack size</FieldLabel>
-        <div id="rack-size-label" className="segmented-control">
-          {rowOptions.map((option) => (
-            <button
-              key={option.value}
-              type="button"
-              className={cn(
-                "segment",
-                rows === option.value && "segment-active",
-              )}
-              onClick={() => onRowsChange(option.value)}
-              aria-pressed={rows === option.value}
-            >
-              {option.label}
-            </button>
-          ))}
-        </div>
-      </section>
-
-      <section className="space-y-4">
-        <FieldLabel value={`${hp} HP`}>Width</FieldLabel>
-        <Slider
-          min={42}
-          max={126}
-          step={2}
-          value={[hp]}
-          onValueChange={(value) => onHpChange(sliderValue(value))}
-          aria-label="Case width in horizontal pitch"
-          className="acryl-slider"
-        />
-        <div className="flex justify-between font-mono text-[0.65rem] text-zinc-600">
-          <span>42 HP</span>
-          <span>126 HP</span>
-        </div>
-      </section>
-
-      <section className="space-y-4">
-        <FieldLabel value={`${depth} mm`}>Internal depth</FieldLabel>
-        <Slider
-          min={80}
-          max={250}
-          step={5}
-          value={[depth]}
-          onValueChange={(value) => onDepthChange(sliderValue(value))}
-          aria-label="Internal case depth in millimeters"
-          className="acryl-slider"
-        />
-        <div className="flex justify-between font-mono text-[0.65rem] text-zinc-600">
-          <span>80 mm</span>
-          <span>250 mm</span>
-        </div>
-      </section>
-
-      <section className="space-y-3">
-        <FieldLabel value={tint.label}>Acrylic tint</FieldLabel>
-        <div className="grid grid-cols-4 gap-2">
-          {acrylicTints.map((option) => (
-            <button
-              key={option.id}
-              type="button"
-              className={cn(
-                "tint-swatch",
-                tint.id === option.id && "tint-swatch-active",
-              )}
-              onClick={() => onTintChange(option)}
-              aria-label={`${option.label} acrylic`}
-              aria-pressed={tint.id === option.id}
-            >
-              <span
-                className="tint-color"
-                style={{ backgroundColor: option.color }}
-              />
-              <span>{option.label}</span>
-            </button>
-          ))}
-        </div>
-      </section>
-
-      <div id="materials" className="material-note">
-        <ShieldCheck className="size-4 text-emerald-400" />
-        <div>
-          <p className="text-xs font-medium text-zinc-200">
-            Fabrication-safe geometry
-          </p>
-          <p className="mt-1 text-[0.7rem] leading-4 text-zinc-500">
-            All clearances follow the selected 3 mm sheet profile.
-          </p>
-        </div>
-      </div>
-    </aside>
-  );
+export function ConfigurationPanel({ config, onChange }: Props) {
+  return <aside className="control-panel" aria-label="Case controls">
+    <div className="panel-heading"><h2>Your configuration</h2><span className="micro-label">01—04</span></div>
+    <section className="control-section"><SectionTitle number="01">Dimensions</SectionTitle>
+      <div className="field-heading"><span>Rack format</span><span className="field-note">{config.rows} {config.rows === 1 ? "row" : "rows"}</span></div>
+      <div className="segmented-control" aria-label="Rack format">{rowOptions.map(option => <button key={option.value} className={`segment ${config.rows === option.value ? "segment-active" : ""}`} aria-pressed={config.rows === option.value} onClick={() => onChange({ rows: option.value })}>{option.label}</button>)}</div>
+      <RangeField label="Width" value={config.hp} min={20} max={168} unit="HP" onChange={hp => onChange({ hp })} />
+      <div className="preset-row"><span>Quick set</span>{[42, 62, 84, 104, 126].map(hp => <button key={hp} onClick={() => onChange({ hp })} aria-pressed={config.hp === hp} className={config.hp === hp ? "preset-active" : ""}>{hp}</button>)}</div>
+      <RangeField label="Internal depth" value={config.depth} min={50} max={180} unit="mm" onChange={depth => onChange({ depth })} />
+    </section>
+    <section className="control-section" id="materials"><SectionTitle number="02" detail="CAST ACRYLIC ONLY">Material</SectionTitle>
+      <div className="field-heading"><span>Acrylic tint</span><span className="field-note">{config.tint.label}</span></div>
+      <div className="swatch-list" aria-label="Acrylic tint">{acrylicTints.map(tint => <button key={tint.id} className={`tint-swatch ${config.tint.id === tint.id ? "tint-swatch-active" : ""}`} style={{ "--swatch": tint.color } as CSSProperties} aria-label={`${tint.label} acrylic`} aria-pressed={config.tint.id === tint.id} title={tint.label} onClick={() => onChange({ tint })}><span className="swatch-surface">{config.tint.id === tint.id && <Check size={18} strokeWidth={1.7} />}</span><span className="swatch-caption">{tint.id === "orange" ? "Orange" : tint.id === "green" ? "Sea glass" : tint.label}</span></button>)}</div>
+      <div className="inline-field"><label htmlFor="thickness">Sheet thickness</label><div className="select-wrap"><select id="thickness" value={config.thickness} onChange={event => onChange({ thickness: Number(event.target.value) })}>{[3, 4, 5, 6].map(value => <option key={value} value={value}>{value} mm</option>)}</select><ChevronDown size={12} /></div></div>
+      <p className="control-note">One thickness. Every panel. Always GS.</p>
+    </section>
+    <section className="control-section"><SectionTitle number="03">Stance</SectionTitle><div className="segmented-control stance-control" aria-label="Leg angle">{[0, 10, 20, 30].map(angle => <button key={angle} className={`segment ${config.angle === angle ? "segment-active" : ""}`} aria-pressed={config.angle === angle} onClick={() => onChange({ angle })}>{angle === 0 ? "No legs" : `${angle}°`}</button>)}</div></section>
+    <section className="control-section hardware-section"><SectionTitle number="04">The details</SectionTitle>
+      <div className="inline-field"><label htmlFor="vents">Bottom ventilation</label><button id="vents" role="switch" aria-checked={config.vents} aria-label="Bottom ventilation" className={`toggle ${config.vents ? "toggle-on" : ""}`} onClick={() => onChange({ vents: !config.vents })}><span>{config.vents ? <Plus size={10} /> : <Minus size={10} />}</span></button></div>
+      <div className="inline-field"><label htmlFor="busboard">Busboard</label><div className="select-wrap board-select"><select id="busboard" value={config.busboard} onChange={event => onChange({ busboard: event.target.value as CaseConfiguration["busboard"] })}>{Object.entries(busboards).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select><ChevronDown size={12} /></div></div>
+      {config.busboard !== "none" && <p className="control-note board-note">Layout concept. Exact board fit and hole patterns need verification.</p>}
+      <div className="hardware-note"><span className="hardware-dot" />Black hardware <span>Mechanical assembly · no glue</span></div>
+    </section>
+  </aside>;
 }

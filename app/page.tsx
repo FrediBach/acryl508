@@ -4,7 +4,7 @@ import { ConfiguratorShell } from "@/components/configurator-shell";
 export const metadata: Metadata = {
   title: "Acrylic Eurorack Case Creator",
   description:
-    "Configure an acrylic Eurorack case in real time and prepare it for fabrication.",
+    "Configure a GS acrylic Eurorack case in real time. Explore dimensions, colours and construction, then export your design specification.",
 };
 
 export default function Home() {

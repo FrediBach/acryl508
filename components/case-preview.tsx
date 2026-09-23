@@ -1,180 +1,133 @@
 "use client";
+import { Component, Suspense, useEffect, useMemo, useRef, type ReactNode } from "react";
+import { ContactShadows, Edges, Environment, Lightformer, OrbitControls } from "@react-three/drei";
+import { Canvas, useThree } from "@react-three/fiber";
+import { Path, Shape, Vector3, type MeshPhysicalMaterialParameters } from "three";
+import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
+import { caseDimensions, type CaseConfiguration } from "@/lib/configurator";
 
-import { OrbitControls, RoundedBox } from "@react-three/drei";
-import { Canvas, useFrame } from "@react-three/fiber";
-import { useRef } from "react";
-import type { Group } from "three";
+export type CameraView = "perspective" | "front" | "top";
+type Props = { config: CaseConfiguration; dark: boolean; view: CameraView; resetKey: number; exploded: boolean; modules: boolean };
+const unit = 0.01;
 
-type CasePreviewProps = {
-  depth: number;
-  hp: number;
-  rows: number;
-  tint: string;
-};
-
-const modules = [
-  { id: "utility", width: 0.34, color: "#d7d8d4" },
-  { id: "oscillator", width: 0.52, color: "#292a2d" },
-  { id: "filter", width: 0.27, color: "#b8bab7" },
-  { id: "mixer", width: 0.44, color: "#e94f37" },
-  { id: "sequencer", width: 0.62, color: "#202124" },
-  { id: "envelope", width: 0.3, color: "#cccec9" },
-  { id: "output", width: 0.48, color: "#767975" },
-];
-const rowIds = ["lower", "middle", "upper"];
-
-function Knob({ x, y }: { x: number; y: number }) {
-  return (
-    <mesh position={[x, y, 0.066]} rotation={[Math.PI / 2, 0, 0]}>
-      <cylinderGeometry args={[0.035, 0.035, 0.035, 14]} />
-      <meshStandardMaterial color="#0c0d0e" roughness={0.56} />
-    </mesh>
-  );
+function rectangularShape(width: number, height: number) {
+  const shape = new Shape();
+  shape.moveTo(-width / 2, -height / 2); shape.lineTo(width / 2, -height / 2);
+  shape.lineTo(width / 2, height / 2); shape.lineTo(-width / 2, height / 2); shape.closePath();
+  return shape;
 }
-
-function ModuleRow({ row, width }: { row: number; width: number }) {
-  const total = modules.reduce((sum, module) => sum + module.width, 0);
-  const scale = (width - 0.25) / total;
-
-  return (
-    <group position={[0, row * 1.04, 0]}>
-      {modules.map((module, index) => {
-        const scaledWidth = module.width * scale;
-        const previousWidth = modules
-          .slice(0, index)
-          .reduce((sum, previous) => sum + previous.width * scale, 0);
-        const x = -width / 2 + 0.125 + previousWidth + scaledWidth / 2;
-
-        return (
-          <group key={`${row}-${module.id}`} position={[x, 0, 0]}>
-            <RoundedBox
-              args={[scaledWidth - 0.014, 0.94, 0.09]}
-              radius={0.02}
-              smoothness={2}
-            >
-              <meshStandardMaterial
-                color={
-                  modules[(index + Math.round(row + 3)) % modules.length].color
-                }
-                metalness={0.28}
-                roughness={0.45}
-              />
-            </RoundedBox>
-            <Knob x={-scaledWidth * 0.18} y={0.2} />
-            <Knob x={scaledWidth * 0.18} y={0.2} />
-            <mesh position={[0, -0.25, 0.064]}>
-              <boxGeometry args={[Math.max(0.06, scaledWidth * 0.38), 0.025, 0.012]} />
-              <meshStandardMaterial color={index % 3 === 0 ? "#ff5b42" : "#17181a"} />
-            </mesh>
-          </group>
-        );
+function hole(shape: Shape, x: number, y: number, radius: number) {
+  const path = new Path(); path.absarc(x, y, radius, 0, Math.PI * 2, true); shape.holes.push(path);
+}
+function Screw({ position, side = false }: { position: [number, number, number]; side?: boolean }) {
+  return <group position={position} rotation={side ? [0, 0, -Math.sign(position[0]) * Math.PI / 2] : [0, 0, 0]}>
+    <mesh><cylinderGeometry args={[0.035, 0.035, 0.027, 20]} /><meshStandardMaterial color="#252628" metalness={0.72} roughness={0.3} /></mesh>
+    <mesh position={[0, 0.014, 0]}><cylinderGeometry args={[0.014, 0.014, 0.002, 6]} /><meshStandardMaterial color="#050606" roughness={0.85} /></mesh>
+  </group>;
+}
+function Rail({ width, y, z }: { width: number; y: number; z: number }) {
+  const positions = useMemo(() => Array.from({ length: Math.max(1, Math.floor(width / 0.0508)) }, (_, index) => -width / 2 + 0.0254 + index * 0.0508), [width]);
+  return <group position={[0, y, z]}>
+    <mesh castShadow><boxGeometry args={[width, 0.095, 0.095]} /><meshStandardMaterial color="#bcc0bf" metalness={0.9} roughness={0.3} /></mesh>
+    <mesh position={[0, 0.05, 0]}><boxGeometry args={[width, 0.006, 0.031]} /><meshStandardMaterial color="#45494a" metalness={0.65} roughness={0.4} /></mesh>
+    {positions.map((x, index) => <mesh key={index} position={[x, 0.054, 0]}><cylinderGeometry args={[0.008, 0.008, 0.002, 6]} /><meshStandardMaterial color="#111415" /></mesh>)}
+    {[-1, 1].map(side => <mesh key={side} position={[0, -0.005, side * 0.05]}><boxGeometry args={[width, 0.02, 0.006]} /><meshStandardMaterial color="#666c6d" metalness={0.8} roughness={0.24} /></mesh>)}
+  </group>;
+}
+function ExampleModules({ width, y, z }: { width: number; y: number; z: number }) {
+  const count = Math.max(2, Math.floor(width / 0.43));
+  const panelWidth = width / count;
+  return <group position={[0, y, z]}>{Array.from({ length: count }, (_, i) => <group key={i} position={[-width / 2 + (i + 0.5) * panelWidth, 0, 0]}>
+    <mesh castShadow><boxGeometry args={[panelWidth - 0.007, 0.02, 1.285]} /><meshStandardMaterial color={i % 4 === 2 ? "#242729" : "#c7c9c4"} metalness={0.5} roughness={0.45} /></mesh>
+    {[-0.35, 0, 0.35].map((z, j) => <group key={j} position={[0, 0.055, z]}><mesh castShadow><cylinderGeometry args={[0.048, 0.058, 0.075, 24]} /><meshStandardMaterial color="#171a1a" roughness={0.62} /></mesh><mesh position={[0, 0.039, -0.023]}><boxGeometry args={[0.005, 0.002, 0.024]} /><meshStandardMaterial color="#dedbd2" /></mesh></group>)}
+    {[-1, 1].map(side => <Screw key={side} position={[0, 0.022, side * 0.59]} />)}
+  </group>)}</group>;
+}
+function AcrylicCase({ config, exploded, modules }: Pick<Props, "config" | "exploded" | "modules">) {
+  const { width, length, height } = caseDimensions(config);
+  const w = width * unit, l = length * unit, h = height * unit, t = config.thickness * unit;
+  const a = config.angle * Math.PI / 180;
+  const lift = config.angle ? Math.sin(a) * l / 2 + 0.08 : 0.035;
+  const explode = exploded ? 0.4 : 0;
+  const acrylic = useMemo<MeshPhysicalMaterialParameters>(() => ({ color: config.tint.color, metalness: 0, roughness: 0.13, transmission: 0.88, thickness: t * 2, ior: 1.49, clearcoat: 1, clearcoatRoughness: 0.07, envMapIntensity: 1.25, attenuationColor: config.tint.color, attenuationDistance: 0.7 }), [config.tint.color, t]);
+  const base = useMemo(() => {
+    const shape = rectangularShape(w, l);
+    if (config.vents) {
+      const count = Math.max(3, Math.floor((w - 0.5) / 0.12));
+      for (let i = 0; i < count; i++) {
+        const x = (i - (count - 1) / 2) * 0.12;
+        for (const side of [-1, 1]) {
+          const path = new Path(); const y = side * l * 0.28;
+          path.moveTo(x - 0.017, y - l * 0.09); path.lineTo(x - 0.017, y + l * 0.09);
+          path.absarc(x, y + l * 0.09, 0.017, Math.PI, 0, true);
+          path.lineTo(x + 0.017, y - l * 0.09); path.absarc(x, y - l * 0.09, 0.017, 0, Math.PI, true); path.closePath(); shape.holes.push(path);
+        }
+      }
+    }
+    for (const x of [-1, 1]) for (const y of [-1, 1]) hole(shape, x * (w / 2 - 0.12), y * (l / 2 - 0.12), 0.022);
+    return shape;
+  }, [w, l, config.vents]);
+  const sideShape = useMemo(() => {
+    const shape = rectangularShape(l, h - t);
+    for (let row = 0; row < config.rows; row++) for (const end of [-1, 1]) {
+      hole(shape, -l / 2 + t + (row + 0.5) * 1.3335 + end * 0.6125, (h - t) / 2 - 0.07, 0.019);
+    }
+    return shape;
+  }, [l, h, t, config.rows]);
+  const legShape = useMemo(() => {
+    const shape = new Shape();
+    const extent = l * Math.cos(a) * 0.86;
+    shape.moveTo(-extent / 2, 0); shape.lineTo(extent / 2, 0); shape.lineTo(extent / 2, Math.sin(a) * l * 0.86 + 0.08); shape.lineTo(-extent / 2, 0.08); shape.closePath();
+    return shape;
+  }, [l, a]);
+  const baseArgs = useMemo(() => [base, { depth: t, bevelEnabled: false, curveSegments: 8 }] as const, [base, t]);
+  const sideArgs = useMemo(() => [sideShape, { depth: t, bevelEnabled: false, curveSegments: 12 }] as const, [sideShape, t]);
+  const legArgs = useMemo(() => [legShape, { depth: t, bevelEnabled: false }] as const, [legShape, t]);
+  return <group>
+    {config.angle > 0 && [-1, 1].map(side => <mesh key={side} position={[side * (w / 2 - t / 2) - t / 2, 0.015, 0]} rotation={[0, Math.PI / 2, 0]}><extrudeGeometry args={legArgs} /><meshPhysicalMaterial {...acrylic} /><Edges color={config.tint.color} threshold={30} /></mesh>)}
+    <group rotation={[a, 0, 0]} position={[0, lift, 0]}>
+      <mesh position={[0, -explode, 0]} rotation={[-Math.PI / 2, 0, 0]}><extrudeGeometry args={baseArgs} /><meshPhysicalMaterial {...acrylic} /><Edges color={config.tint.color} threshold={35} /></mesh>
+      {[-1, 1].map(side => <group key={side}>
+        <mesh position={[side * (w / 2 - t / 2 + explode) - t / 2, t + (h - t) / 2, 0]} rotation={[0, Math.PI / 2, 0]}><extrudeGeometry args={sideArgs} /><meshPhysicalMaterial {...acrylic} /><Edges color={config.tint.color} threshold={35} /></mesh>
+        <mesh position={[0, t + (h - t) / 2, side * (l / 2 - t / 2 + explode)]}><boxGeometry args={[w - 2 * t, h - t, t]} /><meshPhysicalMaterial {...acrylic} /><Edges color={config.tint.color} /></mesh>
+      </group>)}
+      {Array.from({ length: config.rows }, (_, row) => {
+        const z = -l / 2 + t + (row + 0.5) * 1.3335;
+        return <group key={row}>{[-1, 1].map(end => <group key={end}><Rail width={w - 2 * t} y={h - 0.07 + explode} z={z + end * 0.6125} />{[-1, 1].map(side => <Screw key={side} side position={[side * (w / 2 + 0.012 + explode * 1.4), h - 0.07, z + end * 0.6125]} />)}</group>)}{modules && <ExampleModules width={w - 2 * t - 0.02} y={h + explode * 2} z={z} />}</group>;
       })}
+      {config.busboard !== "none" && <group position={[0, t + 0.08, 0]}>
+        <mesh><boxGeometry args={[Math.min(w - 0.3, 2.8), 0.018, 0.31]} /><meshStandardMaterial color={config.busboard === "sinusoda" ? "#222e2a" : "#174b35"} roughness={0.65} /></mesh>
+        {Array.from({ length: Math.max(2, Math.floor(Math.min(w - 0.3, 2.8) / 0.25)) }, (_, i) => <mesh key={i} position={[-Math.min(w - 0.3, 2.8) / 2 + 0.14 + i * 0.25, 0.044, 0]}><boxGeometry args={[0.15, 0.075, 0.13]} /><meshStandardMaterial color="#181c1c" roughness={0.75} /></mesh>)}
+        {[-1, 1].map(side => <Screw key={side} position={[side * (Math.min(w - 0.3, 2.8) / 2 - 0.045), 0.03, 0.105]} />)}
+      </group>}
     </group>
-  );
+  </group>;
 }
-
-function AcrylicCase({ depth, hp, rows, tint }: CasePreviewProps) {
-  const model = useRef<Group>(null);
-  const width = Math.min(5.2, 2.8 + ((hp - 42) / 84) * 2.2);
-  const height = rows * 1.04 + 0.34;
-  const modelDepth = 1.15 + ((depth - 80) / 170) * 1.15;
-
-  useFrame((state, delta) => {
-    if (!model.current) return;
-    model.current.rotation.y += delta * 0.055;
-    model.current.position.y = Math.sin(state.clock.elapsedTime * 0.55) * 0.035;
-  });
-
-  const acrylic = {
-    color: tint,
-    transparent: true,
-    opacity: tint === "#dbe9ef" ? 0.24 : 0.42,
-    roughness: 0.16,
-    metalness: 0.02,
-    transmission: 0.56,
-    thickness: 0.35,
-  };
-
-  return (
-    <group ref={model} rotation={[-0.16, -0.42, 0]}>
-      <mesh position={[-width / 2 - 0.055, 0, -modelDepth / 2]}>
-        <boxGeometry args={[0.11, height, modelDepth]} />
-        <meshPhysicalMaterial {...acrylic} />
-      </mesh>
-      <mesh position={[width / 2 + 0.055, 0, -modelDepth / 2]}>
-        <boxGeometry args={[0.11, height, modelDepth]} />
-        <meshPhysicalMaterial {...acrylic} />
-      </mesh>
-      <mesh position={[0, height / 2 + 0.055, -modelDepth / 2]}>
-        <boxGeometry args={[width, 0.11, modelDepth]} />
-        <meshPhysicalMaterial {...acrylic} />
-      </mesh>
-      <mesh position={[0, -height / 2 - 0.055, -modelDepth / 2]}>
-        <boxGeometry args={[width, 0.11, modelDepth]} />
-        <meshPhysicalMaterial {...acrylic} />
-      </mesh>
-      <mesh position={[0, 0, -modelDepth]}>
-        <boxGeometry args={[width, height, 0.08]} />
-        <meshPhysicalMaterial {...acrylic} opacity={0.18} />
-      </mesh>
-
-      {rowIds.slice(0, rows).map((rowId, index) => {
-        const y = (index - (rows - 1) / 2) * 1.04;
-        return (
-          <group key={rowId}>
-            <ModuleRow row={index - (rows - 1) / 2} width={width} />
-            <mesh position={[0, y + 0.505, 0.018]}>
-              <boxGeometry args={[width + 0.08, 0.045, 0.07]} />
-              <meshStandardMaterial color="#121315" metalness={0.75} roughness={0.24} />
-            </mesh>
-            <mesh position={[0, y - 0.505, 0.018]}>
-              <boxGeometry args={[width + 0.08, 0.045, 0.07]} />
-              <meshStandardMaterial color="#121315" metalness={0.75} roughness={0.24} />
-            </mesh>
-          </group>
-        );
-      })}
-
-      {[-1, 1].flatMap((side) =>
-        [-1, 1].map((vertical) => (
-          <mesh
-            key={`${side}-${vertical}`}
-            position={[side * (width / 2 + 0.061), vertical * (height / 2 - 0.14), 0.02]}
-            rotation={[Math.PI / 2, 0, 0]}
-          >
-            <cylinderGeometry args={[0.045, 0.045, 0.018, 16]} />
-            <meshStandardMaterial color="#d4d5d0" metalness={0.92} roughness={0.2} />
-          </mesh>
-        )),
-      )}
-    </group>
-  );
+function CameraRig({ config, view, resetKey, exploded }: Pick<Props, "config" | "view" | "resetKey" | "exploded">) {
+  const controls = useRef<OrbitControlsImpl>(null);
+  const { camera, size, invalidate } = useThree();
+  const dimensions = caseDimensions(config);
+  const width = dimensions.width * unit, length = dimensions.length * unit, height = dimensions.height * unit;
+  useEffect(() => {
+    const aspect = size.width / size.height;
+    const fit = Math.max(width / aspect, length * 0.85, height * 1.3, 1.85) * (exploded ? 2.8 : 2.35);
+    const target = new Vector3(0, height / 2 + (config.angle ? Math.sin(config.angle * Math.PI / 180) * length / 2 : 0), 0);
+    const direction = view === "top" ? new Vector3(0, 1, 0.001) : view === "front" ? new Vector3(0, 0.1, 1) : new Vector3(0.65, 0.72, 1).normalize();
+    camera.position.copy(target).addScaledVector(direction, fit);
+    camera.lookAt(target);
+    if (controls.current) { controls.current.target.copy(target); controls.current.update(); }
+    invalidate();
+  }, [camera, size.width, size.height, width, length, height, config.angle, view, resetKey, exploded, invalidate]);
+  return <OrbitControls ref={controls} makeDefault enablePan={false} enableDamping minDistance={1.3} maxDistance={28} maxPolarAngle={Math.PI / 2 - 0.03} />;
 }
-
-export function CasePreview(props: CasePreviewProps) {
-  return (
-    <Canvas
-      camera={{ position: [5.6, 3.1, 6.6], fov: 34 }}
-      dpr={[1, 1.75]}
-      gl={{ alpha: true, antialias: true }}
-    >
-      <ambientLight intensity={1.55} />
-      <directionalLight position={[4, 7, 5]} intensity={3.6} color="#fff7ef" />
-      <directionalLight position={[-5, 3, 2]} intensity={2.2} color="#83a9ff" />
-      <pointLight position={[0, -2, 4]} intensity={18} color="#ff4d36" distance={8} />
-      <AcrylicCase {...props} />
-      <mesh position={[0, -2.25, -0.5]} rotation={[-Math.PI / 2, 0, 0]}>
-        <circleGeometry args={[4.4, 64]} />
-        <meshStandardMaterial color="#101113" transparent opacity={0.62} roughness={1} />
-      </mesh>
-      <OrbitControls
-        enablePan={false}
-        minDistance={5.2}
-        maxDistance={10}
-        minPolarAngle={0.75}
-        maxPolarAngle={2.05}
-        target={[0, 0, -0.5]}
-      />
-    </Canvas>
-  );
+class PreviewBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
+  state = { failed: false };
+  static getDerivedStateFromError() { return { failed: true }; }
+  render() { return this.state.failed ? <div className="preview-fallback"><strong>3D preview unavailable</strong><p>Enable WebGL in your browser to explore the case.<br />Your controls and configuration export still work.</p></div> : this.props.children; }
+}
+export function CasePreview(props: Props) {
+  return <PreviewBoundary><Canvas camera={{ position: [5, 4, 6], fov: 34, near: 0.01, far: 100 }} dpr={[1, 1.75]} frameloop="demand" gl={{ alpha: true, antialias: true }} fallback={<div className="preview-fallback">WebGL is required for the 3D preview. Configuration export is still available.</div>}>
+    <ambientLight intensity={props.dark ? 0.8 : 1.3} /><directionalLight position={[3, 7, 5]} intensity={2.5} color="#fff9ed" /><directionalLight position={[-5, 3, -2]} intensity={1.5} color="#e6efff" />
+    <Suspense fallback={null}><Environment resolution={128} frames={1}><Lightformer position={[0, 5, -3]} rotation={[Math.PI / 2, 0, 0]} scale={[10, 8, 1]} intensity={3} /><Lightformer position={[-5, 2, 1]} rotation={[0, Math.PI / 2, 0]} scale={[6, 3, 1]} intensity={4} /><Lightformer position={[5, 3, 1]} rotation={[0, -Math.PI / 2, 0]} scale={[3, 5, 1]} intensity={2} /></Environment><AcrylicCase {...props} /><ContactShadows key={JSON.stringify([props.config, props.exploded, props.modules])} position={[0, -0.02, 0]} opacity={props.dark ? 0.48 : 0.3} scale={20} blur={2.4} far={7} resolution={512} frames={1} color="#24231e" /></Suspense><CameraRig {...props} />
+  </Canvas></PreviewBoundary>;
 }
