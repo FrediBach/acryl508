@@ -82,6 +82,15 @@ screws, adhesive or bent parts. Stand the braces slots-up, then lower the ribs
 slots-down. These open joints lift apart: remove the instrument before moving
 the stand.
 
+Optional **Cable holes in braces** adds one round opening between each pair of
+ribs, aligned through all three braces. Requested diameter is adjustable from
+8–32 mm (20 mm default); the resolved diameter is reduced if needed to leave
+two sheet thicknesses of acrylic to the brace edges and complete slot-relief
+envelopes. The controls show the actual diameter and count. Size for the widest
+connector, since cables must thread through these closed holes. The option is
+off by default, and the holes appear in 3D, the cutting layout and both exports.
+JSON includes requested/resolved diameters and brace-local hole centres.
+
 Cut a fit coupon and validate the prototype for fit, flex, racking, grip and
 tipping before use. The model does not calculate mass, centre of gravity,
 material stress or playing forces. Check front controls, feet, vents and cables

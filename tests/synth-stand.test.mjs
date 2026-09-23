@@ -89,3 +89,55 @@ test("invalid input is bounded before geometry and export", () => {
   assert.equal(stand.config.clearance, 0);
   assert.doesNotMatch(standSvg(stand), /NaN|Infinity/);
 });
+
+test("cable holes stay closed and preserve brace borders and complete joint regions", () => {
+  for (const width of [180, 490, 550, 1400]) for (const thickness of [5, 6, 10]) for (const cableHoleDiameter of [8, 20, 32]) {
+    const config = { ...defaultStandConfiguration, width, thickness, clearance: 0.4, cableHoleDiameter };
+    const original = createSynthStand(config);
+    const stand = createSynthStand({ ...config, cableHoles: true });
+    const { diameter, minimumWeb, centers } = stand.cableHoles;
+    assert.ok(diameter <= cableHoleDiameter && diameter >= 8);
+    assert.equal(centers.length, stand.ribCount - 1);
+    const originalBrace = original.parts.find(part => part.kind === "brace").polygons;
+    for (const part of stand.parts) {
+      if (part.kind === "rib") {
+        assert.deepEqual(part.polygons, original.parts.find(other => other.id === part.id).polygons);
+        continue;
+      }
+      assert.equal(part.polygons.length, 1, "brace remains one connected part");
+      assert.equal(part.polygons[0].length, centers.length + 1, "each passage is a closed internal hole");
+      for (const { x, y } of centers) {
+        assert.ok(y - diameter / 2 >= minimumWeb - 1e-7);
+        assert.ok(stand.braceHeight - y - diameter / 2 >= minimumWeb - 1e-7);
+        const insideHole = rect(x - diameter / 4, y - diameter / 4, x + diameter / 4, y + diameter / 4);
+        assert.deepEqual(polygonClipping.intersection(part.polygons, insideHole), []);
+        for (const ribX of stand.ribPositions) assert.ok(Math.abs(x - ribX) - diameter / 2 - stand.slotWidth / 2 - stand.reliefRadius >= minimumWeb - 1e-7);
+      }
+      for (const ribX of stand.ribPositions) {
+        const halfWidth = stand.slotWidth / 2 + stand.reliefRadius + minimumWeb - 0.001;
+        const jointZone = rect(ribX - halfWidth, -1, ribX + halfWidth, stand.braceHeight + 1);
+        assert.deepEqual(polygonClipping.intersection(part.polygons, jointZone), polygonClipping.intersection(originalBrace, jointZone));
+      }
+    }
+  }
+});
+
+test("cable-hole exports include the resolved diameter and holes, with unchanged defaults and toggle-off geometry", () => {
+  const config = { ...defaultStandConfiguration, thickness: 5, cableHoles: true, cableHoleDiameter: 32 };
+  const stand = createSynthStand(config), data = standExport(stand), svg = standSvg(stand);
+  assert.equal(data.cableManagement.requestedDiameter, 32);
+  assert.equal(data.cableManagement.diameter, 20);
+  assert.equal(data.cableManagement.totalCount, (stand.ribCount - 1) * 3);
+  assert.equal(data.configuration.cableHoles, true);
+  for (const brace of stand.parts.filter(part => part.kind === "brace")) {
+    const group = svg.match(new RegExp(`<g id="${brace.id}"[\\s\\S]*?</g>`))[0];
+    const path = group.match(/<path d="([^"]+)"/)[1];
+    assert.equal((path.match(/\bM/g) ?? []).length, stand.cableHoles.countPerBrace + 1);
+  }
+  const { cableHoles, cableHoleDiameter, ...legacy } = defaultStandConfiguration;
+  assert.equal(cableHoles, false);
+  assert.equal(cableHoleDiameter, 20);
+  assert.deepEqual(createSynthStand(legacy).parts, createSynthStand(defaultStandConfiguration).parts);
+  assert.deepEqual(createSynthStand({ ...config, cableHoles: false }).parts, createSynthStand({ ...defaultStandConfiguration, thickness: 5 }).parts);
+  assert.equal(createSynthStand({ ...config, cableHoleDiameter: NaN }).config.cableHoleDiameter, 20);
+});

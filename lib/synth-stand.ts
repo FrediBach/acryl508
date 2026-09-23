@@ -4,21 +4,24 @@ import { acrylicTints, type AcrylicTint } from "./configurator";
 export type StandConfiguration = {
   width: number; depth: number; height: number; angle: number;
   thickness: number; clearance: number; tint: AcrylicTint;
+  cableHoles: boolean; cableHoleDiameter: number;
 };
 export const standLimits = {
   width: { min: 180, max: 1400 }, depth: { min: 120, max: 600 },
   height: { min: 20, max: 200 }, angle: { min: 0, max: 45 },
   thickness: { min: 5, max: 10 }, clearance: { min: 0, max: 0.4 },
+  cableHoleDiameter: { min: 8, max: 32 },
 };
 export const defaultStandConfiguration: StandConfiguration = {
   width: 550, depth: 280, height: 70, angle: 25, thickness: 6, clearance: 0.15, tint: acrylicTints[1],
+  cableHoles: false, cableHoleDiameter: 20,
 };
 export type StandPart = {
   id: string; label: string; kind: "rib" | "brace"; position: number;
   polygons: MultiPolygon; width: number; height: number; minX: number;
 };
 export function normalizeStandConfiguration(input: StandConfiguration): StandConfiguration {
-  const config = { ...input };
+  const config = { ...input, cableHoles: input.cableHoles === true };
   for (const key of Object.keys(standLimits) as (keyof typeof standLimits)[]) {
     const { min, max } = standLimits[key];
     config[key] = Math.max(min, Math.min(max, Number.isFinite(input[key]) ? input[key] : defaultStandConfiguration[key]));
@@ -26,9 +29,9 @@ export function normalizeStandConfiguration(input: StandConfiguration): StandCon
   return config;
 }
 const rectangle = (left: number, bottom: number, right: number, top: number): MultiPolygon => [[[[left, bottom], [right, bottom], [right, top], [left, top], [left, bottom]]]];
-function circle(x: number, y: number, radius: number): MultiPolygon {
-  const ring: Pair[] = Array.from({ length: 24 }, (_, index) => {
-    const angle = index / 24 * Math.PI * 2;
+function circle(x: number, y: number, radius: number, segments = 24): MultiPolygon {
+  const ring: Pair[] = Array.from({ length: segments }, (_, index) => {
+    const angle = index / segments * Math.PI * 2;
     return [x + Math.cos(angle) * radius, y + Math.sin(angle) * radius];
   });
   return [[ [...ring, ring[0]] ]];
@@ -62,6 +65,13 @@ export function createSynthStand(input: StandConfiguration) {
   const slotWidth = t + clearance;
   const reliefRadius = Math.min(1.5, t * 0.2);
   const jointCenter = braceHeight / 2;
+  // One aligned passage in each bay across all three braces. Keep two sheet
+  // thicknesses of material to the edges and the entire joint-relief envelope.
+  const cableHoleWeb = 2 * t;
+  const supportSpacing = supportSpan / (ribCount - 1);
+  const cableHoleDiameter = Math.min(config.cableHoleDiameter, braceHeight - 2 * cableHoleWeb,
+    supportSpacing - slotWidth - 2 * reliefRadius - 2 * cableHoleWeb);
+  const cableHoleCenters = config.cableHoles ? ribPositions.slice(1).map((right, index) => ({ x: (ribPositions[index] + right) / 2, y: jointCenter })) : [];
   const profile: Pair[] = [
     [front, 0], [rear, 0], [rear, frontHeight + depth * sin],
     [depth * cos, frontHeight + depth * sin], [0, frontHeight],
@@ -70,14 +80,17 @@ export function createSynthStand(input: StandConfiguration) {
     [-stopDepth * cos, frontHeight - stopDepth * sin], [front, frontHeight - stopDepth * sin], [front, 0],
   ];
   const ribPolygons = polygonClipping.difference([[profile]], ...bracePositions.map(center => slot(center, slotWidth, jointCenter + 0.1, -1, reliefRadius)));
-  const bracePolygons = polygonClipping.difference(rectangle(-braceWidth / 2, 0, braceWidth / 2, braceHeight), ...ribPositions.map(center => slot(center, slotWidth, jointCenter - 0.1, braceHeight + 1, reliefRadius)));
+  const bracePolygons = polygonClipping.difference(rectangle(-braceWidth / 2, 0, braceWidth / 2, braceHeight),
+    ...ribPositions.map(center => slot(center, slotWidth, jointCenter - 0.1, braceHeight + 1, reliefRadius)),
+    ...cableHoleCenters.map(({ x, y }) => circle(x, y, cableHoleDiameter / 2, 64)));
   const ribHeight = Math.max(...profile.map(point => point[1]));
   const parts: StandPart[] = [
     ...ribPositions.map((position, i): StandPart => ({ id: `rib-${i + 1}`, label: `Support rib ${i + 1}`, kind: "rib", position, polygons: ribPolygons, width: rear - front, height: ribHeight, minX: front })),
     ...bracePositions.map((position, i): StandPart => ({ id: `brace-${i + 1}`, label: `${["Front", "Middle", "Rear"][i]} cross brace`, kind: "brace", position, polygons: bracePolygons, width: braceWidth, height: braceHeight, minX: -braceWidth / 2 })),
   ];
   return { config, parts, ribCount, ribPositions, bracePositions, braceWidth, braceHeight, frontHeight, stopHeight, front, rear,
-    slotWidth, reliefRadius, jointCenter, supportSpacing: supportSpan / (ribCount - 1),
+    slotWidth, reliefRadius, jointCenter, supportSpacing,
+    cableHoles: { enabled: config.cableHoles, diameter: cableHoleDiameter, minimumWeb: cableHoleWeb, centers: cableHoleCenters, countPerBrace: cableHoleCenters.length, totalCount: cableHoleCenters.length * bracePositions.length },
     dimensions: { width: braceWidth, depth: rear - front, height: ribHeight },
     synthTop: frontHeight + depth * sin + height * cos,
   };
@@ -111,15 +124,16 @@ export function standSvg(stand: SynthStand) {
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${number(layout.width)}mm" height="${number(layout.height)}mm" viewBox="0 0 ${number(layout.width)} ${number(layout.height)}" fill="none" stroke="#000000" stroke-width="0.2" data-units="mm">
   <title>Acryl508 synth stand / ${stand.config.angle} degrees / ${stand.parts.length} parts</title>
-  <desc>Prototype design. GS acrylic ${stand.config.thickness} mm; slot width ${number(stand.slotWidth)} mm. Finished-edge outlines; kerf compensation must be applied in CAM. No validated load rating. Test fit, strength and stability before use. Layout is not nested to a stock sheet size.</desc>
+  <desc>Prototype design. GS acrylic ${stand.config.thickness} mm; slot width ${number(stand.slotWidth)} mm. Cable holes: ${stand.cableHoles.totalCount}${stand.cableHoles.enabled ? ` at ${number(stand.cableHoles.diameter)} mm diameter, aligned across all three braces` : ""}. Finished-edge outlines; kerf compensation must be applied in CAM. No validated load rating. Test fit, strength and stability before use. Layout is not nested to a stock sheet size.</desc>
 ${layout.parts.map(({ part, x, y }) => `  <g id="${part.id}" transform="translate(${number(x)} ${number(y)})"><title>${part.label}</title><path d="${standPathData(part.polygons)}" /></g>`).join("\n")}
 </svg>\n`;
 }
 export function standExport(stand: SynthStand) {
-  return { product: "Acryl508", mode: "synth-stand", version: 1, units: "mm", status: "unvalidated-prototype",
+  return { product: "Acryl508", mode: "synth-stand", version: 2, units: "mm", status: "unvalidated-prototype",
     configuration: stand.config, material: "GS cast acrylic", dimensions: stand.dimensions,
     construction: { method: "Open half-lap slots", ribCount: stand.ribCount, braceCount: 3, totalParts: stand.parts.length, hardware: 0, adhesive: false, supportSpacing: stand.supportSpacing, slotWidth: stand.slotWidth, slotRootReliefRadius: stand.reliefRadius, kerfCompensated: false, loadRating: null },
     coordinates: "Part outlines: X right, Y up. Ribs: X is front-to-rear depth, position is width-axis centre. Braces: X is width, position is front-to-rear depth. All part bottoms sit at Y=0. Instrument front underside is at depth=0 and Y=frontHeight.",
-    frontHeight: stand.frontHeight, parts: stand.parts, notes: standBuildNotes,
+    cableManagement: { ...stand.cableHoles, requestedDiameter: stand.config.cableHoleDiameter, method: "Round closed holes between ribs, aligned across all three braces", coordinates: "Brace-local X right and Y up, in millimetres" },
+    frontHeight: stand.frontHeight, parts: stand.parts, notes: [...standBuildNotes, ...(stand.cableHoles.enabled ? ["Cable holes retain at least two sheet thicknesses to brace edges and joint relief. Diameter is reduced automatically to preserve this web. Check the widest connector fits the resolved hole diameter; holes are closed and require threading the cable through. These geometry limits do not establish strength."] : [])],
   };
 }
