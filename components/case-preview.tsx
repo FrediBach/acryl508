@@ -1,16 +1,23 @@
 "use client";
 import { Component, Suspense, useEffect, useMemo, useRef, type ReactNode } from "react";
-import { ContactShadows, Edges, Environment, Lightformer, OrbitControls } from "@react-three/drei";
+import { ContactShadows, Environment, Lightformer, Line, OrbitControls } from "@react-three/drei";
 import { Canvas, useThree } from "@react-three/fiber";
 import { Path, Shape, Vector3, type MeshPhysicalMaterialParameters } from "three";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { caseDimensions, rackRowLayout, sidePanelMargin, type CaseConfiguration } from "@/lib/configurator";
 import { caseLift, createFootProfile, createHandleProfile, footFloor, footMountLayout, footPanelGap, handleLayout, handleRise } from "@/lib/acrylic-profiles";
 import type { CasePanels } from "@/lib/case-panels";
+import { panelEdgePoints } from "@/lib/panel-edges";
 
 export type CameraView = "perspective" | "front" | "top";
 type Props = { panels: CasePanels; config: CaseConfiguration; dark: boolean; view: CameraView; resetKey: number; exploded: boolean; modules: boolean };
 const unit = 0.01;
+
+function PanelEdges({ args, color, threshold = 15 }: { args: readonly [Shape | Shape[], { depth: number; curveSegments?: number }]; color: string; threshold?: number }) {
+  const [shapes, { depth, curveSegments = 12 }] = args;
+  const points = useMemo(() => panelEdgePoints(shapes, depth, curveSegments, threshold), [shapes, depth, curveSegments, threshold]);
+  return points.length ? <Line segments points={points} color={color} raycast={() => null} /> : null;
+}
 
 function hole(shape: Shape, x: number, y: number, radius: number) {
   const path = new Path(); path.absarc(x, y, radius, 0, Math.PI * 2, true); shape.holes.push(path);
@@ -96,17 +103,17 @@ function AcrylicCase({ config, panels, exploded, modules }: Pick<Props, "config"
   const frontArgs = useMemo(() => [panels.faces.front.shapes, { depth: t, bevelEnabled: false }] as const, [panels, t]);
   return <group>
     {config.angle > 0 && [-1, 1].map(side => <group key={side}>
-      <mesh castShadow position={[side * (w / 2 + t / 2 + footPanelGap + explode * 2) - t / 2, footFloor, 0]} rotation={[0, Math.PI / 2, 0]}><extrudeGeometry args={footArgs} /><meshPhysicalMaterial {...acrylic} /><Edges color={config.tint.color} threshold={30} /></mesh>
+      <mesh castShadow position={[side * (w / 2 + t / 2 + footPanelGap + explode * 2) - t / 2, footFloor, 0]} rotation={[0, Math.PI / 2, 0]}><extrudeGeometry args={footArgs} /><meshPhysicalMaterial {...acrylic} /><PanelEdges args={footArgs} color={config.tint.color} threshold={30} /></mesh>
       {footMounts.map((mount, index) => <FootFastener key={index} side={side} width={w} thickness={t} y={footFloor + mount.y} z={-mount.x} explode={explode} />)}
     </group>)}
     <group rotation={[a, 0, 0]} position={[0, lift, 0]}>
-      <mesh position={[0, baseBottom - explode, 0]} rotation={[-Math.PI / 2, 0, 0]}><extrudeGeometry args={baseArgs} /><meshPhysicalMaterial {...acrylic} /><Edges color={config.tint.color} threshold={35} /></mesh>
+      <mesh position={[0, baseBottom - explode, 0]} rotation={[-Math.PI / 2, 0, 0]}><extrudeGeometry args={baseArgs} /><meshPhysicalMaterial {...acrylic} /><PanelEdges args={baseArgs} color={config.tint.color} threshold={35} /></mesh>
       {[-1, 1].map(side => <group key={side}>
-        <mesh position={[side * (w / 2 - t / 2 + explode) - t / 2, 0, 0]} rotation={[0, Math.PI / 2, 0]}><extrudeGeometry args={side === -1 ? leftArgs : rightArgs} /><meshPhysicalMaterial {...acrylic} /><Edges color={config.tint.color} threshold={35} /></mesh>
-        <mesh position={[0, 0, side * (endOuter - t / 2 + explode) - t / 2]}><extrudeGeometry args={side === -1 ? rearArgs : frontArgs} /><meshPhysicalMaterial {...acrylic} /><Edges color={config.tint.color} /></mesh>
+        <mesh position={[side * (w / 2 - t / 2 + explode) - t / 2, 0, 0]} rotation={[0, Math.PI / 2, 0]}><extrudeGeometry args={side === -1 ? leftArgs : rightArgs} /><meshPhysicalMaterial {...acrylic} /><PanelEdges args={side === -1 ? leftArgs : rightArgs} color={config.tint.color} threshold={35} /></mesh>
+        <mesh position={[0, 0, side * (endOuter - t / 2 + explode) - t / 2]}><extrudeGeometry args={side === -1 ? rearArgs : frontArgs} /><meshPhysicalMaterial {...acrylic} /><PanelEdges args={side === -1 ? rearArgs : frontArgs} color={config.tint.color} /></mesh>
       </group>)}
       {config.handle && <group position={[0, h, -endOuter - t - explode * 2]}>
-        <mesh castShadow><extrudeGeometry args={handleArgs} /><meshPhysicalMaterial {...acrylic} /><Edges color={config.tint.color} threshold={35} /></mesh>
+        <mesh castShadow><extrudeGeometry args={handleArgs} /><meshPhysicalMaterial {...acrylic} /><PanelEdges args={handleArgs} color={config.tint.color} threshold={35} /></mesh>
         {[-1, 1].map(side => <Screw key={side} rear position={[side * handle.mountX, handle.mountY, -0.014 - explode * 0.5]} />)}
       </group>}
       {rackRowLayout(config).map(row => {
