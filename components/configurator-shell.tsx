@@ -49,11 +49,9 @@ export function ConfiguratorShell() {
   return <div className="app-shell">
     <ConfiguratorHeader dark={dark} onThemeChange={toggleTheme} onInfo={openInfo} onExport={exportDesign} />
     <main id="configure" className="workspace">
-      <div className="workspace-heading"><div><div className="eyebrow"><span className="orange-dot" />THE OPEN CASE SYSTEM <span>—</span> SERIES 01</div><h1>Less enclosure. <span>More possibility.</span></h1></div><div className="intro-aside"><p>A case for your way of making.</p><span>GS acrylic. Honest construction. Yours to shape.</span></div></div>
-      <div className="configurator-grid"><div className="preview-column"><PreviewStage config={config} dark={dark} /><BuildSummary config={config} onExport={exportDesign} onGuide={() => openInfo("guide")} /></div><ConfigurationPanel config={config} onChange={updateConfig} /></div>
-      <div className="principles-strip"><div><span>01</span><p>Nothing to hide.</p><small>Transparent by design.</small></div><div><span>02</span><p>Built to come apart.</p><small>Screws, not glue.</small></div><div><span>03</span><p>Every millimetre matters.</p><small>5.08 mm. One horizontal pitch.</small></div><button onClick={() => openInfo("guide")} aria-label="Explore our design principles"><ArrowUpRight size={21} /></button></div>
+      <h1 className="sr-only">Acrylic Eurorack case configurator</h1>
+      <div className="configurator-grid"><div className="preview-column"><PreviewStage config={config} dark={dark} /><BuildSummary config={config} onExport={exportDesign} /></div><ConfigurationPanel config={config} onChange={updateConfig} /></div>
     </main>
-    <footer className="app-footer"><span>acryl508 <span className="footer-dot">/</span> Independent by design.</span><span>DESIGN CONCEPT <i /> V.01</span><button onClick={() => openInfo("materials")}>Material matters <ArrowUpRight size={12} /></button></footer>
     <div className={`export-toast ${exported ? "toast-visible" : ""}`} role="status">{exported && <><Check size={15} />Configuration downloaded as JSON.</>}</div>
     <dialog ref={dialog} className="info-dialog" aria-labelledby="dialog-title" onClose={() => setInfo(null)} onClick={event => { if (event.target === event.currentTarget) dialog.current?.close(); }}>
       <div className="dialog-top"><span className="eyebrow">ACRYL508 / FIELD NOTES</span><button className="icon-button" aria-label="Close notes" onClick={() => dialog.current?.close()}><X size={19} /></button></div>

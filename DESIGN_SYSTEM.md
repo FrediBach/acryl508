@@ -24,7 +24,11 @@ clear hierarchy, restrained colour, and controls that show what they change.
   modules, and expanded view. Animation is limited to direct manipulation.
 - All actionable icons have accessible names; selected controls expose pressed state.
   Native dialogs handle keyboard focus and Escape. Focus rings use the accent token.
-- Below 700 px the model, controls, and export summary become one vertical flow.
+- Desktop uses the available viewport height: a 64 px header and a flexible workspace.
+  The preview resizes above a compact specification strip; controls scroll independently
+  if the screen is too short. Below 850 px height, control spacing becomes denser without
+  reducing text size. Below 700 px width, the model, controls, and export summary use
+  normal page scrolling in one vertical flow.
 
 ## Product constraints
 
