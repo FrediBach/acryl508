@@ -4,7 +4,7 @@ import { ContactShadows, Edges, Environment, Lightformer, OrbitControls } from "
 import { Canvas, useThree } from "@react-three/fiber";
 import { Path, Shape, Vector3, type MeshPhysicalMaterialParameters } from "three";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
-import { caseDimensions, type CaseConfiguration } from "@/lib/configurator";
+import { caseDimensions, rackRowLayout, type CaseConfiguration } from "@/lib/configurator";
 import { caseLift, createFootProfile, createHandleProfile, footFloor, footMountLayout, footPanelGap, handleLayout, handleRise } from "@/lib/acrylic-profiles";
 import type { CasePanels } from "@/lib/case-panels";
 
@@ -63,13 +63,15 @@ function RailFastener({ side, width, thickness, y, z, explode }: { side: number;
     <Screw side position={[side * (face + 0.024), 0, 0]} />
   </group>;
 }
-function ExampleModules({ width, y, z }: { width: number; y: number; z: number }) {
+function ExampleModules({ width, y, z, units, length }: { width: number; y: number; z: number; units: 1 | 3; length: number }) {
   const count = Math.max(2, Math.floor(width / 0.43));
   const panelWidth = width / count;
+  const panelLength = length - 0.0485;
+  const controls = units === 1 ? [0] : [-0.35, 0, 0.35];
   return <group position={[0, y, z]}>{Array.from({ length: count }, (_, i) => <group key={i} position={[-width / 2 + (i + 0.5) * panelWidth, 0, 0]}>
-    <mesh castShadow><boxGeometry args={[panelWidth - 0.007, 0.02, 1.285]} /><meshStandardMaterial color={i % 4 === 2 ? "#242729" : "#c7c9c4"} metalness={0.5} roughness={0.45} /></mesh>
-    {[-0.35, 0, 0.35].map((z, j) => <group key={j} position={[0, 0.055, z]}><mesh castShadow><cylinderGeometry args={[0.048, 0.058, 0.075, 24]} /><meshStandardMaterial color="#171a1a" roughness={0.62} /></mesh><mesh position={[0, 0.039, -0.023]}><boxGeometry args={[0.005, 0.002, 0.024]} /><meshStandardMaterial color="#dedbd2" /></mesh></group>)}
-    {[-1, 1].map(side => <Screw key={side} position={[0, 0.022, side * 0.59]} />)}
+    <mesh castShadow><boxGeometry args={[panelWidth - 0.007, 0.02, panelLength]} /><meshStandardMaterial color={i % 4 === 2 ? "#242729" : "#c7c9c4"} metalness={0.5} roughness={0.45} /></mesh>
+    {controls.map((controlZ, j) => <group key={j} position={[0, 0.055, controlZ]}><mesh castShadow><cylinderGeometry args={[0.048, 0.058, 0.075, 24]} /><meshStandardMaterial color="#171a1a" roughness={0.62} /></mesh><mesh position={[0, 0.039, -0.023]}><boxGeometry args={[0.005, 0.002, 0.024]} /><meshStandardMaterial color="#dedbd2" /></mesh></group>)}
+    {[-1, 1].map(side => <Screw key={side} position={[0, 0.022, side * (panelLength / 2 - 0.0525)]} />)}
   </group>)}</group>;
 }
 function AcrylicCase({ config, panels, exploded, modules }: Pick<Props, "config" | "panels" | "exploded" | "modules">) {
@@ -79,7 +81,7 @@ function AcrylicCase({ config, panels, exploded, modules }: Pick<Props, "config"
   const lift = caseLift(l, config.angle);
   const explode = exploded ? 0.4 : 0;
   const footMounts = useMemo(() => footMountLayout(l, config.angle, t), [l, config.angle, t]);
-  const { innerLength, baseBottom, baseTop, endOuter } = panels.layout;
+  const { baseBottom, baseTop, endOuter } = panels.layout;
   const acrylic = useMemo<MeshPhysicalMaterialParameters>(() => ({ color: config.tint.color, metalness: 0, roughness: 0.13, transmission: 0.88, thickness: t * 2, ior: 1.49, clearcoat: 1, clearcoatRoughness: 0.07, envMapIntensity: 1.25, attenuationColor: config.tint.color, attenuationDistance: 0.7 }), [config.tint.color, t]);
   const footShape = useMemo(() => createFootProfile(l, config.angle, t, config.footShape), [l, config.angle, t, config.footShape]);
   const handleShape = useMemo(() => createHandleProfile(w - 2 * t), [w, t]);
@@ -106,9 +108,9 @@ function AcrylicCase({ config, panels, exploded, modules }: Pick<Props, "config"
         <mesh castShadow><extrudeGeometry args={handleArgs} /><meshPhysicalMaterial {...acrylic} /><Edges color={config.tint.color} threshold={35} /></mesh>
         {[-1, 1].map(side => <Screw key={side} rear position={[side * handle.mountX, handle.mountY, -0.014 - explode * 0.5]} />)}
       </group>}
-      {Array.from({ length: config.rows }, (_, row) => {
-        const z = -innerLength / 2 + (row + 0.5) * 1.3335;
-        return <group key={row}>{[-1, 1].map(end => <group key={end}><Rail width={w - 2 * t} y={h - 0.07 + explode} z={z + end * 0.6125} />{[-1, 1].map(side => <RailFastener key={side} side={side} width={w} thickness={t} y={h - 0.07} z={z + end * 0.6125} explode={explode} />)}</group>)}{modules && <ExampleModules width={w - 2 * t - 0.02} y={h + explode * 2} z={z} />}</group>;
+      {rackRowLayout(config).map(row => {
+        const z = row.center * unit, railOffset = row.railOffset * unit, length = row.length * unit;
+        return <group key={row.index}>{[-1, 1].map(end => <group key={end}><Rail width={w - 2 * t} y={h - 0.07 + explode} z={z + end * railOffset} />{[-1, 1].map(side => <RailFastener key={side} side={side} width={w} thickness={t} y={h - 0.07} z={z + end * railOffset} explode={explode} />)}</group>)}{modules && <ExampleModules width={w - 2 * t - 0.02} y={h + explode * 2} z={z} units={row.units} length={length} />}</group>;
       })}
       {config.busboard !== "none" && <group position={[0, baseTop + 0.08, 0]}>
         <mesh><boxGeometry args={[Math.min(w - 0.3, 2.8), 0.018, 0.31]} /><meshStandardMaterial color={config.busboard === "sinusoda" ? "#222e2a" : "#174b35"} roughness={0.65} /></mesh>

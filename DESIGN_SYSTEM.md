@@ -49,8 +49,9 @@ one side, withdraw that side, then remove the base and end panels. The exploded
 view separates the mating tabs, slots, rails, and hardware for inspection.
 
 Keep two sheet thicknesses of retaining material below the base and beyond each
-end panel. With sheet thickness `t`, outer dimensions are `HP × 5.08 + 2t` by
-`rows × 133.35 + 6t` by `internal depth + 3t` mm. The base underside is at `2t`
+end panel. Rows are an ordered rear-to-front mix of 1U and 3U bays. With sheet
+thickness `t`, outer dimensions are `HP × 5.08 + 2t` by
+`total rack units × 44.45 + 6t` by `internal depth + 3t` mm. The base underside is at `2t`
 and its inner surface at `3t`. This preserves HP, row spacing, and usable depth.
 The feet, handle, and busboard positions follow the revised enclosure geometry.
 Slot widths are nominal sheet thickness, not validated cutting tolerances.

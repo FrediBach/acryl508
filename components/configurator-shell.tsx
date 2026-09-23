@@ -5,7 +5,7 @@ import { BuildSummary } from "@/components/build-summary";
 import { ConfigurationPanel } from "@/components/configuration-panel";
 import { ConfiguratorHeader } from "@/components/configurator-header";
 import { PreviewStage } from "@/components/preview-stage";
-import { acrylicTints, configurationExport, defaultConfiguration, type CaseConfiguration } from "@/lib/configurator";
+import { acrylicTints, configurationExport, defaultConfiguration, rackRows, type CaseConfiguration } from "@/lib/configurator";
 
 import { createCasePanels } from "@/lib/case-panels";
 import { maxCutouts, type CutoutAction } from "@/lib/custom-cutouts";
@@ -43,7 +43,7 @@ export function ConfiguratorShell() {
     const url = URL.createObjectURL(new Blob([JSON.stringify(configurationExport(config, panels.reports, resolvedPanels), null, 2)], { type: "application/json" }));
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = `acryl508-${config.rows * 3}u-${config.hp}hp.json`;
+    anchor.download = `acryl508-${rackRows(config).map(units => `${units}u`).join("-")}-${config.hp}hp.json`;
     anchor.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
     setExported(true);

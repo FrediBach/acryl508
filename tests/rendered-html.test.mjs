@@ -5,7 +5,7 @@ import ts from "typescript";
 
 const source = await readFile(new URL("../lib/configurator.ts", import.meta.url), "utf8");
 const compiled = ts.transpileModule(source, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext } }).outputText;
-const { caseDimensions, configurationExport, defaultConfiguration, acrylicTints, footShapes, panelCount } = await import(`data:text/javascript;base64,${Buffer.from(compiled).toString("base64")}`);
+const { caseDimensions, configurationExport, defaultConfiguration, acrylicTints, footShapes, panelCount, rackRowLayout, rackRows, totalRackUnits } = await import(`data:text/javascript;base64,${Buffer.from(compiled).toString("base64")}`);
 
 test("build produces the worker, client manifest and social card", async () => {
   await Promise.all(["../dist/server/index.js", "../dist/client/vinext-client-entry-manifest.json", "../dist/client/og.png"].map(path => access(new URL(path, import.meta.url))));
@@ -22,6 +22,24 @@ test("dimensions preserve exact HP pitch, row height and uniform sheet thickness
   assert.equal(thick.width, base.width + 2);
   assert.equal(thick.length, 3 * 133.35 + 36);
   assert.equal(thick.height, base.height + 3);
+});
+
+test("mixed 1U and 3U rows preserve order and drive dimensions and rail placement", () => {
+  const config = { ...defaultConfiguration, rows: 4, rowUnits: [1, 3, 1, 3] };
+  const near = (actual, expected) => assert.ok(Math.abs(actual - expected) < 1e-10, `${actual} ≈ ${expected}`);
+  assert.deepEqual(rackRows(config), [1, 3, 1, 3]);
+  assert.equal(totalRackUnits(config), 8);
+  assert.equal(caseDimensions(config).length, 8 * 44.45 + 30);
+  const layout = rackRowLayout(config);
+  assert.deepEqual(layout.map(row => row.units), config.rowUnits);
+  near(layout[0].center - layout[0].length / 2, -8 * 44.45 / 2);
+  for (let index = 1; index < layout.length; index++) {
+    near(layout[index - 1].center + layout[index - 1].length / 2, layout[index].center - layout[index].length / 2);
+  }
+  near(layout.at(-1).center + layout.at(-1).length / 2, 8 * 44.45 / 2);
+  const exported = configurationExport(config);
+  assert.equal(exported.panelAssembly.railCount, 8);
+  assert.equal(exported.panelAssembly.railEndScrewCount, 16);
 });
 
 test("case panels are retained by the rail screws without additional panel fasteners or adhesive", () => {

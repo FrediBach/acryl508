@@ -1,5 +1,5 @@
 import { Path, type Shape } from "three";
-import { caseDimensions, type CaseConfiguration } from "./configurator";
+import { caseDimensions, rackRowLayout, type CaseConfiguration } from "./configurator";
 import { footHoleRadius, footMountLayout, handleLayout } from "./acrylic-profiles";
 import { createPanelProfiles } from "./panel-joints";
 import { cutoutSides, mapPolygons, polygonsToShapes, shapesToPolygons, subtractCutouts, type CutoutSide } from "./custom-cutouts";
@@ -28,8 +28,8 @@ export function createCasePanels(config: CaseConfiguration) {
     }
   }
   const side = panels.side;
-  for (let row = 0; row < config.rows; row++) for (const end of [-1, 1]) {
-    hole(side, -innerLength / 2 + (row + 0.5) * 1.3335 + end * 0.6125, h - 0.07, 0.019);
+  for (const row of rackRowLayout(config)) for (const end of [-1, 1]) {
+    hole(side, row.center / 100 + end * row.railOffset / 100, h - 0.07, 0.019);
   }
   if (config.angle > 0) for (const mount of footMountLayout(l, config.angle, t)) hole(side, -mount.caseZ, mount.caseY, footHoleRadius);
   const rear = panels.end.clone();

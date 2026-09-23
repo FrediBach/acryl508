@@ -1,5 +1,5 @@
 import { ArrowDownToLine } from "lucide-react";
-import { caseDimensions, footShapes, panelCount, type CaseConfiguration } from "@/lib/configurator";
+import { caseDimensions, footShapes, panelCount, rackFormatLabel, type CaseConfiguration } from "@/lib/configurator";
 
 export function BuildSummary({ config, onExport }: { config: CaseConfiguration; onExport: () => void }) {
   const dimensions = caseDimensions(config);
@@ -7,7 +7,7 @@ export function BuildSummary({ config, onExport }: { config: CaseConfiguration; 
     <section className="summary-panel" aria-label="Design summary">
       <div className="summary-title">
         <span className="micro-label">CASE SPECIFICATION</span>
-        <h2>A508 <span>/</span> {config.rows * 3}U—{config.hp}</h2>
+        <h2>A508 <span>/</span> {rackFormatLabel(config).replaceAll(" ", "")}—{config.hp}</h2>
       </div>
       <dl className="spec-list">
         <div><dt>Case footprint</dt><dd>{dimensions.width.toFixed(1)} × {dimensions.length.toFixed(1)} <small>mm</small></dd></div>

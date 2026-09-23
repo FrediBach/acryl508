@@ -1,6 +1,6 @@
-import { Check, ChevronDown, Minus, Plus } from "lucide-react";
+import { ArrowDown, ArrowUp, Check, ChevronDown, Minus, Plus, Trash2 } from "lucide-react";
 import { useState, type CSSProperties, type ReactNode } from "react";
-import { acrylicTints, busboards, footShapes, rowOptions, type CaseConfiguration } from "@/lib/configurator";
+import { acrylicTints, busboards, footShapes, maxRackUnits, rackFormatLabel, rackRows, totalRackUnits, type CaseConfiguration, type RackUnit } from "@/lib/configurator";
 
 import { CutoutControls } from "@/components/cutout-controls";
 import type { CasePanels } from "@/lib/case-panels";
@@ -21,11 +21,33 @@ function RangeField({ label, value, min, max, unit, onChange }: { label: string;
   return <div className="range-field"><div className="field-heading"><label htmlFor={`range-${unit}`}>{label}</label><div className="number-field"><input type="number" aria-label={`${label} in ${unit}`} min={min} max={max} step={1} value={editing ? draft : value} inputMode="numeric" onFocus={() => { setDraft(String(value)); setEditing(true); }} onBlur={commitDraft} onKeyDown={event => { if (event.key === "Enter") event.currentTarget.blur(); }} onChange={event => { setDraft(event.target.value); const number = Number(event.target.value); if (event.target.value && Number.isInteger(number) && number >= min && number <= max) onChange(number); }} /><span>{unit}</span></div></div><input id={`range-${unit}`} className="range-input" type="range" min={min} max={max} step={1} value={value} style={{ "--range-progress": `${(value - min) / (max - min) * 100}%` } as CSSProperties} onChange={event => onChange(event.currentTarget.valueAsNumber)} /><div className="range-labels"><span>{min} {unit}</span><span>{max} {unit}</span></div></div>;
 }
 export function ConfigurationPanel({ config, panels, onChange, onCutoutAction }: Props) {
+  const rows = rackRows(config);
+  const rackUnits = totalRackUnits(config);
+  function updateRows(nextRows: RackUnit[]) { onChange({ rows: nextRows.length, rowUnits: nextRows }); }
+  function replaceRow(index: number, units: RackUnit) { updateRows(rows.map((row, rowIndex) => rowIndex === index ? units : row)); }
+  function moveRow(index: number, direction: -1 | 1) {
+    const next = [...rows], target = index + direction;
+    [next[index], next[target]] = [next[target], next[index]];
+    updateRows(next);
+  }
   return <aside className="control-panel" aria-label="Case controls">
     <div className="panel-heading"><h2>Your configuration</h2><span className="micro-label">01—05</span></div>
     <section className="control-section"><SectionTitle number="01">Dimensions</SectionTitle>
-      <div className="field-heading"><span>Rack format</span><span className="field-note">{config.rows} {config.rows === 1 ? "row" : "rows"}</span></div>
-      <div className="segmented-control" aria-label="Rack format">{rowOptions.map(option => <button key={option.value} className={`segment ${config.rows === option.value ? "segment-active" : ""}`} aria-pressed={config.rows === option.value} onClick={() => onChange({ rows: option.value })}>{option.label}</button>)}</div>
+      <div className="field-heading"><span>Rack rows</span><span className="field-note">{rackFormatLabel(config)} · {rackUnits}U total</span></div>
+      <div className="rack-layout" aria-label="Rack row layout">
+        <span className="rack-edge">REAR</span>
+        {rows.map((units, index) => <div className="rack-row" key={index}>
+          <span className="rack-row-number">{String(index + 1).padStart(2, "0")}</span>
+          <div className="rack-size" role="group" aria-label={`Row ${index + 1} size`}>
+            {([1, 3] as const).map(option => <button key={option} className={units === option ? "rack-size-active" : ""} aria-pressed={units === option} disabled={option > units && rackUnits - units + option > maxRackUnits} onClick={() => replaceRow(index, option)}>{option}U</button>)}
+          </div>
+          <button className="rack-icon" aria-label={`Move row ${index + 1} toward rear`} title="Move toward rear" disabled={index === 0} onClick={() => moveRow(index, -1)}><ArrowUp size={13} /></button>
+          <button className="rack-icon" aria-label={`Move row ${index + 1} toward front`} title="Move toward front" disabled={index === rows.length - 1} onClick={() => moveRow(index, 1)}><ArrowDown size={13} /></button>
+          <button className="rack-icon rack-remove" aria-label={`Remove row ${index + 1}`} title="Remove row" disabled={rows.length === 1} onClick={() => updateRows(rows.filter((_, rowIndex) => rowIndex !== index))}><Trash2 size={13} /></button>
+        </div>)}
+        <span className="rack-edge">FRONT</span>
+      </div>
+      <div className="rack-add"><span>Add row</span>{([1, 3] as const).map(units => <button key={units} disabled={rackUnits + units > maxRackUnits} onClick={() => updateRows([...rows, units])}><Plus size={11} />{units}U</button>)}</div>
       <RangeField label="Width" value={config.hp} min={20} max={168} unit="HP" onChange={hp => onChange({ hp })} />
       <div className="preset-row"><span>Quick set</span>{[42, 62, 84, 104, 126].map(hp => <button key={hp} onClick={() => onChange({ hp })} aria-pressed={config.hp === hp} className={config.hp === hp ? "preset-active" : ""}>{hp}</button>)}</div>
       <RangeField label="Internal depth" value={config.depth} min={50} max={180} unit="mm" onChange={depth => onChange({ depth })} />

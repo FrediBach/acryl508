@@ -21,7 +21,7 @@ This starter does not use `wrangler.jsonc`.
 ## Included
 
 - responsive configurator shell under `app/`
-- interactive Three.js case preview with live dimension and tint controls
+- interactive Three.js case preview with ordered, mix-and-match 1U/3U rows and live dimension and tint controls
 - interlocking case panels retained by rail-end screws, plus removable acrylic feet and handle
 - SVG and font cutouts with per-panel placement, uniform scaling, rotation, and automatic loose-part removal
 - shadcn component configuration and reusable UI primitives
@@ -74,7 +74,7 @@ are removed, even if an island is larger than the remaining frame. Warnings
 report removed pieces, cuts outside the panel, and panels with no material left.
 Use stencil lettering when enclosed centres should remain attached.
 
-JSON version 2 includes each cutout's source metadata, normalized outlines,
+JSON version 3 includes the ordered 1U/3U row layout, each cutout's source metadata, normalized outlines,
 placement, and width, plus removal reports and the resolved panel outlines in
 millimetres. It remains a design specification requiring fabrication validation.
 Font copyrights and distribution licences are retained in the bundled JSON

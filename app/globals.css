@@ -159,6 +159,22 @@
 .segment { height: 29px; color: var(--muted-foreground); font-family: var(--font-geist-mono), monospace; font-size: 10px; border-radius: 2px; transition: background 150ms; }
 .segment:hover { background: var(--border); color: var(--foreground); }
 .segment-active, .segment-active:hover { color: var(--selection-text); background: var(--selection); }
+.rack-layout { display: grid; gap: 4px; margin-top: 9px; }
+.rack-edge { padding-left: 30px; color: var(--muted-foreground); font: 6.5px var(--font-geist-mono), monospace; letter-spacing: .7px; }
+.rack-row { display: grid; grid-template-columns: 23px minmax(82px, 1fr) repeat(3, 26px); align-items: center; gap: 3px; }
+.rack-row-number { color: var(--muted-foreground); font: 8px var(--font-geist-mono), monospace; }
+.rack-size { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; padding: 3px; border: 1px solid var(--border); border-radius: 3px; background: var(--surface); }
+.rack-size button { height: 25px; border-radius: 2px; color: var(--muted-foreground); font: 9px var(--font-geist-mono), monospace; }
+.rack-size button:hover { background: var(--border); color: var(--foreground); }
+.rack-size .rack-size-active { background: var(--selection); color: var(--selection-text); }
+.rack-icon { display: grid; width: 26px; height: 31px; place-items: center; border: 1px solid var(--border); border-radius: 3px; color: var(--muted-foreground); }
+.rack-icon:hover:not(:disabled) { border-color: var(--signal); color: var(--signal); background: var(--signal-soft); }
+.rack-icon:disabled, .rack-size button:disabled, .rack-add button:disabled { opacity: .3; }
+.rack-remove:hover:not(:disabled) { color: #b33921; border-color: #b33921; }
+.rack-add { display: flex; align-items: center; justify-content: flex-end; gap: 5px; margin-top: 7px; color: var(--muted-foreground); font-size: 8px; }
+.rack-add > span { margin-right: auto; }
+.rack-add button { display: inline-flex; align-items: center; gap: 3px; min-height: 25px; padding: 0 8px; border: 1px solid var(--border); border-radius: 3px; font: 8px var(--font-geist-mono), monospace; }
+.rack-add button:hover:not(:disabled) { border-color: var(--signal); color: var(--signal); background: var(--signal-soft); }
 .range-field { margin-top: 13px; }
 .number-field { display: flex; align-items: center; gap: 5px; border: 1px solid var(--border); border-radius: 2px; background: var(--background); padding: 3px 7px; min-height: 24px; font-family: var(--font-geist-mono), monospace; font-size: 9px; }
 .number-field input { width: 29px; border: 0; background: transparent; text-align: right; font: inherit; color: var(--foreground); appearance: textfield; -moz-appearance: textfield; }
@@ -333,6 +349,11 @@
   .section-heading h3 { font-size: 12px; }
   .field-heading, .inline-field, .foot-shape-field legend { font-size: 12px; }
   .segment { height: 35px; font-size: 12px; }
+  .rack-row { grid-template-columns: 27px minmax(100px, 1fr) repeat(3, 32px); gap: 5px; }
+  .rack-size button, .rack-icon { height: 35px; }
+  .rack-icon { width: 32px; }
+  .rack-add { font-size: 10px; }
+  .rack-add button { min-height: 32px; padding: 0 11px; font-size: 10px; }
   .number-field { font-size: 11px; padding: 4px 9px; }
   .range-input { height: 4px; margin: 21px 0 15px; }
   .range-input::-webkit-slider-thumb { width: 14px; height: 19px; }
