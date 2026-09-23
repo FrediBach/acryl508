@@ -5,9 +5,12 @@ export type AcrylicTint = { id: string; label: string; color: string };
 export type Busboard = "none" | "sinusoda" | "trolley";
 export type FootShape = "wedge" | "arch" | "sled";
 export type RackUnit = 1 | 3;
+export type VentStyle = "long-slits" | "short-slits" | "round" | "hexagonal";
+export type VentDensity = "low" | "medium" | "high";
 export type CaseConfiguration = {
   hp: number; rows: number; rowUnits: RackUnit[]; depth: number; thickness: number; sideMarginRatio: number;
   tint: AcrylicTint; angle: number; vents: boolean; busboard: Busboard;
+  ventStyle: VentStyle; ventDensity: VentDensity;
   handle: boolean; footShape: FootShape;
   cutouts: CustomCutout[];
 };
@@ -28,9 +31,18 @@ export const footShapes: { value: FootShape; label: string; description: string 
   { value: "arch", label: "Arch", description: "An open arch with two contact points per side." },
   { value: "sled", label: "Sled", description: "A continuous runner with a tapered cutout." },
 ];
+export const ventStyles: { value: VentStyle; label: string }[] = [
+  { value: "long-slits", label: "Long slits" },
+  { value: "short-slits", label: "Short slits" },
+  { value: "round", label: "Round holes" },
+  { value: "hexagonal", label: "Hexagonal holes" },
+];
+export const ventDensities: { value: VentDensity; label: string }[] = [
+  { value: "low", label: "Low" }, { value: "medium", label: "Medium" }, { value: "high", label: "High" },
+];
 export const defaultConfiguration: CaseConfiguration = {
   hp: 84, rows: 1, rowUnits: [3], depth: 75, thickness: 5, sideMarginRatio: 2, tint: acrylicTints[1], angle: 0, vents: true, busboard: "none",
-  handle: false, footShape: "wedge", cutouts: [],
+  handle: false, footShape: "wedge", cutouts: [], ventStyle: "long-slits", ventDensity: "medium",
 };
 // `rows` remains in the exported format for backwards compatibility. A mismatched
 // legacy `rows` value is interpreted as that many 3U rows.

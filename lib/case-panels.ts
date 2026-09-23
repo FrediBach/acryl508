@@ -2,6 +2,7 @@ import { Path, type Shape } from "three";
 import { caseDimensions, rackRowLayout, sidePanelMargin, type CaseConfiguration } from "./configurator";
 import { footHoleRadius, footMountLayout, handleLayout } from "./acrylic-profiles";
 import { createPanelProfiles } from "./panel-joints";
+import { createBottomVents } from "./bottom-vents";
 import { cutoutSides, mapPolygons, polygonsToShapes, shapesToPolygons, subtractCutouts, type CutoutSide } from "./custom-cutouts";
 
 function hole(shape: Shape, x: number, y: number, radius: number) {
@@ -16,17 +17,7 @@ export function createCasePanels(config: CaseConfiguration) {
   const { innerLength } = panels.layout;
   const base = panels.base;
   if (config.vents) {
-    const count = Math.max(3, Math.floor((w - 0.5) / 0.12));
-    for (let i = 0; i < count; i++) {
-      const x = (i - (count - 1) / 2) * 0.12;
-      for (const side of [-1, 1]) {
-        const path = new Path(), y = side * innerLength * 0.28;
-        path.moveTo(x - 0.017, y - innerLength * 0.09); path.lineTo(x - 0.017, y + innerLength * 0.09);
-        path.absarc(x, y + innerLength * 0.09, 0.017, Math.PI, 0, true);
-        path.lineTo(x + 0.017, y - innerLength * 0.09); path.absarc(x, y - innerLength * 0.09, 0.017, 0, Math.PI, true);
-        path.closePath(); base.holes.push(path);
-      }
-    }
+    base.holes.push(...createBottomVents(w, innerLength, config.ventStyle, config.ventDensity));
   }
   const side = panels.side;
   for (const row of rackRowLayout(config)) for (const end of [-1, 1]) {

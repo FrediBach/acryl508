@@ -24,6 +24,7 @@ This starter does not use `wrangler.jsonc`.
 - interactive Three.js case preview with ordered, mix-and-match 1U/3U rows and live dimension and tint controls
 - interlocking case panels retained by rail-end screws, plus removable acrylic feet and handle
 - adjustable side-panel retaining margins from the original 2× sheet thickness to a guarded near-flush 1× profile
+- bottom ventilation with long slits, short slits, round or hexagonal holes, and three densities
 - full-size SVG sheet export with named panel groups, slots, holes, vents, and custom cutouts
 - SVG and font cutouts with per-panel placement, uniform scaling, rotation, and automatic loose-part removal
 - shadcn component configuration and reusable UI primitives
@@ -53,6 +54,16 @@ defined in `app/layout.tsx`. Absolute sharing URLs use the incoming request host
 so they work on Vercel previews and custom domains without a hardcoded domain.
 The 1200 × 630 social card is `public/og.png`; the favicon and Apple touch icon
 reuse the stacked-panel brand mark.
+
+## Bottom ventilation
+
+Bottom ventilation in **The details** offers long slits, short slits, round
+holes or hexagonal holes at low, medium or high density. Patterns occupy two
+bands with a solid centre strip and perimeter. Switching ventilation off keeps
+the selected options for later. The preview, custom-cutout editor and SVG
+export share the same panel geometry; JSON includes `ventStyle` and
+`ventDensity`. Older configurations without these fields use long slits at
+medium density, matching the original pattern.
 
 ## Custom cutouts
 

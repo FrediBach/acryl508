@@ -200,6 +200,11 @@
 .select-wrap select { appearance: none; font: 9px var(--font-geist-mono), monospace; border: 1px solid var(--border); border-radius: 2px; padding: 6px 24px 6px 9px; background: var(--background); color: var(--foreground); }
 .select-wrap > svg { position: absolute; right: 7px; pointer-events: none; }
 .control-note { margin: 9px 0 0; font-size: 8px; line-height: 1.6; color: var(--muted-foreground); }
+.vent-options { border: 0; padding: 0; margin: 13px 0 0; min-width: 0; }
+.vent-options .field-heading { margin-top: 13px; }
+#vent-note { margin-bottom: 14px; }
+.vent-options:disabled { opacity: .45; }
+.vent-options:disabled button, .vent-options:disabled select { cursor: not-allowed; }
 .stance-control { grid-template-columns: repeat(4, 1fr); margin: 0; }
 .stance-control .segment { font-size: 9px; }
 .foot-shape-field { border: 0; padding: 0; margin: 14px 0 0; min-width: 0; }
