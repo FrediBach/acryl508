@@ -57,6 +57,39 @@ test("mode switching preserves independent designs and routes material choices a
     const { ConfiguratorShell } = load(path.join(project, "components/configurator-shell.tsx"));
     await React.act(async () => { root.render(React.createElement(ConfiguratorShell)); });
     assert.equal(button("Case designer").getAttribute("aria-pressed"), "true");
+    assert.equal(document.querySelector(".workspace .fabrication-workspace"), null, "Fabrication no longer extends the main workspace");
+    for (const [modeLabel, firstPart] of [["Case designer", "Bottom"], ["Synth stand", "Support rib 1"], ["Synth protector", "Protective top sheet"], ["Panel designer", "Panel"]]) {
+      await click(modeLabel);
+      const trigger = button("Fabrication workspace");
+      assert.ok(trigger.closest(".summary-panel"), "Each mode opens fabrication from its specification section");
+      assert.equal(trigger.getAttribute("aria-haspopup"), "dialog");
+      const overlay = document.getElementById(trigger.getAttribute("aria-controls"));
+      assert.equal(overlay.open, false);
+      await click("Fabrication workspace");
+      assert.equal(overlay.open, true);
+      assert.match(overlay.querySelector("#fabrication-description").textContent, new RegExp(modeLabel));
+      assert.equal(overlay.querySelector("tbody td").textContent, firstPart, "The overlay uses the active mode's parts");
+      await React.act(async () => overlay.querySelector("h2").click());
+      assert.equal(overlay.open, true, "Clicking content keeps the overlay open");
+      await click("Download sheet 1");
+      const sheet = new dom.window.DOMParser().parseFromString(await downloads.at(-1).blob.text(), "image/svg+xml");
+      assert.ok([...sheet.querySelectorAll("g > title")].some(title => title.textContent === firstPart), "Stock download contains the active design");
+      await click("Download fit coupon");
+      assert.match(downloads.at(-1).name, /fit-coupon\.svg$/);
+      const widthInput = overlay.querySelector(".stock-controls input");
+      await React.act(async () => {
+        Object.getOwnPropertyDescriptor(dom.window.HTMLInputElement.prototype, "value").set.call(widthInput, "1200");
+        widthInput.dispatchEvent(new dom.window.Event("input", { bubbles: true }));
+      });
+      await click("Close fabrication workspace");
+      assert.equal(overlay.open, false);
+      await click("Fabrication workspace");
+      assert.equal(widthInput.value, "1200", "Stock settings survive closing and reopening");
+      assert.match(overlay.querySelector(".stock-sheet svg").getAttribute("viewBox"), /^0 0 1200 /);
+      await React.act(async () => overlay.click());
+      assert.equal(overlay.open, false, "Clicking the backdrop closes the overlay");
+    }
+    await click("Case designer");
     await click("Cutting layout");
     assert.equal(button("Cutting layout").getAttribute("aria-pressed"), "true");
     assert.equal(button("Perspective").getAttribute("aria-pressed"), "false");
@@ -132,12 +165,12 @@ test("mode switching preserves independent designs and routes material choices a
     assert.equal(button("Front extension").getAttribute("aria-checked"), "true");
     await click("35°");
     await click("Material library");
-    await React.act(async () => document.querySelector('dialog:not(.project-dialog) button[aria-label="Blue"]').click());
+    await React.act(async () => document.querySelector('.info-dialog:not(.project-dialog) button[aria-label="Blue"]').click());
     const selectValue = async (select, value) => React.act(async () => {
       select.value = value;
       select.dispatchEvent(new dom.window.Event("change", { bubbles: true }));
     });
-    await selectValue(document.querySelector("dialog:not(.project-dialog) select"), "opal");
+    await selectValue(document.querySelector(".info-dialog:not(.project-dialog) select"), "opal");
     await click("Close notes");
     await click("Design JSON");
     const stand = JSON.parse(await downloads.at(-1).blob.text());
@@ -165,8 +198,8 @@ test("mode switching preserves independent designs and routes material choices a
     assert.ok(document.querySelector('[aria-label="Synth protector controls"]'));
     await click("50 mm");
     await click("Material library");
-    await React.act(async () => document.querySelector('dialog:not(.project-dialog) button[aria-label="Red"]').click());
-    await selectValue(document.querySelector("dialog:not(.project-dialog) select"), "see-through");
+    await React.act(async () => document.querySelector('.info-dialog:not(.project-dialog) button[aria-label="Red"]').click());
+    await selectValue(document.querySelector(".info-dialog:not(.project-dialog) select"), "see-through");
     await click("Close notes");
     await click("Design JSON");
     const protector = JSON.parse(await downloads.at(-1).blob.text());
@@ -181,7 +214,7 @@ test("mode switching preserves independent designs and routes material choices a
     assert.match(downloads.at(-1).name, /protector.*sheets\.svg$/);
     assert.match(await downloads.at(-1).blob.text(), /Body-to-cover clearance 50 mm/);
     await click("Build notes");
-    assert.match(document.querySelector("dialog:not(.project-dialog)").textContent, /A little room above the controls/);
+    assert.match(document.querySelector(".info-dialog:not(.project-dialog)").textContent, /A little room above the controls/);
     await click("Close notes");
     await click("Synth stand");
     await click("Design JSON");
@@ -397,11 +430,11 @@ test("mode switching preserves independent designs and routes material choices a
     panelData = await exportedPanel(); assert.equal(panelData.dimensions.height, 43.18); assert.equal(panelData.configuration.hp, 18);
     await selectValue(field("Panel format"), "3u");
     await click("Material library");
-    await React.act(async () => document.querySelector('dialog:not(.project-dialog) button[aria-label="Green"]').click());
-    await selectValue(document.querySelector("dialog:not(.project-dialog) select"), "opaque");
+    await React.act(async () => document.querySelector('.info-dialog:not(.project-dialog) button[aria-label="Green"]').click());
+    await selectValue(document.querySelector(".info-dialog:not(.project-dialog) select"), "opaque");
     await click("Close notes");
     await click("Build notes");
-    assert.match(document.querySelector("dialog:not(.project-dialog)").textContent, /A face for your next idea/);
+    assert.match(document.querySelector(".info-dialog:not(.project-dialog)").textContent, /A face for your next idea/);
     await click("Close notes");
     await click("Synth protector");
     await click("Panel designer");
@@ -486,7 +519,7 @@ test("mode switching preserves independent designs and routes material choices a
     assert.equal(fitted.objectFit.name, "my-synth.obj");
     const jobsBeforeAppearance = fittingJobs;
     await click("Material library");
-    await React.act(async () => document.querySelector('dialog:not(.project-dialog) button[aria-label="Green"]').click());
+    await React.act(async () => document.querySelector('.info-dialog:not(.project-dialog) button[aria-label="Green"]').click());
     await click("Close notes");
     assert.equal(button("Export stand sheets as SVG").disabled, false, "Appearance edits keep fitted export ready");
     await settleFit();
@@ -564,8 +597,8 @@ test("mode switching preserves independent designs and routes material choices a
     assert.equal(JSON.parse(await downloads.at(-1).blob.text()).objectFit, null);
     await click("Synth stand");
     await click("Build notes");
-    assert.match(document.querySelector("dialog:not(.project-dialog)").textContent, /Slot together\. Play at your angle/);
-    assert.match(document.querySelector("dialog:not(.project-dialog)").textContent, /no load capacity or stability rating/);
+    assert.match(document.querySelector(".info-dialog:not(.project-dialog)").textContent, /Slot together\. Play at your angle/);
+    assert.match(document.querySelector(".info-dialog:not(.project-dialog)").textContent, /no load capacity or stability rating/);
     await click("Close notes");
     await click("Download project");
     const projectBackup = await downloads.at(-1).blob.text();

@@ -51,7 +51,7 @@ test("fabrication SVG titles survive server rendering and hydrate without replac
   let root;
   try {
     for (const [fabrication, title] of [[standard, "Bottom"], [rotated, "Tall & narrow · rotated 90°"]]) {
-      const element = React.createElement(FabricationWorkspace, { fabrication });
+      const element = React.createElement(FabricationWorkspace, { fabrication, mode: "case", dialogRef: React.createRef() });
       container.innerHTML = renderToString(element);
       const serverSvg = container.querySelector(".stock-sheet svg");
       const serverTitle = serverSvg.querySelector("title").textContent;

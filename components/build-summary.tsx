@@ -1,3 +1,4 @@
+import { FabricationButton } from "./fabrication-button";
 import { materialLabel, transparencyOption } from "@/lib/acrylic-material";
 import { ArrowDownToLine, ChevronDown } from "lucide-react";
 import { flatFeetLayout, flatFootStyles } from "@/lib/flat-feet";
@@ -5,7 +6,7 @@ import { patchBoardLayout, patchBoardSides } from "@/lib/patch-board";
 import { cableHolderLayout } from "@/lib/cable-holder";
 import { caseDimensions, footShapes, handleCount, handleSides, handleDimensions, panelCount, panelSides, panelTint, panelTransparency, rackFormatLabel, rackRowLayout, sidePanelMargin, ventStyles, type CaseConfiguration } from "@/lib/configurator";
 
-export function BuildSummary({ config, canExportSvg = true, onExportJson, onExportSvg }: { canExportSvg?: boolean; config: CaseConfiguration; onExportJson: () => void; onExportSvg: () => void }) {
+export function BuildSummary({ config, canExportSvg = true, onExportJson, onExportSvg, onOpenFabrication }: { canExportSvg?: boolean; config: CaseConfiguration; onExportJson: () => void; onExportSvg: () => void; onOpenFabrication: () => void }) {
   const dimensions = caseDimensions(config);
   const rows = rackRowLayout(config);
   const holder = cableHolderLayout(config);
@@ -18,7 +19,7 @@ export function BuildSummary({ config, canExportSvg = true, onExportJson, onExpo
           <span className="micro-label">CASE SPECIFICATION</span>
           <h2>A508 <span>/</span> {rackFormatLabel(config).replaceAll(" ", "")}—{config.hp}</h2>
         </div>
-        <div className="summary-actions">
+        <div className="summary-actions"><FabricationButton onClick={onOpenFabrication} />
           <button className="button button-dark summary-export" onClick={onExportJson} title="Download only this design’s settings and geometry" aria-label="Export case design JSON"><ArrowDownToLine size={15} />Design JSON</button>
           <button className="button button-orange summary-export" disabled={!canExportSvg} onClick={onExportSvg} aria-label="Export all sheets as SVG"><ArrowDownToLine size={15} />SVG sheets</button>
         </div>

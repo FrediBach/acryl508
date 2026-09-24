@@ -68,6 +68,12 @@ starts closed and groups enclosure/stance, accessories, and ventilation/cutouts.
 Expanded details scroll within a bounded area on desktop to preserve preview
 space and use normal page flow on mobile. SVG validation warnings stay visible
 outside the disclosure. Summary grids wrap to the available column width.
+All four specification sections include a Fabrication workspace button. It opens
+one shared native dialog for the active design, containing parts and hardware,
+cutting warnings, fit coupons, and stock-sheet arrangement/downloads. The dialog
+keeps stock settings when closed, names the current mode, and supports Escape,
+backdrop click, and a persistent close button. Its content scrolls within the
+viewport and stacks on narrow screens; it no longer extends the main page.
 Project → Download project backs up all four designs, models and fonts; the
 header, build notes and sidebar do not duplicate the design export buttons.
 

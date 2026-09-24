@@ -1,17 +1,25 @@
 "use client";
-import { useMemo, useState } from "react";
+import { useMemo, useState, type RefObject } from "react";
+import { X } from "lucide-react";
+import type { DesignerMode } from "./configurator-header";
 import { polygonBounds } from "@/lib/custom-cutouts";
 import { casePathData } from "@/lib/svg-export";
 import { fitCoupon, packSheets, stockSvg, type Fabrication } from "@/lib/fabrication";
 import { downloadFile } from "./project-toolbar";
 import { NumberControl } from "./cutout-controls";
 
-export function FabricationWorkspace({ fabrication }: { fabrication: Fabrication }) {
+const modeLabels: Record<DesignerMode, string> = { case: "Case designer", stand: "Synth stand", protector: "Synth protector", panel: "Panel designer" };
+
+export function FabricationWorkspace({ fabrication, mode, dialogRef }: { fabrication: Fabrication; mode: DesignerMode; dialogRef: RefObject<HTMLDialogElement | null> }) {
   const [width, setWidth] = useState(1000), [height, setHeight] = useState(600), [gap, setGap] = useState(10), [rotate, setRotate] = useState(true);
   const layout = useMemo(() => packSheets(fabrication.parts, width, height, gap, rotate), [fabrication.parts, width, height, gap, rotate]);
   const blocked = fabrication.blocked || layout.unplaced.length > 0;
-  return <details className="fabrication-workspace">
-    <summary><span>Fabrication workspace</span><small>{fabrication.blocked ? "Resolve geometry before SVG export" : `${fabrication.parts.length} parts · ${fabrication.thickness} mm acrylic`}</small></summary>
+  return <dialog ref={dialogRef} id="fabrication-dialog" className="fabrication-dialog" aria-labelledby="fabrication-title" aria-describedby="fabrication-description" onClick={event => { if (event.target === event.currentTarget) dialogRef.current?.close(); }}>
+    <div className="fabrication-dialog-body">
+    <header className="fabrication-dialog-header">
+      <div><h2 id="fabrication-title">Fabrication workspace</h2><p id="fabrication-description">{modeLabels[mode]} · {fabrication.blocked ? "Resolve geometry before SVG export" : `${fabrication.parts.length} parts · ${fabrication.thickness} mm acrylic`}</p></div>
+      <button type="button" className="icon-button" aria-label="Close fabrication workspace" onClick={() => dialogRef.current?.close()}><X size={20} /></button>
+    </header>
     <div className="fabrication-content">
       <div><h2>Parts & hardware</h2><div className="parts-table-wrap"><table className="parts-table"><thead><tr><th>Part</th><th>Size (mm)</th><th>Material</th></tr></thead><tbody>{fabrication.parts.map(part => { const bounds = polygonBounds(part.polygons); return <tr key={part.id}><td>{part.label}</td><td>{bounds.width.toFixed(1)} × {bounds.height.toFixed(1)}</td><td>{part.material}</td></tr>; })}</tbody></table></div>
         <ul>{fabrication.hardware.map(item => <li key={item}>{item}</li>)}</ul>
@@ -32,5 +40,6 @@ export function FabricationWorkspace({ fabrication }: { fabrication: Fabrication
         </div>)}</div>
       </div>
     </div>
-  </details>;
+    </div>
+  </dialog>;
 }

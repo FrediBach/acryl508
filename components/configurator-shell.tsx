@@ -59,6 +59,7 @@ export function ConfiguratorShell() {
   const [info, setInfo] = useState<"materials" | "guide" | null>(null);
   const [exported, setExported] = useState<"JSON" | "SVG" | null>(null);
   const dialog = useRef<HTMLDialogElement>(null);
+  const fabricationDialog = useRef<HTMLDialogElement>(null);
   const exportTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     const query = window.matchMedia("(prefers-color-scheme: dark)");
@@ -79,6 +80,7 @@ export function ConfiguratorShell() {
     document.documentElement.classList.toggle("dark", next);
     try { localStorage.setItem("acryl508-theme", next ? "dark" : "light"); } catch { /* Theme still works for this visit. */ }
   }
+  function openFabrication() { fabricationDialog.current?.showModal(); }
   function openInfo(tab: "materials" | "guide") { setInfo(tab); dialog.current?.showModal(); }
   function download(contents: string, type: string, name: string) {
     const url = URL.createObjectURL(new Blob([contents], { type }));
@@ -154,9 +156,9 @@ export function ConfiguratorShell() {
     <ProjectToolbar designs={history.present} mode={mode} canUndo={history.past.length > 0 || (history.group !== undefined && history.group !== history.present)} canRedo={history.future.length > 0} onUndo={() => travel("undo")} onRedo={() => travel("redo")} onRestore={project => { dispatch({ type: "reset", value: project.designs }); setMode(project.mode); setWorkspaceRevision(value => value + 1); }} onReady={() => setReady(true)} />
     <main key={workspaceRevision} id="configure" className="workspace" inert={!ready}>
       <h1 className="sr-only">{mode === "panel" ? "Acrylic Eurorack panel designer" : mode === "case" ? "Acrylic Eurorack case configurator" : mode === "protector" ? "Slotted acrylic synth protector designer" : "Slotted acrylic synth stand designer"}</h1>
-      {mode === "panel" ? <PanelDesigner panel={panel} dark={dark} onChange={patch => setPanelConfig(current => Object.keys(patch).every(key => key === "tint" || key === "transparency") ? { ...current, ...patch } : normalizePanelConfiguration({ ...current, ...patch }))} onExportJson={exportDesign} onExportSvg={exportSheets} /> : mode === "protector" ? <ProtectorDesigner protector={protector} object={protectorConfig.object} objectError={protectorError} busy={protectorBusy} dark={dark} onChange={patch => setProtectorConfig(current => ({ ...current, ...patch }))} onExportJson={exportDesign} onExportSvg={exportSheets} /> : mode === "stand" ? <StandDesigner stand={stand} object={standConfig.object} objectError={standError} busy={standBusy} dark={dark} onChange={patch => setStandConfig(current => ({ ...current, ...patch }))} onExportJson={exportDesign} onExportSvg={exportSheets} /> : <div className="configurator-grid"><div className="preview-column"><PreviewStage panels={panels} config={config} dark={dark} /><BuildSummary canExportSvg={canExportCase} config={config} onExportJson={exportDesign} onExportSvg={exportSheets} /></div><ConfigurationPanel panels={panels} onCutoutAction={cutoutAction} config={config} onChange={updateConfig} /></div>}
-      <FabricationWorkspace fabrication={fabrication} />
+      {mode === "panel" ? <PanelDesigner panel={panel} dark={dark} onChange={patch => setPanelConfig(current => Object.keys(patch).every(key => key === "tint" || key === "transparency") ? { ...current, ...patch } : normalizePanelConfiguration({ ...current, ...patch }))} onExportJson={exportDesign} onExportSvg={exportSheets} onOpenFabrication={openFabrication} /> : mode === "protector" ? <ProtectorDesigner protector={protector} object={protectorConfig.object} objectError={protectorError} busy={protectorBusy} dark={dark} onChange={patch => setProtectorConfig(current => ({ ...current, ...patch }))} onExportJson={exportDesign} onExportSvg={exportSheets} onOpenFabrication={openFabrication} /> : mode === "stand" ? <StandDesigner stand={stand} object={standConfig.object} objectError={standError} busy={standBusy} dark={dark} onChange={patch => setStandConfig(current => ({ ...current, ...patch }))} onExportJson={exportDesign} onExportSvg={exportSheets} onOpenFabrication={openFabrication} /> : <div className="configurator-grid"><div className="preview-column"><PreviewStage panels={panels} config={config} dark={dark} /><BuildSummary canExportSvg={canExportCase} config={config} onExportJson={exportDesign} onExportSvg={exportSheets} onOpenFabrication={openFabrication} /></div><ConfigurationPanel panels={panels} onCutoutAction={cutoutAction} config={config} onChange={updateConfig} /></div>}
     </main>
+    <FabricationWorkspace fabrication={fabrication} mode={mode} dialogRef={fabricationDialog} />
     <div className={`export-toast ${exported ? "toast-visible" : ""}`} role="status">{exported && <><Check size={15} />{exported === "SVG" ? mode === "panel" ? "Panel cut and engrave layers downloaded as SVG." : "All sheets downloaded as SVG." : "Configuration downloaded as JSON."}</>}</div>
     <dialog ref={dialog} className="info-dialog" aria-labelledby="dialog-title" onClose={() => setInfo(null)} onClick={event => { if (event.target === event.currentTarget) dialog.current?.close(); }}>
       <div className="dialog-top"><span className="eyebrow">ACRYL508 / FIELD NOTES</span><button className="icon-button" aria-label="Close notes" onClick={() => dialog.current?.close()}><X size={19} /></button></div>

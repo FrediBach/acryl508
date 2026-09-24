@@ -1,4 +1,5 @@
 "use client";
+import { FabricationButton } from "./fabrication-button";
 import { lazy, Suspense, useId, useRef, useState, type PointerEvent, type KeyboardEvent } from "react";
 import { ArrowDownToLine, Check, Copy, Maximize, Minimize, Plus, Trash2 } from "lucide-react";
 import { ConfigSection } from "@/components/config-section";
@@ -10,7 +11,7 @@ import { outlinePath, placedCutout, polygonBounds } from "@/lib/custom-cutouts";
 import { alignPanelItems, componentOutline, maxPanelArtwork, maxPanelComponents, newPanelComponent, panelFormats, panelRound, type DesignedPanel, type PanelAlignment, type PanelArtwork, type PanelComponent, type PanelConfiguration, type PanelFormat } from "@/lib/panel-designer";
 import { ventPresets } from "@/lib/vent-design";
 const PanelPreview = lazy(() => import("@/components/panel-preview").then(module => ({ default: module.PanelPreview })));
-type Props = { panel: DesignedPanel; dark: boolean; onChange: (patch: Partial<PanelConfiguration>) => void; onExportJson: () => void; onExportSvg: () => void };
+type Props = { panel: DesignedPanel; dark: boolean; onChange: (patch: Partial<PanelConfiguration>) => void; onExportJson: () => void; onExportSvg: () => void; onOpenFabrication: () => void };
 type Item = PanelComponent | PanelArtwork;
 function Toggle({ label, value, onChange }: { label: string; value: boolean; onChange: () => void }) {
   const id = useId();
@@ -68,7 +69,7 @@ function FrontEditor({ panel, selection, onSelect, onChange, snap, grid, guides,
   </svg></div>;
 }
 
-export function PanelDesigner({ panel, dark, onChange, onExportJson, onExportSvg }: Props) {
+export function PanelDesigner({ panel, dark, onChange, onExportJson, onExportSvg, onOpenFabrication }: Props) {
   const config = panel.config;
   const [view, setView] = useState<"front" | "perspective" | "cutting">("front");
   const [selectedIds, setSelectedIds] = useState<string[]>([]), [expanded, setExpanded] = useState(false);
@@ -103,7 +104,7 @@ export function PanelDesigner({ panel, dark, onChange, onExportJson, onExportSvg
       <div className="stage-bottom"><div className="view-control" role="group" aria-label="Panel view">{(["front", "perspective", "cutting"] as const).map(option => <button key={option} className={view === option ? "view-active" : ""} aria-pressed={view === option} onClick={() => setView(option)}>{option === "front" ? "Front editor" : option === "perspective" ? "Perspective" : "Cutting layout"}</button>)}</div><span className="stage-hint">{view === "front" ? "Drag to place · Shift-click to select" : view === "cutting" ? "Red: cut · Blue: engrave" : "Drag to orbit · Scroll to zoom"}</span></div>
       <div className="stage-caption"><span><Check size={12} />{view === "front" ? "+X right · +Y up · Origin at centre" : "Shared preview & export geometry"}</span><span>PROTOTYPE · MM</span></div>
     </section>
-    <section className="summary-panel" aria-label="Panel specification"><div className="summary-title"><span className="micro-label">PANEL SPECIFICATION</span><h2>F508 <span>/</span> {config.hp} HP</h2></div><dl className="spec-list"><div><dt>Dimensions</dt><dd>{panel.width.toFixed(2)} × {panel.height} <small>mm</small></dd></div><div><dt>Openings</dt><dd>{config.components.length} components · {panel.vents.length} vents</dd></div><div><dt>Material</dt><dd>{config.thickness} mm GS <span className="spec-color" style={{ background: config.tint.color }} /></dd></div><div><dt>Mounting</dt><dd>{panel.mounts.length} {config.mounting}</dd></div></dl><div className="summary-actions"><button className="button button-dark summary-export" onClick={onExportJson} title="Download only this design’s settings and geometry" aria-label="Export panel design JSON"><ArrowDownToLine size={15} />Design JSON</button><button className="button button-orange summary-export" disabled={!panel.canExport} onClick={onExportSvg} aria-label="Export panel cut and engrave SVG"><ArrowDownToLine size={15} />SVG layers</button></div></section>
+    <section className="summary-panel" aria-label="Panel specification"><div className="summary-title"><span className="micro-label">PANEL SPECIFICATION</span><h2>F508 <span>/</span> {config.hp} HP</h2></div><dl className="spec-list"><div><dt>Dimensions</dt><dd>{panel.width.toFixed(2)} × {panel.height} <small>mm</small></dd></div><div><dt>Openings</dt><dd>{config.components.length} components · {panel.vents.length} vents</dd></div><div><dt>Material</dt><dd>{config.thickness} mm GS <span className="spec-color" style={{ background: config.tint.color }} /></dd></div><div><dt>Mounting</dt><dd>{panel.mounts.length} {config.mounting}</dd></div></dl><div className="summary-actions"><FabricationButton onClick={onOpenFabrication} /><button className="button button-dark summary-export" onClick={onExportJson} title="Download only this design’s settings and geometry" aria-label="Export panel design JSON"><ArrowDownToLine size={15} />Design JSON</button><button className="button button-orange summary-export" disabled={!panel.canExport} onClick={onExportSvg} aria-label="Export panel cut and engrave SVG"><ArrowDownToLine size={15} />SVG layers</button></div></section>
   </div><aside className="control-panel accordion-control-panel" aria-label="Panel designer controls">
     <div className="panel-heading"><h2>Your panel</h2><span className="micro-label">01—07</span></div><p className="config-intro">A blank panel, a custom faceplate, or a little of both.</p>
     <ConfigSection number="01" title="Panel size & mounting" summary={`${panelFormats[config.format].label} · ${config.hp} HP`} defaultOpen>
