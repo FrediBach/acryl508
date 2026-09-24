@@ -20,7 +20,7 @@ export type VentMix = "checkerboard" | "rows" | "columns";
 export type CaseConfiguration = {
   hp: number; rows: number; rowUnits: RackUnit[]; depth: number; thickness: number; sideMarginRatio: number;
   tint: AcrylicTint; individualPanelTints?: boolean; panelTints?: Partial<Record<PanelSide, AcrylicTint>>;
-  angle: number; vents: boolean; busboard: Busboard;
+  angle: number; rowAngles?: number[]; vents: boolean; busboard: Busboard;
   ventStyle: VentStyle; ventDensity: VentDensity;
   ventLayout: VentLayout; ventCoverage: VentCoverage; ventMix: VentMix;
   ventDesign: VentDesign;
@@ -90,16 +90,56 @@ export function totalRackUnits(config: Pick<CaseConfiguration, "rows" | "rowUnit
 export function rackFormatLabel(config: Pick<CaseConfiguration, "rows" | "rowUnits">) {
   return rackRows(config).map(units => `${units}U`).join(" + ");
 }
-export function rackRowLayout(config: Pick<CaseConfiguration, "rows" | "rowUnits">) {
-  const lengths = rackRows(config).map(units => units === 3 ? 133.35 : rackUnitPitch);
-  const totalLength = lengths.reduce((total, length) => total + length, 0);
-  let offset = -totalLength / 2;
-  return rackRows(config).map((units, index) => {
-    const length = lengths[index];
-    const row = { index, units, length, center: offset + length / 2, railOffset: length / 2 - 5.425 };
-    offset += length;
-    return row;
-  });
+type RackLayoutConfiguration = Pick<CaseConfiguration, "rows" | "rowUnits"> & Partial<Pick<CaseConfiguration, "angle" | "rowAngles" | "thickness">>;
+export const maxRowAngle = 60;
+export const maxTotalRowAngle = 75;
+// Increments are stored rear-to-front, like rowUnits. The front row is the
+// stance reference. Clamp from front to rear so no surface tips past 75°.
+export function rackRowAngles(config: RackLayoutConfiguration) {
+  const angles = rackRows(config).map(() => 0);
+  let remaining = Math.max(0, maxTotalRowAngle - (config.angle ?? 0));
+  for (let index = angles.length - 2; index >= 0; index--) {
+    const requested = config.rowAngles?.[index] ?? 0;
+    angles[index] = Math.min(remaining, maxRowAngle, Math.max(0, Number.isFinite(requested) ? requested : 0));
+    remaining -= angles[index];
+  }
+  return angles;
+}
+export function rackRowLayout(config: RackLayoutConfiguration) {
+  const units = rackRows(config), increments = rackRowAngles(config);
+  let distance = 0, rise = 0, angle = 0;
+  const rows = [];
+  for (let index = units.length - 1; index >= 0; index--) {
+    const increment = increments[index];
+    const gap = increment > 0 ? Math.max(8, 2 * (config.thickness ?? 5)) + 14 * Math.tan(increment * Math.PI / 360) : 0;
+    const bend = (angle + increment / 2) * Math.PI / 180;
+    distance += gap * Math.cos(bend);
+    rise += gap * Math.sin(bend);
+    angle += increment;
+    const radians = angle * Math.PI / 180;
+    const length = units[index] === 3 ? 133.35 : rackUnitPitch;
+    rows.push({ index, units: units[index], length, center: -(distance + length * Math.cos(radians) / 2), rise: rise + length * Math.sin(radians) / 2, angle, increment, gap, railOffset: length / 2 - 5.425 });
+    distance += length * Math.cos(radians);
+    rise += length * Math.sin(radians);
+  }
+  // A tilted rail projects behind the rear module edge. Reserve its full
+  // 12 mm underside envelope before placing the vertical rear panel.
+  const rearRadians = angle * Math.PI / 180;
+  const rearClearance = Math.max(0, 12 * Math.sin(rearRadians) - 0.675 * Math.cos(rearRadians));
+  return rows.reverse().map(row => ({ ...row, center: row.center + (distance + rearClearance) / 2 }));
+}
+// Local offsets along a row and normal to its surface, in millimetres.
+// Z points toward the front; side-panel X points toward the rear.
+export function rackRowPoint(row: ReturnType<typeof rackRowLayout>[number], offset: number, normal = 0) {
+  const radians = row.angle * Math.PI / 180;
+  return { z: row.center + offset * Math.cos(radians) + normal * Math.sin(radians), y: row.rise - offset * Math.sin(radians) + normal * Math.cos(radians) };
+}
+export function rackEnvelope(config: RackLayoutConfiguration) {
+  const rows = rackRowLayout(config);
+  const rear = rackRowPoint(rows[0], -rows[0].length / 2);
+  const front = rackRowPoint(rows[rows.length - 1], rows[rows.length - 1].length / 2);
+  const angled = rows.some(row => row.angle > 0);
+  return { length: angled ? front.z * 2 : rows.reduce((sum, row) => sum + row.length, 0), rise: rear.y, angled };
 }
 export function sidePanelMargin(config: Pick<CaseConfiguration, "thickness" | "sideMarginRatio">) {
   const ratio = Number.isFinite(config.sideMarginRatio) ? config.sideMarginRatio : maxSideMarginRatio;
@@ -120,14 +160,14 @@ export function sledWebThickness(thickness: number) { return Math.max(12, thickn
 export function panelCount() { return 5; }
 // All dimensions are millimetres; the preview converts these to scene units.
 export function caseDimensions(config: CaseConfiguration) {
-  const rackLength = rackRows(config).reduce((total, units) => total + (units === 3 ? 133.35 : rackUnitPitch), 0);
+  const rack = rackEnvelope(config);
   const margin = sidePanelMargin(config);
-  return { width: config.hp * 5.08 + config.thickness * 2, length: rackLength + config.thickness * 2 + margin * 2, height: config.depth + config.thickness + margin };
+  return { width: config.hp * 5.08 + config.thickness * 2, length: rack.length + config.thickness * 2 + margin * 2, height: config.depth + config.thickness + margin + rack.rise };
 }
 export function configurationExport(config: CaseConfiguration, cutoutReports: CutoutReport[] = [], resolvedPanels: Partial<Record<CutoutSide, MultiPolygon>> = {}) {
   const holder = cableHolderLayout(config);
   return {
-    product: "Acryl508", version: 8, units: "mm", status: "design-concept",
+    product: "Acryl508", version: 9, units: "mm", status: "design-concept",
     configuration: { ...config, handleWidth: handleDimensions(config).width, handleHeight: handleDimensions(config).height, ventLayout: config.ventLayout ?? "aligned", ventCoverage: config.ventCoverage ?? "bands", ventMix: config.ventMix ?? "checkerboard", ventDesign: normalizeVentDesign(config.ventDesign), material: "GS cast acrylic", fasteners: "Black socket-head screws", assembly: "Mechanical; no glue" },
     ventilation: {
       minimumWebMm: Math.max(3, config.thickness), borderMm: Math.max(8, 2 * config.thickness),
@@ -137,9 +177,16 @@ export function configurationExport(config: CaseConfiguration, cutoutReports: Cu
       status: "Geometry guardrails only; strength, thermal performance and laser tolerances require prototype validation. Custom cuts can independently weaken the panel.",
     },
     outerDimensions: caseDimensions(config),
+    rowLayout: {
+      order: "Rear to front; each increment is relative to the next row toward the front",
+      coordinates: "Millimetres; Z toward front, rise above the front rim; angles exclude the overall stance",
+      rows: rackRowLayout(config),
+      maximumSurfaceAngle: maxTotalRowAngle,
+      automaticFeet: rackEnvelope(config).angled,
+    },
     powerBoard: config.busboard === "sinusoda" ? {
       ...sinusodaJuice,
-      placement: sinusodaPlacement(config.hp * 5.08, rackRowLayout(config).reduce((sum, row) => sum + row.length, 0), config.depth),
+      placement: sinusodaPlacement(config.hp * 5.08, rackEnvelope(config).length, config.depth),
       mountingHoleCentersMm: sinusodaHoles,
       coordinates: "Centred on base, viewed from above; X right, Y toward rear. Underside editor mirrors X. No automatic rotation or scaling.",
       bottomHolePolicy: "All 28 approximate holes when the board fits. Omit vents within one sheet thickness of each hole. Review custom-cutout conflicts.",
@@ -147,7 +194,7 @@ export function configurationExport(config: CaseConfiguration, cutoutReports: Cu
       mounting: "Use at least 14 evenly distributed screws with nylon washers, per data sheet. Fastener size and standoff height need verification.",
     } : config.busboard === "trolley" ? {
       ...trolleyBus,
-      placement: trolleyPlacement(config.hp * 5.08, rackRowLayout(config).reduce((sum, row) => sum + row.length, 0), config.depth),
+      placement: trolleyPlacement(config.hp * 5.08, rackEnvelope(config).length, config.depth),
       pcbHoleCentersMm: trolleyHoles,
       mountingHoleCentersMm: trolleyMountingHoles(),
       coordinates: "Base-centred millimetres viewed from above; X right, Y rear. PCB is shifted 6 mm left to centre the inferred connector-inclusive 435 mm envelope. Underside editor mirrors X.",
@@ -155,7 +202,7 @@ export function configurationExport(config: CaseConfiguration, cutoutReports: Cu
       inputModule: "Separate 4HP/3U ON/OFF module and cabling not modelled or reserved.",
     } : config.busboard === "compactpwr" ? {
       ...compactPwr,
-      placement: compactPwrPlacement(config.hp * 5.08, rackRowLayout(config).reduce((sum, row) => sum + row.length, 0), config.depth),
+      placement: compactPwrPlacement(config.hp * 5.08, rackEnvelope(config).length, config.depth),
       mountingHoleCentersMm: compactPwrHoles,
       coordinates: "Centred on base, viewed from above; X right, Y rear. Underside editor mirrors X. No automatic rotation or scaling.",
       bottomHolePolicy: "Four approximate corner screw holes when the board fits. Vents retain one sheet thickness around each hole. Review custom-cutout conflicts.",
@@ -179,7 +226,7 @@ export function configurationExport(config: CaseConfiguration, cutoutReports: Cu
       disassembly: "Support the case, remove the rail-end screws on one side, withdraw that side panel, then slide the base and end-panel tabs out of the remaining side panel. Stance and handles are integral to the side panels.",
       status: "Concept; kerf, sheet tolerances, corner relief, rail threads, screw engagement and loaded retention require fabrication validation",
     },
-    stance: { method: "Integral side-panel profile", angle: config.angle, shape: config.footShape, minimumWebMm: config.footShape === "sled" && config.angle > 0 ? sledWebThickness(config.thickness) : null, innerCorners: config.footShape === "sled" ? "Rounded" : null, additionalParts: 0 },
+    stance: { automaticFeet: rackEnvelope(config).angled, method: "Integral side-panel profile", angle: config.angle, shape: config.footShape, minimumWebMm: config.footShape === "sled" && config.angle > 0 ? sledWebThickness(config.thickness) : null, innerCorners: config.footShape === "sled" ? "Rounded" : null, additionalParts: 0 },
     handles: { method: "Integral side-panel grips", mode: config.handleMode ?? "auto", count: handleCount(config), widthMm: handleDimensions(config).width, riseMm: handleDimensions(config).height, roundedRoots: true, sides: handleCount(config) === 2 ? ["left", "right"] : handleCount(config) === 1 ? ["left"] : [], additionalParts: 0 },
     footAttachment: null,
     cableHolder: { enabled: Boolean(config.cableHolder), method: "Integral fingers along the rear panel top edge", heightMm: holder.height, slitWidthMm: holder.slitWidth, slitCount: config.cableHolder ? holder.slitCount : 0, fingerWidthMm: holder.fingerWidth, pitchMm: holder.pitch, slitCentersMm: config.cableHolder ? holder.slitCenters : [], roundedTips: true, roundedSlitRoots: true, additionalParts: 0 },

@@ -5,8 +5,8 @@ import { sledWebThickness, type FootShape } from "./configurator";
 export const handleRise = 0.7;
 export const footFloor = 0.015;
 
-export function caseLift(length: number, angle: number) {
-  return angle > 0 ? Math.sin(angle * Math.PI / 180) * length / 2 + 0.08 : 0.035;
+export function caseLift(length: number, angle: number, automaticFeet = false) {
+  return angle > 0 ? Math.sin(angle * Math.PI / 180) * length / 2 + 0.08 : automaticFeet ? 0.08 : 0.035;
 }
 
 type HandleSize = { width: number; height: number };
@@ -53,7 +53,7 @@ function gripOpening(width: number, height: number, rise: number) {
   return path;
 }
 
-export function createSideProfile(panel: Shape, length: number, height: number, thickness: number, angle: number, style: FootShape, handle: boolean, handleSize: HandleSize = { width: 1.6, height: handleRise }) {
+export function createSideProfile(panel: Shape, length: number, height: number, thickness: number, angle: number, style: FootShape, handle: boolean, handleSize: HandleSize = { width: 1.6, height: handleRise }, rim?: { x: number; y: number }[], automaticFeet = false) {
   const shape = new Shape();
   shape.holes = panel.holes.map(hole => hole.clone());
   const half = length / 2;
@@ -61,21 +61,39 @@ export function createSideProfile(panel: Shape, length: number, height: number, 
   const sin = Math.sin(radians), cos = Math.cos(radians);
   // Local X becomes world -Z. Rotate this edge with the enclosure and every
   // contact point lands on the same horizontal floor, at the chosen stance.
-  const floor = (x: number) => (footFloor - caseLift(length, angle) - x * sin) / cos;
+  const floor = (x: number) => (footFloor - caseLift(length, angle, automaticFeet) - x * sin) / cos;
+  const hasFeet = angle > 0 || automaticFeet;
+  // The rim runs from the high rear edge (+X) to the front (-X).
+  const rimHeight = (x: number) => {
+    if (!rim?.length) return height;
+    for (let index = 1; index < rim.length; index++) {
+      const rear = rim[index - 1], front = rim[index];
+      if (x >= front.x && x <= rear.x) return front.y + (rear.y - front.y) * (x - front.x) / (rear.x - front.x);
+    }
+    return x > rim[0].x ? rim[0].y : rim[rim.length - 1].y;
+  };
+  const traceRim = (from: number, to: number) => {
+    for (const point of rim ?? []) if (point.x < from && point.x > to) shape.lineTo(point.x, point.y);
+    shape.lineTo(to, rimHeight(to));
+  };
   const band = Math.max(thickness, 0.035);
-  shape.moveTo(-half, angle > 0 ? floor(-half) : 0);
-  if (angle > 0 && style === "arch") {
+  shape.moveTo(-half, hasFeet ? floor(-half) : 0);
+  if (hasFeet && (style === "arch" || (automaticFeet && angle === 0))) {
     const pad = Math.min(0.22, length * 0.2);
     const left = -half + pad, right = half - pad;
     shape.lineTo(left, floor(left));
-    shape.bezierCurveTo(left, -band, right, -band, right, floor(right));
+    const archTop = automaticFeet && angle === 0 ? 0 : -band;
+    shape.bezierCurveTo(left, archTop, right, archTop, right, floor(right));
   }
-  shape.lineTo(half, angle > 0 ? floor(half) : 0);
-  shape.lineTo(half, height);
+  shape.lineTo(half, hasFeet ? floor(half) : 0);
+  shape.lineTo(half, rimHeight(half));
   if (handle) {
+    // Seat the level grip above the highest rim point under its roots.
+    if (rim) height = rimHeight(Math.min(half, handleSize.width / 2 + 0.14));
     const outer = handleSize.width / 2, top = height + handleSize.height, radius = 0.1, root = 0.14;
     const widePanel = half > outer + root;
     if (widePanel) {
+      if (rim) traceRim(half, outer + root);
       shape.lineTo(outer + root, height);
       shape.quadraticCurveTo(outer, height, outer, height + root);
     } else {
@@ -90,12 +108,15 @@ export function createSideProfile(panel: Shape, length: number, height: number, 
     shape.lineTo(-outer, height + root);
     if (widePanel) {
       shape.quadraticCurveTo(-outer, height, -outer - root, height);
-      shape.lineTo(-half, height);
+      if (rim) {
+        shape.lineTo(-outer - root, rimHeight(-outer - root));
+        traceRim(-outer - root, -half);
+      } else shape.lineTo(-half, height);
     } else {
-      shape.bezierCurveTo(-outer, height + 0.08, -half, height + 0.06, -half, height);
+      shape.bezierCurveTo(-outer, height + 0.08, -half, rimHeight(-half) + 0.06, -half, rimHeight(-half));
     }
     shape.holes.push(gripOpening(handleSize.width, height, handleSize.height));
-  } else shape.lineTo(-half, height);
+  } else traceRim(half, -half);
   shape.closePath();
 
   if (angle > 0 && style === "sled") {

@@ -191,6 +191,7 @@
 .rack-add > span { margin-right: auto; }
 .rack-add button { display: inline-flex; align-items: center; gap: 3px; min-height: 25px; padding: 0 8px; border: 1px solid var(--border); border-radius: 3px; font: 8px var(--font-geist-mono), monospace; }
 .rack-add button:hover:not(:disabled) { border-color: var(--signal); color: var(--signal); background: var(--signal-soft); }
+.row-angle-controls { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); }
 .range-field { margin-top: 13px; }
 .number-field { display: flex; align-items: center; gap: 5px; border: 1px solid var(--border); border-radius: 2px; background: var(--background); padding: 3px 7px; min-height: 24px; font-family: var(--font-geist-mono), monospace; font-size: 9px; }
 .number-field input { width: 29px; border: 0; background: transparent; text-align: right; font: inherit; color: var(--foreground); appearance: textfield; -moz-appearance: textfield; }

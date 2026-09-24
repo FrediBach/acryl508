@@ -1,9 +1,10 @@
 import { ArrowDownToLine } from "lucide-react";
 import { cableHolderLayout } from "@/lib/cable-holder";
-import { caseDimensions, footShapes, handleCount, handleDimensions, panelCount, panelSides, panelTint, rackFormatLabel, sidePanelMargin, ventStyles, type CaseConfiguration } from "@/lib/configurator";
+import { caseDimensions, footShapes, handleCount, handleDimensions, panelCount, panelSides, panelTint, rackFormatLabel, rackRowLayout, sidePanelMargin, ventStyles, type CaseConfiguration } from "@/lib/configurator";
 
 export function BuildSummary({ config, onExportJson, onExportSvg }: { config: CaseConfiguration; onExportJson: () => void; onExportSvg: () => void }) {
   const dimensions = caseDimensions(config);
+  const rows = rackRowLayout(config);
   const holder = cableHolderLayout(config);
   return (
     <section className="summary-panel" aria-label="Design summary">
@@ -19,6 +20,10 @@ export function BuildSummary({ config, onExportJson, onExportSvg }: { config: Ca
         {config.cableHolder && <div><dt>Cable holder</dt><dd>{holder.slitCount} × {holder.slitWidth} mm slits · {holder.height} mm rise</dd></div>}
         <div><dt>Side margin</dt><dd>{sidePanelMargin(config).toFixed(1)} mm</dd></div>
         <div><dt>Stance</dt><dd>{config.angle ? `${footShapes.find(shape => shape.value === config.footShape)?.label} · ${config.angle}°` : "Flat"}</dd></div>
+        {rows.some(row => row.angle > 0) && <>
+          <div><dt>Row angles</dt><dd>{rows.map(row => `${config.angle + row.angle}°`).join(" / ")} <small>rear → front</small></dd></div>
+          <div><dt>Support feet</dt><dd>Integral to side panels</dd></div>
+        </>}
         <div><dt>Bottom vents</dt><dd>{config.vents ? `${ventStyles.find(style => style.value === config.ventStyle)?.label} · ${config.ventDensity}` : "None"}</dd></div>
         {config.vents && <div><dt>Vent layout</dt><dd>{config.ventLayout === "staggered" ? "Staggered" : "Aligned"} · {config.ventCoverage === "field" ? "full field" : "two bands"}</dd></div>}
         {config.vents && config.ventDesign?.layers.length > 0 && <div><dt>Vent effects</dt><dd>{config.ventDesign.layers.length} layers · {config.ventDesign.size}% base size</dd></div>}

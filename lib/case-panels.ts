@@ -1,5 +1,5 @@
 import { Path, type Shape } from "three";
-import { caseDimensions, handleCount, handleDimensions, rackRowLayout, sidePanelMargin, type CaseConfiguration } from "./configurator";
+import { caseDimensions, handleCount, handleDimensions, rackEnvelope, rackRowLayout, rackRowPoint, sidePanelMargin, type CaseConfiguration } from "./configurator";
 import { createSideProfile } from "./acrylic-profiles";
 import { createPanelProfiles } from "./panel-joints";
 import { createBottomVentLayout, type VentBounds } from "./bottom-vents";
@@ -17,8 +17,10 @@ export function createCasePanels(config: CaseConfiguration) {
   const dimensions = caseDimensions(config);
   const w = dimensions.width / 100, l = dimensions.length / 100, h = dimensions.height / 100, t = config.thickness / 100;
   const edgeMargin = sidePanelMargin(config) / 100;
+  const rack = rackEnvelope(config), rows = rackRowLayout(config);
+  const frontHeight = (config.depth + config.thickness) / 100 + edgeMargin;
   const holder = cableHolderLayout(config);
-  const panels = createPanelProfiles(w, l, h, t, edgeMargin, config.cableHolder ? shape => cableHolderTopEdge(shape, h, holder) : undefined);
+  const panels = createPanelProfiles(w, l, frontHeight, t, edgeMargin, config.cableHolder ? shape => cableHolderTopEdge(shape, h, holder) : undefined, h);
   const { innerLength } = panels.layout;
   const base = panels.base;
   const boardDefinitions = {
@@ -28,7 +30,7 @@ export function createCasePanels(config: CaseConfiguration) {
   };
   const definition = config.busboard === "none" ? null : boardDefinitions[config.busboard];
   const placeBoard = definition?.place;
-  const powerBoard = placeBoard?.(panels.layout.innerWidth * 100, innerLength * 100, config.depth) ?? null;
+  const powerBoard = placeBoard?.(config.hp * 5.08, rack.length, config.depth) ?? null;
   const mountingHoles = powerBoard?.fits ? definition!.holes : [];
   const mountingRadius = (definition?.board.holeDiameter ?? 0) / 200;
   const exclusions: VentBounds[] = (config.cutouts ?? []).filter(cutout => cutout.side === "bottom").flatMap(cutout => placedCutout(cutout).map(polygon =>
@@ -41,20 +43,29 @@ export function createCasePanels(config: CaseConfiguration) {
   if (config.vents) base.holes.push(...ventilation.paths);
   for (const { x, y } of mountingHoles) hole(base, x / 100, y / 100, mountingRadius);
   const side = panels.side;
-  for (const row of rackRowLayout(config)) for (const end of [-1, 1]) {
-    hole(side, row.center / 100 + end * row.railOffset / 100, h - 0.07, 0.019);
+  for (const row of rows) for (const end of [-1, 1]) {
+    const point = rackRowPoint(row, end * row.railOffset, -7);
+    hole(side, -point.z / 100, frontHeight + point.y / 100, 0.019);
   }
+  const rim = rack.angled ? [
+    { x: l / 2, y: h },
+    ...rows.flatMap(row => [-1, 1].map(end => {
+      const point = rackRowPoint(row, end * row.length / 2);
+      return { x: -point.z / 100, y: frontHeight + point.y / 100 };
+    })),
+    { x: -l / 2, y: frontHeight },
+  ] : undefined;
   const grips = handleCount(config);
   const size = handleDimensions(config);
   const handleSize = { width: size.width / 100, height: size.height / 100 };
-  const left = createSideProfile(side, l, h, t, config.angle, config.footShape, grips > 0, handleSize);
-  const right = createSideProfile(side, l, h, t, config.angle, config.footShape, grips === 2, handleSize);
+  const left = createSideProfile(side, l, h, t, config.angle, config.footShape, grips > 0, handleSize, rim, rack.angled);
+  const right = createSideProfile(side, l, h, t, config.angle, config.footShape, grips === 2, handleSize, rim, rack.angled);
   const originals = { front: panels.end, rear: panels.rear, left, right, bottom: base };
   const faces = Object.fromEntries(cutoutSides.map(({ value }) => {
     // Each editor face is viewed from outside, centred in millimetres, Y up.
     // Mirror the back/left/underside so lettering reads correctly on the case.
     const direction = ["rear", "left", "bottom"].includes(value) ? -1 : 1;
-    const centerY = value === "bottom" ? 0 : h / 2;
+    const centerY = value === "bottom" ? 0 : (value === "front" ? frontHeight : h) / 2;
     const original = mapPolygons(shapesToPolygons([originals[value]]), (x, y) => [direction * x * 100, (y - centerY) * 100]);
     const cuts = (config.cutouts ?? []).filter(cutout => cutout.side === value);
     const result = subtractCutouts(original, cuts, value);

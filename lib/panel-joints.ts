@@ -62,20 +62,20 @@ function slot(shape: Shape, left: number, bottom: number, right: number, top: nu
   shape.holes.push(path);
 }
 
-export function createPanelProfiles(width: number, length: number, height: number, thickness: number, edgeMargin = 2 * thickness, rearTopEdge?: (shape: Shape) => void) {
-  const layout = panelJointLayout(width, length, height, thickness, edgeMargin);
+export function createPanelProfiles(width: number, length: number, height: number, thickness: number, edgeMargin = 2 * thickness, rearTopEdge?: (shape: Shape) => void, rearHeight = height) {
+  const layout = { ...panelJointLayout(width, length, height, thickness, edgeMargin), rearTabs: bands(2 * thickness, rearHeight - 2 * thickness, thickness, 0.55) };
   const base = tabbedProfile(layout.innerWidth, -layout.innerLength / 2, layout.innerLength / 2, layout.baseTabs, thickness);
   const end = tabbedProfile(layout.innerWidth, 0, height, layout.endTabs, thickness);
-  const rear = rearTopEdge ? tabbedProfile(layout.innerWidth, 0, height, layout.endTabs, thickness, rearTopEdge) : end;
+  const rear = tabbedProfile(layout.innerWidth, 0, rearHeight, layout.rearTabs, thickness, rearTopEdge);
   const side = new Shape();
   side.moveTo(-length / 2, 0);
   side.lineTo(length / 2, 0);
-  side.lineTo(length / 2, height);
+  side.lineTo(length / 2, rearHeight);
   side.lineTo(-length / 2, height);
   side.closePath();
   // Side profile X becomes world -Z; base profile Y also becomes world -Z.
   for (const tab of layout.baseTabs) slot(side, tab.start, layout.baseBottom, tab.end, layout.baseTop);
-  for (const direction of [-1, 1]) for (const tab of layout.endTabs) {
+  for (const direction of [-1, 1]) for (const tab of direction === 1 ? layout.rearTabs : layout.endTabs) {
     slot(side, direction * layout.endCenter - thickness / 2, tab.start, direction * layout.endCenter + thickness / 2, tab.end);
   }
   return { base, side, end, rear, layout };

@@ -1,6 +1,6 @@
 import { ArrowDown, ArrowUp, Check, ChevronDown, Minus, Plus, Trash2 } from "lucide-react";
 import { useId, useState, type CSSProperties, type ReactNode } from "react";
-import { acrylicTints, busboards, footShapes, handleCount, handleDimensions, handleSizeLimits, sledWebThickness, maxRackUnits, maxSideMarginRatio, minSideMarginRatio, panelSides, panelTint, panelTintsFrom, rackFormatLabel, rackRows, sidePanelMargin, totalRackUnits, type CaseConfiguration, type PanelSide, type RackUnit } from "@/lib/configurator";
+import { acrylicTints, busboards, footShapes, handleCount, handleDimensions, handleSizeLimits, sledWebThickness, maxRackUnits, maxSideMarginRatio, minSideMarginRatio, panelSides, panelTint, panelTintsFrom, rackFormatLabel, rackRows, rackRowAngles, rackRowLayout, maxRowAngle, maxTotalRowAngle, sidePanelMargin, totalRackUnits, type CaseConfiguration, type PanelSide, type RackUnit } from "@/lib/configurator";
 
 import { CutoutControls } from "@/components/cutout-controls";
 import { VentControls } from "@/components/vent-controls";
@@ -21,7 +21,7 @@ function RangeField({ label, value, min, max, unit, onChange }: { label: string;
     if (draft.trim() && Number.isFinite(number)) onChange(Math.min(max, Math.max(min, Math.round(number))));
     setEditing(false);
   }
-  return <div className="range-field"><div className="field-heading"><label htmlFor={id}>{label}</label><div className="number-field"><input type="number" aria-label={`${label} in ${unit}`} min={min} max={max} step={1} value={editing ? draft : value} inputMode="numeric" onFocus={() => { setDraft(String(value)); setEditing(true); }} onBlur={commitDraft} onKeyDown={event => { if (event.key === "Enter") event.currentTarget.blur(); }} onChange={event => { setDraft(event.target.value); const number = Number(event.target.value); if (event.target.value && Number.isInteger(number) && number >= min && number <= max) onChange(number); }} /><span>{unit}</span></div></div><input id={id} className="range-input" type="range" min={min} max={max} step={1} value={value} style={{ "--range-progress": `${(value - min) / (max - min) * 100}%` } as CSSProperties} onChange={event => onChange(event.currentTarget.valueAsNumber)} /><div className="range-labels"><span>{min} {unit}</span><span>{max} {unit}</span></div></div>;
+  return <div className="range-field"><div className="field-heading"><label htmlFor={id}>{label}</label><div className="number-field"><input type="number" aria-label={`${label} in ${unit}`} min={min} max={max} step={1} value={editing ? draft : value} inputMode="numeric" onFocus={() => { setDraft(String(value)); setEditing(true); }} onBlur={commitDraft} onKeyDown={event => { if (event.key === "Enter") event.currentTarget.blur(); }} onChange={event => { setDraft(event.target.value); const number = Number(event.target.value); if (event.target.value && Number.isInteger(number) && number >= min && number <= max) onChange(number); }} /><span>{unit}</span></div></div><input id={id} className="range-input" type="range" min={min} max={max} step={1} value={value} style={{ "--range-progress": `${(value - min) / Math.max(1, max - min) * 100}%` } as CSSProperties} onChange={event => onChange(event.currentTarget.valueAsNumber)} /><div className="range-labels"><span>{min} {unit}</span><span>{max} {unit}</span></div></div>;
 }
 function SideMarginField({ config, onChange }: { config: CaseConfiguration; onChange: (value: number) => void }) {
   const value = Math.min(maxSideMarginRatio, Math.max(minSideMarginRatio, config.sideMarginRatio ?? maxSideMarginRatio));
@@ -30,15 +30,22 @@ function SideMarginField({ config, onChange }: { config: CaseConfiguration; onCh
 }
 export function ConfigurationPanel({ config, panels, onChange, onCutoutAction }: Props) {
   const rows = rackRows(config);
+  const rowAngles = rackRowAngles(config);
+  const rowLayout = rackRowLayout(config);
+  const angledRows = rowLayout.some(row => row.angle > 0);
   const handleSize = handleDimensions(config);
   const holder = cableHolderLayout(config);
   const rackUnits = totalRackUnits(config);
-  function updateRows(nextRows: RackUnit[]) { onChange({ rows: nextRows.length, rowUnits: nextRows }); }
+  function updateRows(nextRows: RackUnit[], nextAngles = rowAngles) {
+    const update = { rows: nextRows.length, rowUnits: nextRows, rowAngles: nextAngles };
+    onChange({ ...update, rowAngles: rackRowAngles({ ...config, ...update }) });
+  }
   function replaceRow(index: number, units: RackUnit) { updateRows(rows.map((row, rowIndex) => rowIndex === index ? units : row)); }
   function moveRow(index: number, direction: -1 | 1) {
-    const next = [...rows], target = index + direction;
+    const next = [...rows], nextAngles = [...rowAngles], target = index + direction;
     [next[index], next[target]] = [next[target], next[index]];
-    updateRows(next);
+    [nextAngles[index], nextAngles[target]] = [nextAngles[target], nextAngles[index]];
+    updateRows(next, nextAngles);
   }
   function selectTint(tint: typeof acrylicTints[number]) {
     onChange({ tint, ...(config.individualPanelTints ? { panelTints: panelTintsFrom(tint) } : {}) });
@@ -65,11 +72,23 @@ export function ConfigurationPanel({ config, panels, onChange, onCutoutAction }:
           </div>
           <button className="rack-icon" aria-label={`Move row ${index + 1} toward rear`} title="Move toward rear" disabled={index === 0} onClick={() => moveRow(index, -1)}><ArrowUp size={13} /></button>
           <button className="rack-icon" aria-label={`Move row ${index + 1} toward front`} title="Move toward front" disabled={index === rows.length - 1} onClick={() => moveRow(index, 1)}><ArrowDown size={13} /></button>
-          <button className="rack-icon rack-remove" aria-label={`Remove row ${index + 1}`} title="Remove row" disabled={rows.length === 1} onClick={() => updateRows(rows.filter((_, rowIndex) => rowIndex !== index))}><Trash2 size={13} /></button>
+          <button className="rack-icon rack-remove" aria-label={`Remove row ${index + 1}`} title="Remove row" disabled={rows.length === 1} onClick={() => updateRows(rows.filter((_, rowIndex) => rowIndex !== index), rowAngles.filter((_, rowIndex) => rowIndex !== index))}><Trash2 size={13} /></button>
         </div>)}
         <span className="rack-edge">FRONT</span>
       </div>
       <div className="rack-add"><span>Add row</span>{([1, 3] as const).map(units => <button key={units} disabled={rackUnits + units > maxRackUnits} onClick={() => updateRows([...rows, units])}><Plus size={11} />{units}U</button>)}</div>
+      {rows.length > 1 && <div className="row-angle-controls" aria-label="Additional row angles">
+        <div className="field-heading"><span>Angle additional rows</span><span className="field-note">FRONT → REAR</span></div>
+        <p className="control-note">Each row adds tilt to the row in front of it. The front row follows the stance below. Set all to 0° for a flat layout.</p>
+        {rowLayout.slice(0, -1).reverse().map(row => {
+          const available = maxTotalRowAngle - config.angle - rowAngles.reduce((sum, angle, index) => sum + (index === row.index ? 0 : angle), 0);
+          return <div key={row.index}>
+            <RangeField label={`Row ${row.index + 1} extra angle`} value={rowAngles[row.index]} min={0} max={Math.min(maxRowAngle, available)} unit="°" onChange={angle => onChange({ rowAngles: rowAngles.map((current, index) => index === row.index ? angle : current) })} />
+            <p className="control-note">{row.units}U · {config.angle + row.angle}° from the table{row.gap > 0 ? ` · ${row.gap.toFixed(1)} mm extra spacing at this bend` : ""}</p>
+          </div>;
+        })}
+        <p className="control-note">{angledRows ? "Rail spacing expands at each bend and support feet are included in the side panels." : "Angled rows automatically add rail clearance and support feet."} Total tilt is limited to {maxTotalRowAngle}°.</p>
+      </div>}
       <RangeField label="Width" value={config.hp} min={20} max={168} unit="HP" onChange={hp => onChange({ hp })} />
       <div className="preset-row"><span>Quick set</span>{[42, 62, 84, 104, 126].map(hp => <button key={hp} onClick={() => onChange({ hp })} aria-pressed={config.hp === hp} className={config.hp === hp ? "preset-active" : ""}>{hp}</button>)}</div>
       <RangeField label="Internal depth" value={config.depth} min={50} max={180} unit="mm" onChange={depth => onChange({ depth })} />
@@ -87,12 +106,12 @@ export function ConfigurationPanel({ config, panels, onChange, onCutoutAction }:
       <div className="inline-field"><label htmlFor="thickness">Sheet thickness</label><div className="select-wrap"><select id="thickness" value={config.thickness} onChange={event => onChange({ thickness: Number(event.target.value) })}>{[3, 4, 5, 6].map(value => <option key={value} value={value}>{value} mm</option>)}</select><ChevronDown size={12} /></div></div>
     </section>
     <section className="control-section"><SectionTitle number="03">Stance</SectionTitle>
-      <div className="segmented-control stance-control" role="group" aria-label="Stance angle">{[0, 10, 20, 30].map(angle => <button key={angle} className={`segment ${config.angle === angle ? "segment-active" : ""}`} aria-pressed={config.angle === angle} onClick={() => onChange({ angle })}>{angle === 0 ? "Flat" : `${angle}°`}</button>)}</div>
+      <div className="segmented-control stance-control" role="group" aria-label="Stance angle">{[0, 10, 20, 30].map(angle => <button key={angle} className={`segment ${config.angle === angle ? "segment-active" : ""}`} aria-pressed={config.angle === angle} onClick={() => onChange({ angle, rowAngles: rackRowAngles({ ...config, angle }) })}>{angle === 0 ? "Flat" : `${angle}°`}</button>)}</div>
       <fieldset className="foot-shape-field" disabled={config.angle === 0} aria-describedby="foot-shape-note">
         <legend>Side profile <span className="field-note">One continuous sheet</span></legend>
         <div className="segmented-control foot-shape-control">{footShapes.map(shape => <button key={shape.value} className={`segment ${config.footShape === shape.value ? "segment-active" : ""}`} aria-pressed={config.footShape === shape.value} title={shape.description} onClick={() => onChange({ footShape: shape.value })}>{shape.label}</button>)}</div>
       </fieldset>
-      <p className="control-note" id="foot-shape-note">{config.angle === 0 ? "Choose an angle to shape the side panels into the stance." : footShapes.find(shape => shape.value === config.footShape)?.description}</p>
+      <p className="control-note" id="foot-shape-note">{config.angle === 0 ? angledRows ? "Four integral feet support the angled rows. Choose a stance angle to use wedge, arch or sled supports." : "Choose an angle to shape the side panels into the stance." : footShapes.find(shape => shape.value === config.footShape)?.description}</p>
       {config.angle > 0 && config.footShape === "sled" && <p className="control-note">At least {sledWebThickness(config.thickness)} mm of material around the opening. Short, shallow stances stay solid where the opening would leave too little material.</p>}
       {config.angle > 0 && <p className="control-note">The sides extend to the floor. Five panels, with no extra stance hardware.</p>}
     </section>

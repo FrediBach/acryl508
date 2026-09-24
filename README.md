@@ -214,7 +214,7 @@ are removed, even if an island is larger than the remaining frame. Warnings
 report removed pieces, cuts outside the panel, and panels with no material left.
 Use stencil lettering when enclosed centres should remain attached.
 
-JSON version 8 includes the ordered 1U/3U row layout, adjustable side-panel margin, optional individual panel tints, each cutout's source metadata, normalized outlines,
+JSON version 9 includes per-row angle increments and the resolved row geometry, automatic integral feet, the ordered 1U/3U row layout, adjustable side-panel margin, optional individual panel tints, each cutout's source metadata, normalized outlines,
 placement, and width, plus removal reports and the resolved panel outlines in
 millimetres. It remains a design specification requiring fabrication validation.
 Font copyrights and distribution licences are retained in the bundled JSON
@@ -323,3 +323,20 @@ cable routing are not modelled or reserved.
 All four mounts share their coordinates with bottom geometry and exports.
 Vents retain a sheet-thickness web around the holes, and nearby custom cuts
 trigger a warning. JSON and SVG retain the source, estimates and fit limitations.
+
+### Angled case rows
+
+Each row behind the front row has an independent extra-angle control. Increments
+accumulate from front to rear and combine with the overall stance, capped at 75°
+from the table (at most 60° per bend). The front row remains the stance reference.
+Zero increments preserve the original flat layout; older configurations default
+to zero. Row size changes preserve angles, and moving/removing rows updates both.
+
+Rails retain their standard pitch within each bay. Each bend adds at least 8 mm
+or two sheet thicknesses of clearance, plus a rotation allowance; the rear panel
+also reserves space for the tilted rail. The shared geometry reshapes the side
+rims and rear panel, places matching rail holes and end-panel slots, and updates
+case dimensions, board fit, the 3D preview, and JSON/SVG exports. Integral feet
+are automatic for angled layouts, with four contact pads at a flat stance.
+The enclosure remains five acrylic sheets. As elsewhere in the designer, actual
+module depth, rail profiles, joint fit and loaded stability need prototype checks.

@@ -88,6 +88,39 @@ test("mode switching preserves independent designs and routes material choices a
     await click("Export JSON");
     const caseData = JSON.parse(await downloads.at(-1).blob.text());
     assert.equal(caseData.configuration.hp, 104); assert.equal(caseData.configuration.tint.id, "orange");
+    // Exercise the real row controls through both exports, including row edits.
+    const addRow = async units => React.act(async () => {
+      [...document.querySelectorAll(".rack-add button")].find(element => element.textContent.trim() === `${units}U`).click();
+    });
+    const setRowAngle = async (row, value) => React.act(async () => {
+      const label = [...document.querySelectorAll("label")].find(element => element.textContent === `Row ${row} extra angle`);
+      const input = document.getElementById(label.htmlFor);
+      Object.getOwnPropertyDescriptor(dom.window.HTMLInputElement.prototype, "value").set.call(input, String(value));
+      input.dispatchEvent(new dom.window.Event("input", { bubbles: true }));
+    });
+    await addRow(3);
+    await setRowAngle(1, 35);
+    await addRow(1);
+    await setRowAngle(2, 20);
+    await click("Export JSON");
+    let angledCase = JSON.parse(await downloads.at(-1).blob.text());
+    assert.deepEqual(angledCase.configuration.rowAngles, [35, 20, 0]);
+    assert.deepEqual(angledCase.rowLayout.rows.map(row => row.angle), [55, 20, 0]);
+    assert.equal(angledCase.rowLayout.automaticFeet, true);
+    await click("30°");
+    await click("Export JSON");
+    angledCase = JSON.parse(await downloads.at(-1).blob.text());
+    assert.deepEqual(angledCase.configuration.rowAngles, [25, 20, 0]);
+    await click("Move row 1 toward front");
+    await click("Remove row 1");
+    await click("Export JSON");
+    angledCase = JSON.parse(await downloads.at(-1).blob.text());
+    assert.deepEqual(angledCase.configuration.rowAngles, [25, 0]);
+    await click("Export all sheets as SVG");
+    assert.equal(((await downloads.at(-1).blob.text()).match(/data-part=/g) ?? []).length, 5);
+    await click("Remove row 1");
+    assert.equal(document.querySelector('[aria-label="Additional row angles"]'), null);
+
     await click("Synth stand");
     assert.equal(button("35°").getAttribute("aria-pressed"), "true");
     assert.equal(button("Front extension").getAttribute("aria-checked"), "true");

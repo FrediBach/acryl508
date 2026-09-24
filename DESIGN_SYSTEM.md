@@ -71,6 +71,15 @@ thickness `t`, outer dimensions are `HP × 5.08 + 2t` by
 `total rack units × 44.45 + 2t + 2m` by `internal depth + t + m` mm. The base
 underside is at `m` and its inner surface at `m + t`. This preserves HP, row
 spacing, and usable depth.
+For angled rows, an extra-angle control for each row behind the front adds to
+its neighbour’s tilt. Each bend allows 0–60°, with a maximum cumulative 75°
+including the stance. The shared row layout projects each bay into the case’s
+length/height, expands the gap at bends, reserves rear rail clearance and keeps
+standard rail pitch within a bay. Side rims follow these surfaces, the rear
+panel grows with them, and its tabs match the side slots. Integral feet appear
+automatically; a flat stance has two contact pads on each side. Preview, board
+fit, dimensions and both exports use this same geometry.
+
 The feet, handle, and busboard positions follow the revised enclosure geometry.
 Slot widths are nominal sheet thickness, not validated cutting tolerances.
 Laser kerf, actual sheet thickness, internal-corner relief, rail threads, screw
