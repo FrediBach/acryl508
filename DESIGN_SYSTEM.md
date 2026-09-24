@@ -162,3 +162,11 @@ Only those two lines of text. No UI controls, sidebars, navigation, dimensions, 
 Synth protectors use one cover with edge-locating tabbed feet. Left/right support is the default; all four edges and intermediate feet are optional. Separate counts control intermediate feet on side and end edges. Geometry bounds these counts and corner inset to preserve slot webs and prevent collisions. Optional locking strips add raised tabs with closed holes and one removable headed strip per supported edge. All pieces use the selected sheet material and thickness. The exploded view lifts the strips above the cover, with the feet seated on the synth. Part counts, construction notes and exports follow the resolved assembly.
 
 The default body-to-cover clearance is 35 mm and the default overhang is 20 mm on every edge. Instrument and clearance sections start open; Feet & edge fit, Locking strips and Material & construction start collapsed. The illustrative instrument starts visible. Preview, cutting layout and exports share resolved geometry. Retaining strips block vertical foot withdrawal but remain removable sideways; prototype fit and retention are not validated.
+
+The stand offers Standard and Advanced · diagonal above its five cards. Advanced
+mode exposes a plan-view sweep independently of playing tilt. Geometry limits the
+sweep to the available instrument width, widens square half-lap cuts for the full
+sheet-thickness overlap, and offsets the three braces to match. Contact profiles,
+part dimensions, sheet placement and exports share the same calculation. Cable
+holes follow the diagonal bays. The requested setting is preserved when Standard
+is selected; older configurations start in Standard.

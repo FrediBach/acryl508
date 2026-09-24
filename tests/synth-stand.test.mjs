@@ -229,3 +229,97 @@ test("compact front is the default, optional extension changes depth exactly and
   assert.deepEqual(createSynthStand(legacy).parts, compact.parts);
   assert.equal(createSynthStand({ ...extended.config, frontExtensionLength: NaN }).config.frontExtensionLength, 15);
 });
+
+test("diagonal construction preserves legacy defaults and exports explicit sheet placement", () => {
+  const { advancedMode, diagonalAngle, ...legacy } = defaultStandConfiguration;
+  assert.equal(advancedMode, false);
+  assert.equal(diagonalAngle, 25);
+  const standard = createSynthStand(legacy);
+  assert.deepEqual(standard.parts, createSynthStand(defaultStandConfiguration).parts);
+  const stand = createSynthStand({ ...defaultStandConfiguration, advancedMode: true, cableHoles: true });
+  assert.ok(stand.diagonal.angle > 0);
+  assert.ok(stand.slotWidth > standard.slotWidth);
+  assert.notDeepEqual(stand.parts, standard.parts);
+  assert.deepEqual(createSynthStand({ ...stand.config, advancedMode: false, cableHoles: false }).parts, standard.parts);
+  const data = standExport(stand);
+  assert.equal(data.version, 5);
+  assert.deepEqual(data.diagonal, stand.diagonal);
+  assert.deepEqual(data.parts, stand.parts);
+  assert.equal(data.cableManagement.aligned, false);
+  assert.match(standSvg(stand), /diagonal/);
+  assert.match(standSvg(stand), /not straight through/);
+  assert.equal(createSynthStand({ ...stand.config, diagonalAngle: NaN }).config.diagonalAngle, 25);
+  assert.equal(createSynthStand({ ...stand.config, diagonalAngle: 90 }).config.diagonalAngle, 40);
+});
+
+test("diagonal extremes retain connected sheets, closed cable holes, and nonoverlapping exports", () => {
+  for (const width of [180, 550, 1400]) for (const depth of [120, 600]) for (const angle of [0, 45]) for (const thickness of [5, 10]) for (const diagonalAngle of [5, 25, 40]) for (const roundedEdges of [false, true]) {
+    const stand = createSynthStand({ ...defaultStandConfiguration, advancedMode: true, width, depth, angle, thickness, diagonalAngle,
+      height: 20, cableHoles: true, cableHoleDiameter: 32, roundedEdges, cornerRadius: 10, frontExtension: true, frontExtensionLength: 100 });
+    assert.ok(stand.diagonal.angle > 0 && stand.diagonal.angle <= diagonalAngle + 1e-7);
+    assert.ok(stand.supportSpacing <= 220);
+    assert.ok(stand.cableHoles.diameter >= 8);
+    for (const part of stand.parts) {
+      assert.equal(part.polygons.length, 1, `${part.id} stays connected: ${JSON.stringify(stand.config)}`);
+      assert.equal(part.polygons[0].length, part.kind === "rib" ? 1 : stand.cableHoles.countPerBrace + 1);
+      assert.ok(part.polygons.flat(2).every(p => p.every(Number.isFinite)));
+      near(Math.min(...ys(part.polygons)), 0);
+      const xs = part.polygons.flat(2).map(p => p[0]);
+      near(Math.min(...xs), part.minX);
+      near(Math.max(...xs) - Math.min(...xs), part.width);
+      near(Math.max(...ys(part.polygons)), part.height);
+      // The complete swept sheets remain under the instrument width.
+      const { width: ox, yaw } = part.placement;
+      for (const x of xs) for (const z of [-thickness / 2, thickness / 2]) {
+        assert.ok(Math.abs(ox + x * Math.cos(yaw) + z * Math.sin(yaw)) <= width / 2 + 1e-7);
+      }
+    }
+    const layout = standSheetLayout(stand);
+    const boxes = layout.parts.map(({ part, x, y }) => ({ left: x + part.minX, right: x + part.minX + part.width, top: y - part.height, bottom: y }));
+    boxes.forEach((box, i) => {
+      assert.ok(box.left >= 10 - 1e-7 && box.right <= layout.width - 10 + 1e-7);
+      assert.ok(box.top >= 10 - 1e-7 && box.bottom <= layout.height - 10 + 1e-7);
+      boxes.slice(i + 1).forEach(other => assert.ok(box.right < other.left || other.right < box.left || box.bottom < other.top || other.bottom < box.top));
+    });
+    assert.doesNotMatch(standSvg(stand), /NaN|Infinity|undefined/);
+  }
+});
+
+test("oblique slots clear the complete finite-thickness intersection at every joint", () => {
+  for (const diagonalAngle of [5, 25, 40]) for (const thickness of [5, 10]) for (const clearance of [0, 0.4]) {
+    const stand = createSynthStand({ ...defaultStandConfiguration, advancedMode: true, width: 1400, depth: 120, diagonalAngle, thickness, clearance });
+    const theta = stand.diagonal.angle * Math.PI / 180;
+    const halfOverlap = thickness * (1 + Math.sin(theta)) / (2 * Math.cos(theta));
+    near(stand.slotWidth, 2 * halfOverlap + clearance);
+    for (const rib of stand.parts.filter(p => p.kind === "rib")) for (const brace of stand.parts.filter(p => p.kind === "brace")) {
+      const u = brace.position / Math.cos(theta);
+      const worldX = rib.placement.width + u * Math.cos(rib.placement.yaw);
+      near(worldX - brace.placement.width, rib.position);
+      const ribSlice = polygonClipping.intersection(rib.polygons, rect(u - halfOverlap + 1e-6, -1, u + halfOverlap - 1e-6, 1000));
+      const braceSlice = polygonClipping.intersection(brace.polygons, rect(rib.position - halfOverlap + 1e-6, -1, rib.position + halfOverlap - 1e-6, 1000));
+      near(Math.min(...ys(ribSlice)) - Math.max(...ys(braceSlice)), 0.2);
+      // Check each actual corner of the two sheet strips, not just centre lines.
+      for (const ribNormal of [-thickness / 2, thickness / 2]) for (const braceNormal of [-thickness / 2, thickness / 2]) {
+        const localU = (brace.position + braceNormal + ribNormal * Math.sin(theta)) / Math.cos(theta);
+        assert.ok(Math.abs(localU - u) <= stand.slotWidth / 2 + 1e-7);
+        const localX = rib.placement.width + localU * Math.sin(theta) + ribNormal * Math.cos(theta) - brace.placement.width;
+        assert.ok(Math.abs(localX - rib.position) <= stand.slotWidth / 2 + 1e-7);
+      }
+    }
+  }
+});
+
+test("diagonal contact profiles clear the instrument over the full sheet thickness", () => {
+  for (const angle of [0, 25, 45]) for (const diagonalAngle of [5, 40]) {
+    const stand = createSynthStand({ ...defaultStandConfiguration, advancedMode: true, width: 1400, depth: 120, angle, diagonalAngle, thickness: 10 });
+    const a = angle * Math.PI / 180, theta = stand.diagonal.angle * Math.PI / 180;
+    const instrument = [[[[0, stand.frontHeight], [120 * Math.cos(a), stand.frontHeight + 120 * Math.sin(a)],
+      [120 * Math.cos(a) - 70 * Math.sin(a), stand.frontHeight + 120 * Math.sin(a) + 70 * Math.cos(a)],
+      [-70 * Math.sin(a), stand.frontHeight + 70 * Math.cos(a)], [0, stand.frontHeight]]]];
+    const rib = stand.parts[0];
+    for (const v of [-5, -2.5, 0, 2.5, 5]) {
+      const depthProfile = rib.polygons.map(poly => poly.map(ring => ring.map(([u, y]) => [u * Math.cos(theta) - v * Math.sin(theta), y])));
+      assert.ok(area(polygonClipping.intersection(depthProfile, instrument)) < 1e-7, "no acrylic penetrates the instrument envelope");
+    }
+  }
+});

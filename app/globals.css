@@ -493,3 +493,8 @@
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
+
+.stand-mode-control { padding: 14px 0; border-bottom: 1px solid var(--border); }
+.stand-mode-control > .view-control { display: flex; width: 100%; }
+.stand-mode-control > .view-control button { flex: 1; }
+.stand-mode-control > .range-field { margin-top: 16px; }

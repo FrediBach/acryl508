@@ -66,7 +66,22 @@ ribs with integral front stops and three full-width half-lap cross braces.
 Ribs are added automatically to keep support spacing at or below 220 mm. This
 is a layout heuristic, not a strength calculation or load rating.
 
-All stand parts use one measured GS acrylic thickness (5–10 mm). Slot width is
+Choose **Advanced · diagonal** above the stand controls to sweep the upright ribs
+sideways in plan view. **Diagonal sweep** requests 5–40° independently of playing
+tilt. The resolved angle reduces automatically when needed to fit the whole
+profile beneath the instrument, preserving at least 55% of the inset support
+span and eight sheet thicknesses between outer ribs. The three braces shift
+sideways with the ribs; all parts still assemble vertically with open half-laps.
+Rib outlines are lengthened and adjusted for the depth occupied by sheet
+thickness, preserving clearance to the synth and its front stops. Straight laser
+slots clear both sheets across the entire oblique intersection:
+`t × (1 + sin(sweep)) / cos(sweep) + clearance`. Cable holes follow the diagonal
+bays rather than forming straight-through passages. JSON version 5 includes
+requested/resolved sweep, crossing angle, and explicit centre-plane placement
+and yaw for every sheet. Standard remains the default for older configurations;
+switching back retains the requested diagonal angle.
+
+All stand parts use one measured GS acrylic thickness (5–10 mm). Standard slot width is
 sheet thickness plus the selected clearance (0–0.4 mm); slot roots have circular
 relief so square shoulders can seat. Joint shoulders have 0.2 mm total vertical
 clearance. The front deck is 11 sheet thicknesses above the floor, leaving a

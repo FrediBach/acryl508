@@ -39,8 +39,8 @@ function StandModel({ stand, exploded, instrument }: Pick<Props, "stand" | "expl
   const angle = config.angle * Math.PI / 180;
   return <group position={[0, 0, center]}>
     {stand.parts.map(part => <group key={part.id}
-      position={part.kind === "rib" ? [part.position * unit - t / 2, lift, 0] : [0, 0, -part.position * unit - t / 2]}
-      rotation={part.kind === "rib" ? [0, Math.PI / 2, 0] : [0, 0, 0]}>
+      position={[part.placement.width * unit - Math.sin(part.placement.yaw) * t / 2, part.kind === "rib" ? lift : 0, -part.placement.depth * unit - Math.cos(part.placement.yaw) * t / 2]}
+      rotation={[0, part.placement.yaw, 0]}>
       <Sheet polygons={part.polygons} thickness={config.thickness} tint={config.tint} transparency={config.transparency} />
     </group>)}
     {instrument && <group position={[0, frontHeight * unit + lift + (exploded ? 0.7 : 0), 0]} rotation={[angle, 0, 0]}>
