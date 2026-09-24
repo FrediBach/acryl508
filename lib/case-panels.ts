@@ -1,5 +1,6 @@
 import { Path, type Shape } from "three";
 import { caseDimensions, handleCount, handleDimensions, rackEnvelope, rackRowLayout, rackRowPoint, sidePanelMargin, type CaseConfiguration } from "./configurator";
+import { patchBoardLayout, patchBoardSides } from "./patch-board";
 import { createSideProfile } from "./acrylic-profiles";
 import { createPanelProfiles } from "./panel-joints";
 import { createBottomVentLayout, type VentBounds } from "./bottom-vents";
@@ -58,8 +59,9 @@ export function createCasePanels(config: CaseConfiguration) {
   const grips = handleCount(config);
   const size = handleDimensions(config);
   const handleSize = { width: size.width / 100, height: size.height / 100 };
-  const left = createSideProfile(side, l, h, t, config.angle, config.footShape, grips > 0, handleSize, rim, rack.angled);
-  const right = createSideProfile(side, l, h, t, config.angle, config.footShape, grips === 2, handleSize, rim, rack.angled);
+  const board = patchBoardLayout(config), boardSides = patchBoardSides(config);
+  const left = createSideProfile(side, l, h, t, config.angle, config.footShape, grips > 0, handleSize, rim, rack.angled, boardSides.includes("left") ? board : undefined);
+  const right = createSideProfile(side, l, h, t, config.angle, config.footShape, grips === 2, handleSize, rim, rack.angled, boardSides.includes("right") ? board : undefined);
   const originals = { front: panels.end, rear: panels.rear, left, right, bottom: base };
   const faces = Object.fromEntries(cutoutSides.map(({ value }) => {
     // Each editor face is viewed from outside, centred in millimetres, Y up.

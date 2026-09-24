@@ -1,4 +1,5 @@
 import { Path, Shape, Vector2 } from "three";
+import type { patchBoardLayout } from "./patch-board";
 import { sledWebThickness, type FootShape } from "./configurator";
 
 // Preview units: 1 = 100 mm. Stance and grip are part of the side sheet.
@@ -53,7 +54,7 @@ function gripOpening(width: number, height: number, rise: number) {
   return path;
 }
 
-export function createSideProfile(panel: Shape, length: number, height: number, thickness: number, angle: number, style: FootShape, handle: boolean, handleSize: HandleSize = { width: 1.6, height: handleRise }, rim?: { x: number; y: number }[], automaticFeet = false) {
+export function createSideProfile(panel: Shape, length: number, height: number, thickness: number, angle: number, style: FootShape, handle: boolean, handleSize: HandleSize = { width: 1.6, height: handleRise }, rim?: { x: number; y: number }[], automaticFeet = false, patchBoard?: ReturnType<typeof patchBoardLayout>) {
   const shape = new Shape();
   shape.holes = panel.holes.map(hole => hole.clone());
   const half = length / 2;
@@ -87,10 +88,13 @@ export function createSideProfile(panel: Shape, length: number, height: number, 
   }
   shape.lineTo(half, hasFeet ? floor(half) : 0);
   shape.lineTo(half, rimHeight(half));
-  if (handle) {
+  if (handle || patchBoard) {
+    const width = Math.max(handle ? handleSize.width : 0, (patchBoard?.width ?? 0) / 100);
+    const boardRise = (patchBoard?.height ?? 0) / 100;
+    const rise = boardRise + (handle ? handleSize.height : 0);
     // Seat the level grip above the highest rim point under its roots.
-    if (rim) height = rimHeight(Math.min(half, handleSize.width / 2 + 0.14));
-    const outer = handleSize.width / 2, top = height + handleSize.height, radius = 0.1, root = 0.14;
+    if (rim) height = rimHeight(Math.min(half, width / 2 + 0.14));
+    const outer = width / 2, top = height + rise, radius = 0.1, root = 0.14;
     const widePanel = half > outer + root;
     if (widePanel) {
       if (rim) traceRim(half, outer + root);
@@ -115,7 +119,12 @@ export function createSideProfile(panel: Shape, length: number, height: number, 
     } else {
       shape.bezierCurveTo(-outer, height + 0.08, -half, rimHeight(-half) + 0.06, -half, rimHeight(-half));
     }
-    shape.holes.push(gripOpening(handleSize.width, height, handleSize.height));
+    if (handle) shape.holes.push(gripOpening(handleSize.width, height + boardRise, handleSize.height));
+    for (const center of patchBoard?.centers ?? []) {
+      const hole = new Path();
+      hole.absarc(center.x / 100, height + center.y / 100, patchBoard!.holeDiameter / 200, 0, Math.PI * 2, true);
+      shape.holes.push(hole);
+    }
   } else traceRim(half, -half);
   shape.closePath();
 

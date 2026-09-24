@@ -1,6 +1,7 @@
 import { cutoutSides, type CustomCutout, type CutoutReport, type CutoutSide } from "./custom-cutouts";
 import type { MultiPolygon } from "polygon-clipping";
 import { defaultVentDesign, normalizeVentDesign, type VentDesign } from "./vent-design";
+import { patchBoardLayout, patchBoardSides } from "./patch-board";
 import { cableHolderLayout } from "./cable-holder";
 import { sinusodaHoles, sinusodaJuice, sinusodaPlacement } from "./sinusoda";
 import { trolleyBus, trolleyHoles, trolleyMountingHoles, trolleyPlacement } from "./trolley";
@@ -26,6 +27,7 @@ export type CaseConfiguration = {
   ventLayout: VentLayout; ventCoverage: VentCoverage; ventMix: VentMix;
   ventDesign: VentDesign;
   handle: boolean; handleMode?: "auto" | "single" | "pair"; handleWidth?: number; handleHeight?: number; footShape: FootShape;
+  patchBoard?: boolean; patchBoardSide?: "left" | "right" | "both"; patchBoardWidth?: number; patchBoardHeight?: number; patchBoardSpacing?: number;
   cableHolder?: boolean; cableHolderHeight?: number; cableHolderSlitWidth?: number;
   cutouts: CustomCutout[];
 };
@@ -75,6 +77,7 @@ export const defaultConfiguration: CaseConfiguration = {
   handle: false, handleMode: "auto", handleWidth: 160, handleHeight: 70, footShape: "wedge", cutouts: [], ventStyle: "long-slits", ventDensity: "medium",
   ventDesign: defaultVentDesign,
   ventLayout: "aligned", ventCoverage: "bands", ventMix: "checkerboard",
+  patchBoard: false, patchBoardSide: "left", patchBoardWidth: 160, patchBoardHeight: 70, patchBoardSpacing: 15,
   cableHolder: false, cableHolderHeight: 35, cableHolderSlitWidth: 5,
 };
 // `rows` remains in the exported format for backwards compatibility. A mismatched
@@ -166,9 +169,10 @@ export function caseDimensions(config: CaseConfiguration) {
 }
 export function configurationExport(config: CaseConfiguration, cutoutReports: CutoutReport[] = [], resolvedPanels: Partial<Record<CutoutSide, MultiPolygon>> = {}) {
   const holder = cableHolderLayout(config);
+  const board = patchBoardLayout(config);
   return {
-    product: "Acryl508", version: 9, units: "mm", status: "design-concept",
-    configuration: { ...config, transparency: config.transparency ?? defaultTransparency, handleWidth: handleDimensions(config).width, handleHeight: handleDimensions(config).height, ventLayout: config.ventLayout ?? "aligned", ventCoverage: config.ventCoverage ?? "bands", ventMix: config.ventMix ?? "checkerboard", ventDesign: normalizeVentDesign(config.ventDesign), material: "GS cast acrylic", fasteners: "Black socket-head screws", assembly: "Mechanical; no glue" },
+    product: "Acryl508", version: 10, units: "mm", status: "design-concept",
+    configuration: { ...config, transparency: config.transparency ?? defaultTransparency, patchBoardWidth: board.width, patchBoardHeight: board.height, patchBoardSpacing: board.spacing, handleWidth: handleDimensions(config).width, handleHeight: handleDimensions(config).height, ventLayout: config.ventLayout ?? "aligned", ventCoverage: config.ventCoverage ?? "bands", ventMix: config.ventMix ?? "checkerboard", ventDesign: normalizeVentDesign(config.ventDesign), material: "GS cast acrylic", fasteners: "Black socket-head screws", assembly: "Mechanical; no glue" },
     ventilation: {
       minimumWebMm: Math.max(3, config.thickness), borderMm: Math.max(8, 2 * config.thickness),
       coverage: "Two bands or a full field with a solid centre strip. Staggered rows are offset by half a column pitch and shortened at the borders. Mixed openings alternate round dots and short slits by opening, row or column.",
@@ -227,9 +231,10 @@ export function configurationExport(config: CaseConfiguration, cutoutReports: Cu
       status: "Concept; kerf, sheet tolerances, corner relief, rail threads, screw engagement and loaded retention require fabrication validation",
     },
     stance: { automaticFeet: rackEnvelope(config).angled, method: "Integral side-panel profile", angle: config.angle, shape: config.footShape, minimumWebMm: config.footShape === "sled" && config.angle > 0 ? sledWebThickness(config.thickness) : null, innerCorners: config.footShape === "sled" ? "Rounded" : null, additionalParts: 0 },
+    patchBoard: { enabled: Boolean(config.patchBoard), method: "Integral side-panel extension with round cable storage holes", sides: patchBoardSides(config), widthMm: board.width, riseMm: board.height, holeDiameterMm: board.holeDiameter, spacingMm: board.spacing, columns: board.columns, rows: board.rows, holesPerSide: config.patchBoard ? board.holeCount : 0, holeCentersMm: config.patchBoard ? board.centers : [], holeCoordinates: "Relative to the centre of the extension bottom, above the highest rim under its roots", additionalParts: 0 },
     handles: { method: "Integral side-panel grips", mode: config.handleMode ?? "auto", count: handleCount(config), widthMm: handleDimensions(config).width, riseMm: handleDimensions(config).height, roundedRoots: true, sides: handleCount(config) === 2 ? ["left", "right"] : handleCount(config) === 1 ? ["left"] : [], additionalParts: 0 },
     footAttachment: null,
     cableHolder: { enabled: Boolean(config.cableHolder), method: "Integral fingers along the rear panel top edge", heightMm: holder.height, slitWidthMm: holder.slitWidth, slitCount: config.cableHolder ? holder.slitCount : 0, fingerWidthMm: holder.fingerWidth, pitchMm: holder.pitch, slitCentersMm: config.cableHolder ? holder.slitCenters : [], roundedTips: true, roundedSlitRoots: true, additionalParts: 0 },
-    notes: ["Configuration specification only; not a cutting template.", "Outer dimensions describe the enclosure, excluding the integral grip, cable holder and stance extensions.", "The minimum side margin uses a 1.5× slot-width centre-to-edge guardrail adapted from acrylic hole guidance; rectangular slots and the complete loaded assembly still require fabrication validation.", "Joint clearances, fasteners, load capacity and rail profiles require fabrication validation.", ...(config.busboard === "sinusoda" ? ["Sinusoda Juice envelope follows the supplied data sheet; the 28-hole pattern is photo-derived and approximate. Verify centres, diameters, mounting stack, module and electrical clearances against the physical board before fabrication."] : config.busboard === "trolley" ? ["Trolley Bus uses a 423 mm board and a conservative 435 mm installation envelope inferred from the setup drawing. Eight photo-estimated screw mounts adapt the manufacturer's adhesive mounting method; positions, diameters, insulation and clearances must be verified against hardware."] : config.busboard === "compactpwr" ? ["CompactPWR uses the manufacturer’s 174 × 79 × 20 mm envelope. Its four corner screw mounts are photo-derived estimates; verify centres, diameters, mounting stack and clearances against hardware before drilling."] : [])],
+    notes: ["Configuration specification only; not a cutting template.", "Outer dimensions describe the enclosure, excluding the integral grip, patch cable board, cable holder and stance extensions.", "The minimum side margin uses a 1.5× slot-width centre-to-edge guardrail adapted from acrylic hole guidance; rectangular slots and the complete loaded assembly still require fabrication validation.", "Joint clearances, fasteners, load capacity and rail profiles require fabrication validation.", ...(config.busboard === "sinusoda" ? ["Sinusoda Juice envelope follows the supplied data sheet; the 28-hole pattern is photo-derived and approximate. Verify centres, diameters, mounting stack, module and electrical clearances against the physical board before fabrication."] : config.busboard === "trolley" ? ["Trolley Bus uses a 423 mm board and a conservative 435 mm installation envelope inferred from the setup drawing. Eight photo-estimated screw mounts adapt the manufacturer's adhesive mounting method; positions, diameters, insulation and clearances must be verified against hardware."] : config.busboard === "compactpwr" ? ["CompactPWR uses the manufacturer’s 174 × 79 × 20 mm envelope. Its four corner screw mounts are photo-derived estimates; verify centres, diameters, mounting stack and clearances against hardware before drilling."] : [])],
   };
 }

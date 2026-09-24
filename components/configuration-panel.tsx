@@ -7,6 +7,7 @@ import { ColorChooser, TransparencyChooser, MaterialPreviewNote } from "@/compon
 import { ConfigSection } from "@/components/config-section";
 import { CutoutControls } from "@/components/cutout-controls";
 import { VentControls } from "@/components/vent-controls";
+import { patchBoardLayout, patchBoardLimits, patchBoardSides } from "@/lib/patch-board";
 import { cableHolderLayout, cableHolderLimits } from "@/lib/cable-holder";
 import type { CasePanels } from "@/lib/case-panels";
 import type { CutoutAction } from "@/lib/custom-cutouts";
@@ -34,6 +35,7 @@ export function ConfigurationPanel({ config, panels, onChange, onCutoutAction }:
   const rowLayout = rackRowLayout(config);
   const angledRows = rowLayout.some(row => row.angle > 0);
   const handleSize = handleDimensions(config);
+  const board = patchBoardLayout(config);
   const holder = cableHolderLayout(config);
   const rackUnits = totalRackUnits(config);
   function updateRows(nextRows: RackUnit[], nextAngles = rowAngles) {
@@ -62,7 +64,7 @@ export function ConfigurationPanel({ config, panels, onChange, onCutoutAction }:
     const tint = acrylicTints.find(option => option.id === tintId) ?? config.tint;
     onChange({ panelTints: { ...panelTintsFrom(config.tint), ...config.panelTints, [side]: tint } });
   }
-  const accessoriesSummary = [config.handle && `${handleCount(config)} ${handleCount(config) === 1 ? "handle" : "handles"}`, config.cableHolder && "Cable holder"].filter(Boolean).join(" · ") || "No accessories";
+  const accessoriesSummary = [config.handle && `${handleCount(config)} ${handleCount(config) === 1 ? "handle" : "handles"}`, config.cableHolder && "Cable holder", config.patchBoard && "Patch cable board"].filter(Boolean).join(" · ") || "No accessories";
   const powerSummary = config.busboard !== "none" && !panels.powerBoard?.fits ? `${busboards[config.busboard]} · Does not fit` : `${busboards[config.busboard]}${panels.mountingConflicts > 0 ? " · Mount conflicts" : ""}`;
   return <aside className="control-panel accordion-control-panel case-control-panel" aria-label="Case controls">
     <div className="panel-heading"><h2>Your configuration</h2><span className="micro-label">01—07</span></div>
@@ -143,6 +145,17 @@ export function ConfigurationPanel({ config, panels, onChange, onCutoutAction }:
         <RangeField label="Handle width" value={handleSize.width} min={handleSizeLimits.width.min} max={handleSizeLimits.width.max} unit="mm" onChange={handleWidth => onChange({ handleWidth })} />
         <RangeField label="Handle height" value={handleSize.height} min={handleSizeLimits.height.min} max={handleSizeLimits.height.max} unit="mm" onChange={handleHeight => onChange({ handleHeight })} />
         <p className="control-note">Outer width and height above the rim. Both handles share the same size, with rounded roots.</p>
+      </>}
+      </div>
+      <div className="config-group">
+      <div className="inline-field"><label htmlFor="patch-board">Patch cable board</label><button id="patch-board" role="switch" aria-checked={Boolean(config.patchBoard)} aria-label="Patch cable board" aria-describedby="patch-board-note" className={`toggle ${config.patchBoard ? "toggle-on" : ""}`} onClick={() => onChange({ patchBoard: !config.patchBoard })}><span>{config.patchBoard ? <Plus size={10} /> : <Minus size={10} />}</span></button></div>
+      <p className="control-note" id="patch-board-note">Round holes in an extended side panel for parking 3.5 mm patch cable plugs.</p>
+      {config.patchBoard && <>
+        <div className="segmented-control" role="group" aria-label="Patch cable board placement">{([{ value: "left", label: "Left side" }, { value: "right", label: "Right side" }, { value: "both", label: "Both sides" }] as const).map(option => <button key={option.value} className={`segment ${(config.patchBoardSide ?? "left") === option.value ? "segment-active" : ""}`} aria-pressed={(config.patchBoardSide ?? "left") === option.value} onClick={() => onChange({ patchBoardSide: option.value })}>{option.label}</button>)}</div>
+        <RangeField label="Board width" value={board.width} min={patchBoardLimits.width.min} max={patchBoardLimits.width.max} unit="mm" onChange={patchBoardWidth => onChange({ patchBoardWidth })} />
+        <RangeField label="Board height" value={board.height} min={patchBoardLimits.height.min} max={patchBoardLimits.height.max} unit="mm" onChange={patchBoardHeight => onChange({ patchBoardHeight })} />
+        <RangeField label="Hole spacing" value={board.spacing} min={patchBoardLimits.spacing.min} max={patchBoardLimits.spacing.max} unit="mm" onChange={patchBoardSpacing => onChange({ patchBoardSpacing })} />
+        <p className="control-note">{board.columns} × {board.rows} grid · {board.holeCount} holes per side · {board.holeCount * patchBoardSides(config).length} total. Ø{board.holeDiameter} mm holes, spaced centre to centre. Height above the rim; a handle on the same side sits above the grid. Check plug fit with a sample cut.</p>
       </>}
       </div>
       <div className="config-group">

@@ -1,5 +1,6 @@
 import { materialLabel, transparencyOption } from "@/lib/acrylic-material";
 import { ArrowDownToLine } from "lucide-react";
+import { patchBoardLayout, patchBoardSides } from "@/lib/patch-board";
 import { cableHolderLayout } from "@/lib/cable-holder";
 import { caseDimensions, footShapes, handleCount, handleDimensions, panelCount, panelSides, panelTint, panelTransparency, rackFormatLabel, rackRowLayout, sidePanelMargin, ventStyles, type CaseConfiguration } from "@/lib/configurator";
 
@@ -7,6 +8,7 @@ export function BuildSummary({ config, canExportSvg = true, onExportJson, onExpo
   const dimensions = caseDimensions(config);
   const rows = rackRowLayout(config);
   const holder = cableHolderLayout(config);
+  const board = patchBoardLayout(config);
   return (
     <section className="summary-panel" aria-label="Design summary">
       <div className="summary-title">
@@ -19,6 +21,7 @@ export function BuildSummary({ config, canExportSvg = true, onExportJson, onExpo
         <div><dt>Transparency</dt><dd>{config.individualPanelTints ? "Per sheet" : transparencyOption(config.transparency).label}</dd></div>
         <div><dt>Construction</dt><dd>{panelCount()} panels · {handleCount(config) ? `${handleCount(config)} integral ${handleCount(config) === 1 ? "grip" : "grips"}` : "no handles"}</dd></div>
         {config.handle && <div><dt>Handle size</dt><dd>{handleDimensions(config).width} × {handleDimensions(config).height} <small>mm</small></dd></div>}
+        {config.patchBoard && <div><dt>Patch cable board</dt><dd>{board.width} × {board.height} mm · {board.holeCount * patchBoardSides(config).length} holes · {patchBoardSides(config).join(" + ")}</dd></div>}
         {config.cableHolder && <div><dt>Cable holder</dt><dd>{holder.slitCount} × {holder.slitWidth} mm slits · {holder.height} mm rise</dd></div>}
         <div><dt>Side margin</dt><dd>{sidePanelMargin(config).toFixed(1)} mm</dd></div>
         <div><dt>Stance</dt><dd>{config.angle ? `${footShapes.find(shape => shape.value === config.footShape)?.label} · ${config.angle}°` : "Flat"}</dd></div>
