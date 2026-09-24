@@ -47,7 +47,7 @@ hole diameter and automatic part counts as the stand dimensions change.
 
 ## Product constraints
 
-The top bar offers Case designer and Synth stand modes. Both share the theme,
+The top bar offers Case designer, Synth stand and Synth protector modes. All share the theme,
 material palette and visual controls while retaining independent in-session
 configurations. On narrow screens, the mode switch occupies a full second row.
 The active mode owns material-library selections, build notes and both exports.
@@ -155,3 +155,5 @@ Input image 1: product and brand reference. Use the exploded product view from t
 Create one cohesive social card with a warm off-white background (#f5f5ef), a very subtle engineering grid, and charcoal and signal-orange brand accents. Put the large existing brand lockup at upper left: three overlapping outlined parallelogram sheets (two charcoal, front one orange) followed by exact text "acryl508." in the reference's clean sans serif treatment, "acryl" bold, "508" lighter and the final period orange. Below the name, in smaller charcoal type, write exactly "Eurorack case configurator". The exploded orange case is large and centered in the lower two thirds, fully in frame, with soft studio shadows. Retain ample margins for social-platform cropping. Typography crisp and readable at thumbnail size.
 Only those two lines of text. No UI controls, sidebars, navigation, dimensions, labels, browser chrome, watermarks, extra products or invented features. Render the complete card including typography as a single polished image.
 ```
+
+Synth protectors use one cover and four identical tabbed feet, mirrored at assembly. The feet rest on the synth top edges and locate along the sides with a configurable gap. The default body-to-cover clearance is 35 mm and the default overhang is 20 mm on every edge. Instrument and clearance sections start open; Feet & edge fit and Material & construction start collapsed. The illustrative instrument starts visible. Preview, cutting layout and exports share resolved geometry, with removable flush tabs and four closed slots.

@@ -362,7 +362,7 @@
   .stage-hint { display: none; }
   .primary-nav { margin-left: 0; gap: 22px; }
 }
-@media (max-width: 1100px) {
+@media (max-width: 1250px) {
   .app-header:has(.designer-mode-switch) .primary-nav { display: none; }
 }
 @media (max-width: 900px) {
@@ -406,7 +406,7 @@
 @media (max-width: 700px) {
   .app-header:has(.designer-mode-switch) { padding-top: 14px; padding-bottom: 12px; }
   .designer-mode-switch { order: 3; flex-basis: 100%; }
-  .designer-mode-switch button { flex: 1; min-height: 38px; }
+  .designer-mode-switch button { flex: 1; min-height: 38px; padding-inline: 7px; font-size: 10px; }
   .stand-cutting-layout { inset: 62px 48px 94px 14px; }
   .stand-cutting-layout p { font-size: 8px; }
   .app-shell { height: auto; min-height: 100dvh; }

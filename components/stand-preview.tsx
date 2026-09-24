@@ -24,7 +24,7 @@ function shapesFrom(polygons: MultiPolygon) {
     return shape;
   });
 }
-function Sheet({ polygons, thickness, tint, transparency }: { polygons: MultiPolygon; thickness: number; tint: AcrylicTint; transparency?: AcrylicTransparency }) {
+export function Sheet({ polygons, thickness, tint, transparency }: { polygons: MultiPolygon; thickness: number; tint: AcrylicTint; transparency?: AcrylicTransparency }) {
   const shapes = useMemo(() => shapesFrom(polygons), [polygons]);
   const args = useMemo(() => [shapes, { depth: thickness * unit, bevelEnabled: false }] as const, [shapes, thickness]);
   const edges = useMemo(() => panelEdgePoints(shapes, thickness * unit, 12, 15), [shapes, thickness]);
@@ -72,7 +72,7 @@ function CameraRig({ stand, view, resetKey, exploded, instrument }: Omit<Props, 
   }, [camera, size.width, size.height, width, depth, height, view, resetKey, invalidate]);
   return <OrbitControls ref={controls} makeDefault enablePan={false} minDistance={1} maxDistance={80} maxPolarAngle={Math.PI / 2} />;
 }
-class PreviewBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
+export class PreviewBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
   state = { failed: false };
   static getDerivedStateFromError() { return { failed: true }; }
   render() { return this.state.failed ? <div className="preview-fallback">3D preview unavailable. The cutting layout and exports are still available.</div> : this.props.children; }

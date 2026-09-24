@@ -1,5 +1,5 @@
 import { ArrowUpRight, Moon, Sun } from "lucide-react";
-export type DesignerMode = "case" | "stand";
+export type DesignerMode = "case" | "stand" | "protector";
 type Props = { mode: DesignerMode; onModeChange: (mode: DesignerMode) => void; dark: boolean; onThemeChange: () => void; onInfo: (tab: "materials" | "guide") => void; onExport: () => void };
 export function ConfiguratorHeader({ mode, onModeChange, dark, onThemeChange, onInfo, onExport }: Props) {
   return <header className="app-header">
@@ -7,6 +7,7 @@ export function ConfiguratorHeader({ mode, onModeChange, dark, onThemeChange, on
     <div className="designer-mode-switch" role="group" aria-label="Designer mode">
       <button aria-pressed={mode === "case"} className={mode === "case" ? "mode-active" : ""} onClick={() => onModeChange("case")}>Case designer</button>
       <button aria-pressed={mode === "stand"} className={mode === "stand" ? "mode-active" : ""} onClick={() => onModeChange("stand")}>Synth stand</button>
+      <button aria-pressed={mode === "protector"} className={mode === "protector" ? "mode-active" : ""} onClick={() => onModeChange("protector")}>Synth protector</button>
     </div>
     <nav className="primary-nav" aria-label="Primary navigation">
       <button className="nav-link" onClick={() => onInfo("materials")}>Material library</button>

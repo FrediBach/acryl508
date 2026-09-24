@@ -358,3 +358,9 @@ not simulated volumetrically. These are appearance
 approximations, not measured supplier properties or a stock availability matrix.
 JSON exports retain `transparency` and optional case `panelTransparencies`; older
 configurations without these fields default to fully transparent.
+
+## Synth Protector
+
+The third designer mode creates a five-part cover: one oversized top sheet and four tabbed feet. Enter synth width, depth and body height, then choose body-to-sheet clearance (15–120 mm), overhang (20–60 mm per edge), foot positions and side fit gap. Feet rest on clear, level top edges with short locating lips outside the synth; they do not reach the desk. This first option assumes a rectangular body.
+
+Perspective, side, top, exploded and cutting-layout views share the same polygons as the full-size SVG and JSON exports. Each mode retains independent configuration and material choices during the session. Slots use measured sheet thickness plus fit clearance. The prototype has no validated load or impact rating; check contact surfaces, fit, internal corners and sheet flex before fabrication.
