@@ -35,11 +35,11 @@ function StandModel({ stand, exploded, instrument }: Pick<Props, "stand" | "expl
   const { config, frontHeight } = stand;
   const t = config.thickness * unit;
   const center = (stand.front + stand.rear) / 2 * unit;
-  const lift = exploded ? stand.braceHeight * unit + 0.4 : 0;
+  const lift = exploded ? (config.advancedMode ? stand.dimensions.height : stand.braceHeight) * unit + 0.4 : 0;
   const angle = config.angle * Math.PI / 180;
   return <group position={[0, 0, center]}>
     {stand.parts.map(part => <group key={part.id}
-      position={[part.placement.width * unit - Math.sin(part.placement.yaw) * t / 2, part.kind === "rib" ? lift : 0, -part.placement.depth * unit - Math.cos(part.placement.yaw) * t / 2]}
+      position={[part.placement.width * unit - Math.sin(part.placement.yaw) * t / 2, part.family === "a" ? lift : 0, -part.placement.depth * unit - Math.cos(part.placement.yaw) * t / 2]}
       rotation={[0, part.placement.yaw, 0]}>
       <Sheet polygons={part.polygons} thickness={config.thickness} tint={config.tint} transparency={config.transparency} />
     </group>)}
@@ -58,7 +58,7 @@ function CameraRig({ stand, view, resetKey, exploded, instrument }: Omit<Props, 
   const { camera, size, invalidate } = useThree();
   const width = Math.max(stand.config.width, stand.dimensions.width) * unit;
   const depth = stand.dimensions.depth * unit;
-  const height = (instrument ? stand.synthTop : stand.dimensions.height) * unit + (exploded ? stand.braceHeight * unit + 1.1 : 0);
+  const height = (instrument ? stand.synthTop : stand.dimensions.height) * unit + (exploded ? (stand.config.advancedMode ? stand.dimensions.height : stand.braceHeight) * unit + 1.1 : 0);
   useEffect(() => {
     const aspect = size.width / Math.max(1, size.height);
     const span = view === "side" ? depth : view === "top" ? width : Math.hypot(width, depth);

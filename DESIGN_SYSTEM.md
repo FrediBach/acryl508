@@ -55,7 +55,7 @@ material palette and visual controls while retaining independent in-session
 configurations. On narrow screens, the mode switch occupies a full second row.
 The active mode owns material-library selections, build notes and both exports.
 
-Synth stands use solid support ribs with front stops and three slotted cross
+Standard synth stands use solid support ribs with front stops and three slotted cross
 braces, all cut from a single thickness of acrylic. The 220 mm maximum rib
 spacing is a layout heuristic. Part counts, dimensions and slot clearance are
 live; the UI and exports clearly identify the design as an unvalidated
@@ -164,9 +164,10 @@ Synth protectors use one cover with edge-locating tabbed feet. Left/right suppor
 The default body-to-cover clearance is 35 mm and the default overhang is 20 mm on every edge. Instrument and clearance sections start open; Feet & edge fit, Locking strips and Material & construction start collapsed. The illustrative instrument starts visible. Preview, cutting layout and exports share resolved geometry. Retaining strips block vertical foot withdrawal but remain removable sideways; prototype fit and retention are not validated.
 
 The stand offers Standard and Advanced · diagonal above its five cards. Advanced
-mode exposes a plan-view sweep independently of playing tilt. Geometry limits the
-sweep to the available instrument width, widens square half-lap cuts for the full
-sheet-thickness overlap, and offsets the three braces to match. Contact profiles,
-part dimensions, sheet placement and exports share the same calculation. Cable
-holes follow the diagonal bays. The requested setting is preserved when Standard
-is selected; older configurations start in Standard.
+uses two main-sheet families at ±45° in plan, meeting at 90°. Both support the
+instrument; four lower braces reinforce the two directions. Long footprints add
+repeated main sheets automatically. Slot width stays at thickness plus clearance.
+Family B stands slots-up and family A lowers slots-down, including their braces;
+the exploded view follows that sequence. Each labelled part lists its own cutting
+dimensions. Cable holes occupy clear brace bays in both directions. Standard
+remains the default for older configurations.

@@ -61,25 +61,27 @@ reuse the stacked-panel brand mark.
 ## Synth stands
 
 Choose **Synth stand** in the top bar and enter the instrument width, depth,
-height and playing angle (0–45°). The generator creates solid inclined support
+height and playing angle (0–45°). The standard generator creates solid inclined support
 ribs with integral front stops and three full-width half-lap cross braces.
 Ribs are added automatically to keep support spacing at or below 220 mm. This
 is a layout heuristic, not a strength calculation or load rating.
 
-Choose **Advanced · diagonal** above the stand controls to sweep the upright ribs
-sideways in plan view. **Diagonal sweep** requests 5–40° independently of playing
-tilt. The resolved angle reduces automatically when needed to fit the whole
-profile beneath the instrument, preserving at least 55% of the inset support
-span and eight sheet thicknesses between outer ribs. The three braces shift
-sideways with the ribs; all parts still assemble vertically with open half-laps.
-Rib outlines are lengthened and adjusted for the depth occupied by sheet
-thickness, preserving clearance to the synth and its front stops. Straight laser
-slots clear both sheets across the entire oblique intersection:
-`t × (1 + sin(sweep)) / cos(sweep) + clearance`. Cable holes follow the diagonal
-bays rather than forming straight-through passages. JSON version 5 includes
-requested/resolved sweep, crossing angle, and explicit centre-plane placement
-and yaw for every sheet. Standard remains the default for older configurations;
-switching back retains the requested diagonal angle.
+Choose **Advanced · diagonal** for main support sheets crossing in both
+45° directions. Every intersection stays at 90°, so slot width remains measured
+sheet thickness plus clearance. Four lower stability braces run in the same two
+directions, below the synth. Longer rectangular footprints add repeated main
+supports in both families; near-square footprints use one central X.
+
+The full-height sheets follow the instrument tilt and include front stops where
+they reach the front. Profiles account for the depth occupied by sheet thickness.
+Each perpendicular intersection has complementary half-laps; near sheet ends,
+notches open through the edge instead of leaving thin tabs or loose slivers.
+Stand family B (supports and braces) slots-up, then lower family A slots-down.
+The exploded view follows that assembly order. Cable holes occupy clear bays in
+both brace directions; openings are omitted where a bay is too short.
+JSON version 6 includes each sheet's family, centre-plane origin, yaw, mating
+slots, and cable-hole centres. Preview and cutting exports use those same parts.
+Standard remains the default for older configurations.
 
 All stand parts use one measured GS acrylic thickness (5–10 mm). Standard slot width is
 sheet thickness plus the selected clearance (0–0.4 mm); slot roots have circular
@@ -103,7 +105,7 @@ screws, adhesive or bent parts. Stand the braces slots-up, then lower the ribs
 slots-down. These open joints lift apart: remove the instrument before moving
 the stand.
 
-Optional **Cable holes in braces** adds one round opening between each pair of
+In Standard mode, optional **Cable holes in braces** adds one round opening between each pair of
 ribs, aligned through all three braces. Requested diameter is adjustable from
 8–32 mm (20 mm default); the resolved diameter is reduced if needed to leave
 two sheet thicknesses of acrylic to the brace edges and complete slot-relief

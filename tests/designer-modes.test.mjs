@@ -420,12 +420,15 @@ test("mode switching preserves independent designs and routes material choices a
     const standardStand = JSON.parse(await downloads.at(-1).blob.text());
     await click("Advanced · diagonal");
     assert.equal(button("Advanced · diagonal").getAttribute("aria-pressed"), "true");
-    assert.ok(document.querySelector('input[aria-label="Diagonal sweep in °"]'));
+    assert.equal(document.querySelector('input[aria-label="Diagonal sweep in °"]'), null);
+    assert.match(document.querySelector(".stand-mode-control").textContent, /every crossing stays at 90°/);
     await click("Export stand configuration as JSON");
     const diagonalStand = JSON.parse(await downloads.at(-1).blob.text());
     assert.equal(diagonalStand.configuration.advancedMode, true);
     assert.ok(diagonalStand.diagonal.angle > 0);
-    assert.ok(diagonalStand.construction.slotWidth > standardStand.construction.slotWidth);
+    assert.equal(diagonalStand.construction.slotWidth, standardStand.construction.slotWidth);
+    assert.equal(diagonalStand.diagonal.intersectionAngle, 90);
+    assert.equal(diagonalStand.construction.braceCount, 4);
     await click("Cutting layout");
     const diagonalPaths = [...document.querySelectorAll(".stand-cutting-layout path")].map(p => p.getAttribute("d"));
     await click("Export stand sheets as SVG");
