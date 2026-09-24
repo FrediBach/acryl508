@@ -84,3 +84,23 @@ test("legacy projects stay unchanged and board settings round-trip through JSON 
   assert.equal((right.match(/M/g) ?? []).length, panels.faces.right.shapes[0].holes.length + 1);
   assert.equal((svg.match(/<g id="panel-/g) ?? []).length, 5);
 });
+
+test("handles can sit opposite a patch board and retain their side in saved designs and exports", () => {
+  for (const handleMode of ["left", "right"]) {
+    const patchBoardSide = handleMode === "left" ? "right" : "left";
+    const config = { ...defaultConfiguration, handle: true, handleMode, patchBoard: true, patchBoardSide };
+    const panels = createCasePanels(config);
+    const onlyHandle = createCasePanels({ ...config, patchBoard: false });
+    const onlyBoard = createCasePanels({ ...config, handle: false });
+    assert.deepEqual(panels.faces[handleMode].original, onlyHandle.faces[handleMode].original);
+    assert.deepEqual(panels.faces[patchBoardSide].original, onlyBoard.faces[patchBoardSide].original);
+    const data = configurationExport(config);
+    assert.deepEqual(data.handles.sides, [handleMode]);
+    assert.equal(data.handles.count, 1);
+    assert.equal(readCase(JSON.parse(JSON.stringify(data.configuration))).handleMode, handleMode);
+    const svg = configurationSvg(config, panels);
+    const side = svg.match(new RegExp(`<g id="panel-${handleMode}"[\\s\\S]*?<\\/g>`))[0];
+    assert.equal((side.match(/M/g) ?? []).length, panels.faces[handleMode].shapes[0].holes.length + 1);
+  }
+  assert.deepEqual(configurationExport({ ...defaultConfiguration, handle: true, handleMode: "single" }).handles.sides, ["left"]);
+});

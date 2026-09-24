@@ -69,12 +69,12 @@ test("arch and sled remove stance material without cutting into the enclosure", 
 });
 
 test("automatic and explicit handle layouts shape only the selected sides without accessory holes", () => {
-  for (const hp of [20, 84, 85, 168]) for (const rowUnits of [[1], [3], [3, 3]]) for (const handleMode of [undefined, "auto", "single", "pair"]) for (const handle of [false, true]) {
+  for (const hp of [20, 84, 85, 168]) for (const rowUnits of [[1], [3], [3, 3]]) for (const handleMode of [undefined, "auto", "single", "left", "right", "pair"]) for (const handle of [false, true]) {
     const config = { ...defaultConfiguration, hp, rows: rowUnits.length, rowUnits, handleMode, handle, angle: 20, vents: false };
-    const count = !handle ? 0 : handleMode === "single" ? 1 : handleMode === "pair" ? 2 : hp > 84 || rowUnits.length === 2 ? 2 : 1;
+    const count = !handle ? 0 : ["single", "left", "right"].includes(handleMode) ? 1 : handleMode === "pair" ? 2 : hp > 84 || rowUnits.length === 2 ? 2 : 1;
     assert.equal(handleCount(config), count);
     const panels = createCasePanels(config), height = caseDimensions(config).height / 100;
-    for (const [side, hasHandle] of [["left", count > 0], ["right", count === 2]]) {
+    for (const [side, hasHandle] of [["left", count > 0 && handleMode !== "right"], ["right", count === 2 || count === 1 && handleMode === "right"]]) {
       const shape = panels.faces[side].shapes[0];
       near(Math.max(...shape.getPoints().map(point => point.y)), height + (hasHandle ? handleRise : 0));
       assert.equal(shape.holes.length, panels.layout.baseTabs.length + 2 * panels.layout.endTabs.length + rowUnits.length * 2 + Number(hasHandle));

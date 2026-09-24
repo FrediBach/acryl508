@@ -1,6 +1,6 @@
 import { ArrowDown, ArrowUp, ChevronDown, Minus, Plus, Trash2 } from "lucide-react";
 import { useId, useState, type CSSProperties } from "react";
-import { acrylicTints, busboards, footShapes, handleCount, handleDimensions, handleSizeLimits, sledWebThickness, maxRackUnits, maxSideMarginRatio, minSideMarginRatio, panelSides, panelTint, panelTintsFrom, panelTransparency, panelTransparenciesFrom, rackFormatLabel, rackRows, rackRowAngles, rackRowLayout, maxRowAngle, maxTotalRowAngle, ventStyles, sidePanelMargin, totalRackUnits, type CaseConfiguration, type PanelSide, type RackUnit } from "@/lib/configurator";
+import { acrylicTints, busboards, footShapes, handleCount, handleSides, handleDimensions, handleSizeLimits, sledWebThickness, maxRackUnits, maxSideMarginRatio, minSideMarginRatio, panelSides, panelTint, panelTintsFrom, panelTransparency, panelTransparenciesFrom, rackFormatLabel, rackRows, rackRowAngles, rackRowLayout, maxRowAngle, maxTotalRowAngle, ventStyles, sidePanelMargin, totalRackUnits, type CaseConfiguration, type PanelSide, type RackUnit } from "@/lib/configurator";
 
 import { materialLabel, type AcrylicTransparency } from "@/lib/acrylic-material";
 import { ColorChooser, TransparencyChooser, MaterialPreviewNote } from "@/components/material-controls";
@@ -34,6 +34,7 @@ export function ConfigurationPanel({ config, panels, onChange, onCutoutAction }:
   const rowAngles = rackRowAngles(config);
   const rowLayout = rackRowLayout(config);
   const angledRows = rowLayout.some(row => row.angle > 0);
+  const handleMode = config.handleMode === "single" ? "left" : config.handleMode ?? "auto";
   const handleSize = handleDimensions(config);
   const board = patchBoardLayout(config);
   const holder = cableHolderLayout(config);
@@ -139,8 +140,8 @@ export function ConfigurationPanel({ config, panels, onChange, onCutoutAction }:
     <ConfigSection number="04" title="Accessories" summary={accessoriesSummary}>
       <div className="config-group">
       <div className="inline-field"><label htmlFor="handle">Integrated handles</label><button id="handle" role="switch" aria-checked={config.handle} aria-label="Integrated handles" aria-describedby="handle-note" className={`toggle ${config.handle ? "toggle-on" : ""}`} onClick={() => onChange({ handle: !config.handle })}><span>{config.handle ? <Plus size={10} /> : <Minus size={10} />}</span></button></div>
-      {config.handle && <div className="segmented-control" role="group" aria-label="Handle layout">{([{ value: "auto", label: "Auto" }, { value: "single", label: "One side" }, { value: "pair", label: "Both sides" }] as const).map(option => <button key={option.value} className={`segment ${(config.handleMode ?? "auto") === option.value ? "segment-active" : ""}`} aria-pressed={(config.handleMode ?? "auto") === option.value} onClick={() => onChange({ handleMode: option.value })}>{option.label}</button>)}</div>}
-      <p className="control-note handle-note" id="handle-note">{config.handle ? `${handleCount(config) === 2 ? "A grip in each side panel" : "One grip in the left side panel"}. ` : "Grips cut into extended side panels. "}Auto pairs the handles above 84 HP or from 6U.</p>
+      {config.handle && <div className="segmented-control" role="group" aria-label="Handle layout">{([{ value: "auto", label: "Auto" }, { value: "left", label: "Left side" }, { value: "right", label: "Right side" }, { value: "pair", label: "Both sides" }] as const).map(option => <button key={option.value} className={`segment ${handleMode === option.value ? "segment-active" : ""}`} aria-pressed={handleMode === option.value} onClick={() => onChange({ handleMode: option.value })}>{option.label}</button>)}</div>}
+      <p className="control-note handle-note" id="handle-note">{config.handle ? `${handleCount(config) === 2 ? "A grip in each side panel" : `One grip in the ${handleSides(config)[0]} side panel`}. ` : "Grips cut into extended side panels. "}Auto pairs the handles above 84 HP or from 6U.</p>
       {config.handle && <>
         <RangeField label="Handle width" value={handleSize.width} min={handleSizeLimits.width.min} max={handleSizeLimits.width.max} unit="mm" onChange={handleWidth => onChange({ handleWidth })} />
         <RangeField label="Handle height" value={handleSize.height} min={handleSizeLimits.height.min} max={handleSizeLimits.height.max} unit="mm" onChange={handleHeight => onChange({ handleHeight })} />

@@ -26,7 +26,7 @@ export type CaseConfiguration = {
   ventStyle: VentStyle; ventDensity: VentDensity;
   ventLayout: VentLayout; ventCoverage: VentCoverage; ventMix: VentMix;
   ventDesign: VentDesign;
-  handle: boolean; handleMode?: "auto" | "single" | "pair"; handleWidth?: number; handleHeight?: number; footShape: FootShape;
+  handle: boolean; handleMode?: "auto" | "single" | "left" | "right" | "pair"; handleWidth?: number; handleHeight?: number; footShape: FootShape;
   patchBoard?: boolean; patchBoardSide?: "left" | "right" | "both"; patchBoardWidth?: number; patchBoardHeight?: number; patchBoardSpacing?: number;
   cableHolder?: boolean; cableHolderHeight?: number; cableHolderSlitWidth?: number;
   cutouts: CustomCutout[];
@@ -150,9 +150,13 @@ export function sidePanelMargin(config: Pick<CaseConfiguration, "thickness" | "s
 }
 export function handleCount(config: CaseConfiguration): 0 | 1 | 2 {
   if (!config.handle) return 0;
-  if (config.handleMode === "single") return 1;
+  if (config.handleMode === "single" || config.handleMode === "left" || config.handleMode === "right") return 1;
   if (config.handleMode === "pair") return 2;
   return config.hp > 84 || totalRackUnits(config) >= 6 ? 2 : 1;
+}
+export function handleSides(config: CaseConfiguration): ("left" | "right")[] {
+  const count = handleCount(config);
+  return count === 2 ? ["left", "right"] : count === 1 ? [config.handleMode === "right" ? "right" : "left"] : [];
 }
 export const handleSizeLimits = { width: { min: 130, max: 240 }, height: { min: 50, max: 110 } };
 export function handleDimensions(config: Pick<CaseConfiguration, "handleWidth" | "handleHeight">) {
@@ -232,7 +236,7 @@ export function configurationExport(config: CaseConfiguration, cutoutReports: Cu
     },
     stance: { automaticFeet: rackEnvelope(config).angled, method: "Integral side-panel profile", angle: config.angle, shape: config.footShape, minimumWebMm: config.footShape === "sled" && config.angle > 0 ? sledWebThickness(config.thickness) : null, innerCorners: config.footShape === "sled" ? "Rounded" : null, additionalParts: 0 },
     patchBoard: { enabled: Boolean(config.patchBoard), method: "Integral side-panel extension with round cable storage holes", sides: patchBoardSides(config), widthMm: board.width, riseMm: board.height, holeDiameterMm: board.holeDiameter, spacingMm: board.spacing, columns: board.columns, rows: board.rows, holesPerSide: config.patchBoard ? board.holeCount : 0, holeCentersMm: config.patchBoard ? board.centers : [], holeCoordinates: "Relative to the centre of the extension bottom, above the highest rim under its roots", additionalParts: 0 },
-    handles: { method: "Integral side-panel grips", mode: config.handleMode ?? "auto", count: handleCount(config), widthMm: handleDimensions(config).width, riseMm: handleDimensions(config).height, roundedRoots: true, sides: handleCount(config) === 2 ? ["left", "right"] : handleCount(config) === 1 ? ["left"] : [], additionalParts: 0 },
+    handles: { method: "Integral side-panel grips", mode: config.handleMode ?? "auto", count: handleCount(config), widthMm: handleDimensions(config).width, riseMm: handleDimensions(config).height, roundedRoots: true, sides: handleSides(config), additionalParts: 0 },
     footAttachment: null,
     cableHolder: { enabled: Boolean(config.cableHolder), method: "Integral fingers along the rear panel top edge", heightMm: holder.height, slitWidthMm: holder.slitWidth, slitCount: config.cableHolder ? holder.slitCount : 0, fingerWidthMm: holder.fingerWidth, pitchMm: holder.pitch, slitCentersMm: config.cableHolder ? holder.slitCenters : [], roundedTips: true, roundedSlitRoots: true, additionalParts: 0 },
     notes: ["Configuration specification only; not a cutting template.", "Outer dimensions describe the enclosure, excluding the integral grip, patch cable board, cable holder and stance extensions.", "The minimum side margin uses a 1.5× slot-width centre-to-edge guardrail adapted from acrylic hole guidance; rectangular slots and the complete loaded assembly still require fabrication validation.", "Joint clearances, fasteners, load capacity and rail profiles require fabrication validation.", ...(config.busboard === "sinusoda" ? ["Sinusoda Juice envelope follows the supplied data sheet; the 28-hole pattern is photo-derived and approximate. Verify centres, diameters, mounting stack, module and electrical clearances against the physical board before fabrication."] : config.busboard === "trolley" ? ["Trolley Bus uses a 423 mm board and a conservative 435 mm installation envelope inferred from the setup drawing. Eight photo-estimated screw mounts adapt the manufacturer's adhesive mounting method; positions, diameters, insulation and clearances must be verified against hardware."] : config.busboard === "compactpwr" ? ["CompactPWR uses the manufacturer’s 174 × 79 × 20 mm envelope. Its four corner screw mounts are photo-derived estimates; verify centres, diameters, mounting stack and clearances against hardware before drilling."] : [])],

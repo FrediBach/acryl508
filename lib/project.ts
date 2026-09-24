@@ -98,7 +98,7 @@ export function readCase(input: unknown): CaseConfiguration {
   config.busboard = choice(config.busboard, ["none", "sinusoda", "trolley", "compactpwr"], "busboard");
   config.footShape = choice(config.footShape, ["wedge", "arch", "sled"], "foot shape");
   config.patchBoardSide = choice(config.patchBoardSide, ["left", "right", "both"], "patch cable board side");
-  config.handleMode = choice(config.handleMode, ["auto", "single", "pair"], "handle layout");
+  config.handleMode = choice(config.handleMode, ["auto", "single", "left", "right", "pair"], "handle layout");
   config.ventStyle = choice(config.ventStyle, ["long-slits", "short-slits", "round", "hexagonal", "mixed"], "vent shape");
   config.ventDensity = choice(config.ventDensity, ["low", "medium", "high"], "vent density");
   config.ventLayout = choice(config.ventLayout, ["aligned", "staggered"], "vent layout");

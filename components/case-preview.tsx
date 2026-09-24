@@ -4,8 +4,8 @@ import { ContactShadows, Environment, Lightformer, Line, OrbitControls } from "@
 import { Canvas, useThree } from "@react-three/fiber";
 import { Path, Shape, Vector3 } from "three";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
-import { patchBoardLayout } from "@/lib/patch-board";
-import { caseDimensions, handleDimensions, panelTint, panelTransparency, rackEnvelope, rackRowLayout, sidePanelMargin, type CaseConfiguration } from "@/lib/configurator";
+import { patchBoardLayout, patchBoardSides } from "@/lib/patch-board";
+import { caseDimensions, handleSides, handleDimensions, panelTint, panelTransparency, rackEnvelope, rackRowLayout, sidePanelMargin, type CaseConfiguration } from "@/lib/configurator";
 import { acrylicMaterial, acrylicEdgeOpacity } from "@/lib/acrylic-material";
 import { caseLift } from "@/lib/acrylic-profiles";
 import { cableHolderLayout } from "@/lib/cable-holder";
@@ -112,7 +112,10 @@ function CameraRig({ config, view, resetKey, exploded }: Pick<Props, "config" | 
   const automaticFeet = rackEnvelope(config).angled;
   const board = patchBoardLayout(config);
   const gripWidth = Math.max(config.handle ? handleSize.width * unit : 0, config.patchBoard ? board.width * unit : 0);
-  const gripRise = Math.max((config.handle ? handleSize.height * unit : 0) + (config.patchBoard ? board.height * unit : 0), config.cableHolder ? cableHolderLayout(config).height * unit : 0);
+  const grips = handleSides(config), boards = patchBoardSides(config);
+  const gripRise = Math.max(...(["left", "right"] as const).map(side =>
+    (grips.includes(side) ? handleSize.height * unit : 0) + (boards.includes(side) ? board.height * unit : 0)),
+    config.cableHolder ? cableHolderLayout(config).height * unit : 0);
   useEffect(() => {
     const aspect = size.width / size.height;
     const radians = config.angle * Math.PI / 180;
