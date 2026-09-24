@@ -7,11 +7,11 @@ import { cutoutSides, maxCutouts, outlinePath, placedCutout, polygonBounds, type
 import { builtinFonts, importFont, importSvg, loadBuiltinFont, textOutlines, type CutoutFont } from "@/lib/cutout-sources";
 
 type Props = { config: CaseConfiguration; panels: CasePanels; onAction: (action: CutoutAction) => void };
-type FontOption = { id: string; name: string; font?: CutoutFont };
+export type FontOption = { id: string; name: string; font?: CutoutFont };
 const message = (error: unknown) => error instanceof Error ? error.message : "The cutout could not be imported. Try a simpler outline.";
 const round = (value: number) => Math.round(value * 10) / 10;
 
-function NumberControl({ label, value, min, max, onChange }: { label: string; value: number; min: number; max: number; onChange: (value: number) => void }) {
+export function NumberControl({ label, value, min, max, onChange }: { label: string; value: number; min: number; max: number; onChange: (value: number) => void }) {
   const [draft, setDraft] = useState<string | null>(null);
   return <label className="cutout-number"><span>{label}</span><input type="number" min={min} max={max} step={0.1} value={draft ?? value} onFocus={() => setDraft(String(value))} onChange={event => {
     setDraft(event.target.value);
@@ -20,7 +20,7 @@ function NumberControl({ label, value, min, max, onChange }: { label: string; va
   }} onBlur={() => { if (draft?.trim() && Number.isFinite(Number(draft))) onChange(Math.min(max, Math.max(min, Number(draft)))); setDraft(null); }} onKeyDown={event => { if (event.key === "Enter") event.currentTarget.blur(); }} /></label>;
 }
 
-function TextEditor({ cutout, fonts, onImport, onUpdate }: { cutout: CustomCutout; fonts: FontOption[]; onImport: (file: File) => Promise<string>; onUpdate: (patch: Partial<CustomCutout>) => void }) {
+export function TextEditor({ cutout, fonts, onImport, onUpdate }: { cutout: CustomCutout; fonts: FontOption[]; onImport: (file: File) => Promise<string>; onUpdate: (patch: Partial<CustomCutout>) => void }) {
   const source = cutout.source.kind === "text" ? cutout.source : null;
   const [text, setText] = useState(source?.text ?? "");
   const [fontId, setFontId] = useState(source?.fontId ?? builtinFonts[0].id);

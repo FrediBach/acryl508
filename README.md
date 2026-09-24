@@ -21,7 +21,8 @@ This starter does not use `wrangler.jsonc`.
 ## Included
 
 - responsive configurator shell under `app/`
-- top-bar Case designer / Synth stand modes with independent in-session configurations
+- top-bar Case designer / Synth stand / Synth protector / Panel designer modes with independent in-session configurations
+- Eurorack blank and DIY panels with component openings, SVG/font artwork, separate cut/engrave exports, alignment and ventilation
 - automatic slotted acrylic synth stands with solid ribs, three cross braces, 3D and cutting layouts, and JSON/SVG export
 - interactive Three.js case preview with ordered, mix-and-match 1U/3U rows, live dimensions, and optional per-sheet acrylic colors and transparency
 - interlocking case panels retained by rail-end screws, with stance and handles integral to the side panels
@@ -368,3 +369,66 @@ Support the left/right edges or all four edges. Add intermediate feet separately
 Optional locking strips extend every foot tab above the cover and cut a rectangular pass-through hole. One horizontal acrylic strip per supported edge threads through all its tabs. The widened trailing head stops insertion; withdraw each strip before disassembly. Strips prevent feet dropping out vertically but remain removable sideways, so their fit and retention need prototype testing. The same sheet thickness and slot-fit clearance apply throughout.
 
 Perspective, side, top, exploded and cutting-layout views share polygons with the full-size SVG and version 2 JSON exports. Exports include every foot and retaining strip, resolved counts, orientations, retention geometry and assembly notes. Each designer mode retains independent configuration and material choices during the session. The prototype has no validated load or impact rating; extra edge supports do not support the centre of the sheet. Check contact surfaces, keys, connectors, fit, internal corners and sheet flex before fabrication.
+
+## Panel designer
+
+The fourth mode makes one flat Eurorack blank panel or DIY module faceplate.
+Choose 3U (128.5 mm), Intellijel 1U (39.65 mm), or Pulp Logic 1U (43.18 mm).
+Widths range from 2–84 HP; Pulp Logic uses 6–84 HP in multiples of six.
+Actual width is HP × 5.08 mm minus a configurable total clearance of 0.1–0.5 mm
+(0.3 mm default). Acrylic thickness is 1.5–6 mm (3 mm default).
+
+Mounting positions follow [Doepfer’s construction details](https://www.doepfer.de/a100_man/a100m_e.htm),
+[Intellijel’s dimensioned drawing](https://intellijel.com/support/1u-technical-specifications/),
+and [Pulp Logic’s tile drawing](https://pulplogic.com/1u_tiles/).
+3U and Intellijel hole centres are 3 mm from top/bottom and start 7.5 mm from
+the left. Pulp Logic uses 0.118 inch (2.9972 mm) vertically and 0.200 inch
+(5.08 mm) from the left. Right columns stay on the HP grid: (HP − 3) × 5.08 mm
+from the left column for 3U/Intellijel, (HP − 2) × 5.08 mm for Pulp Logic.
+Automatic mounting uses two holes below 12 HP, four from 12 HP, and four for
+Pulp Logic. Two/four overrides are available; panels below 4 HP retain two.
+Openings are 3.2 mm (3U/Intellijel) or 3.175 mm (Pulp Logic). Horizontal slots
+add 0–4 mm travel, reduced near side edges to retain a 0.5 mm minimum web.
+That narrow web is a geometric limit, not a strength rating.
+
+Add jack, pot, switch, display or custom openings. Presets are examples, not
+manufacturer dimensions. Edit round holes, rounded rectangles and slots,
+position and rotation, component body clearance boxes, and maximum permitted
+panel thickness (0 means unspecified). The model flags edge/rail conflicts,
+body-box overlaps, mounting interference and thickness mismatches. Body boxes
+use conservative rotated bounding boxes for collision checks. An 8 mm top and
+bottom rail reserve is a planning assumption; actual rails and hardware vary.
+
+The front editor supports pointer dragging, grid snapping (0.5, 1, 2.54 or
+5.08 mm), arrow-key nudging, Shift-click or checkbox multi-selection, alignment,
+even centre distribution, group centring, duplication and deletion. Shift with
+an arrow moves ten steps. Coordinates use the panel centre, X right and Y up.
+Numerical fields permit exact positioning independently of grid snapping.
+Perspective uses the same resolved sheet geometry and surface artwork.
+
+Import filled SVG up to 1 MB or add text with bundled fonts / static TTF and OTF
+up to 5 MB. These reuse the case designer’s local parsers and font outlines.
+Each artwork selects Cut through or Engrave surface; engraving is the default.
+Cutting removes disconnected islands after all openings are subtracted.
+Engraving retains letter counters and is clipped to the remaining acrylic.
+Artwork is uniformly scaled and can be moved or rotated. Up to 64 component
+openings and 20 artworks are supported. Designs and imported fonts are retained
+while switching modes in this visit; reloading starts a new session.
+
+Ventilation offers circles, short rounded slits and hexagons, aligned or
+staggered rows, adjustable size/pitch/border, and the shared Regular, Wave,
+Ripple, Weave and Organic effect presets. The border is at least two sheet
+thicknesses; vent-to-vent spacing is at least one thickness or 2 mm. Openings
+avoid mounting holes, component body boxes and artwork. Pitch increases if
+needed to limit the candidate pattern to 600 openings for interactive editing.
+The controls and JSON report the resolved pitch, margin and opening count.
+
+SVG is full-size in millimetres with `cut` (red outlines) and `engrave` (blue
+filled outlines) groups. It contains the same cut and engraving paths as the
+cutting preview; guides, dimensions and component body boxes are excluded.
+Assign operations in CAM and apply kerf once. JSON version 1 records source
+artwork, editable settings, resolved geometry, mounting data and warnings.
+SVG export is disabled for empty panels or failed geometry calculations.
+Curves are sampled, not exact analytic arcs. Prototype the mounting webs,
+material flex, hole fit, washers and component thread engagement before use.
+Acrylic panels do not provide metal-panel electrical shielding.

@@ -11,7 +11,7 @@ import { JSDOM } from "jsdom";
 test("mode switching preserves independent designs and routes material choices and exports", async () => {
   const dom = new JSDOM("<!doctype html><html><body><div id='root'></div></body></html>", { url: "http://localhost" });
   const previous = new Map();
-  for (const [key, value] of Object.entries({ window: dom.window, document: dom.window.document, navigator: dom.window.navigator, localStorage: dom.window.localStorage, IS_REACT_ACT_ENVIRONMENT: true })) {
+  for (const [key, value] of Object.entries({ window: dom.window, document: dom.window.document, navigator: dom.window.navigator, localStorage: dom.window.localStorage, DOMParser: dom.window.DOMParser, XMLSerializer: dom.window.XMLSerializer, SVGSVGElement: dom.window.SVGSVGElement, IS_REACT_ACT_ENVIRONMENT: true })) {
     previous.set(key, Object.getOwnPropertyDescriptor(globalThis, key));
     Object.defineProperty(globalThis, key, { configurable: true, writable: true, value });
   }
@@ -23,6 +23,7 @@ test("mode switching preserves independent designs and routes material choices a
   // Test real controls and shell with only the WebGL renderers stubbed.
   function load(file) {
     if (cache.has(file)) return cache.get(file).exports;
+    if (file.endsWith("/panel-preview.tsx")) return { PanelPreview: () => React.createElement("div", null, "Panel preview") };
     if (file.endsWith("/case-preview.tsx")) return { CasePreview: () => React.createElement("div", null, "Case preview") };
     if (file.endsWith("/protector-preview.tsx")) return { ProtectorPreview: () => React.createElement("div", null, "Protector preview") };
     if (file.endsWith("/stand-preview.tsx")) return { StandPreview: () => React.createElement("div", null, "Stand preview") };
@@ -283,6 +284,121 @@ test("mode switching preserves independent designs and routes material choices a
     assert.equal(((await downloads.at(-1).blob.text()).match(/data-part=/g) ?? []).length, 5);
     await click("Remove row 1");
     assert.equal(document.querySelector('[aria-label="Additional row angles"]'), null);
+
+    await click("Panel designer");
+    assert.equal(button("Panel designer").getAttribute("aria-pressed"), "true");
+    assert.ok(document.querySelector('[aria-label="Panel designer controls"]'));
+    const field = text => [...document.querySelectorAll("label")].find(label => label.textContent.startsWith(text)).querySelector("input, select");
+    const setPanelNumber = async (label, value) => React.act(async () => {
+      const input = field(label);
+      Object.getOwnPropertyDescriptor(dom.window.HTMLInputElement.prototype, "value").set.call(input, String(value));
+      input.dispatchEvent(new dom.window.Event("input", { bubbles: true }));
+    });
+    const exportedPanel = async () => { await click("Export JSON"); return JSON.parse(await downloads.at(-1).blob.text()); };
+    await click("20 HP");
+    await click("Jack");
+    await setPanelNumber("X from centre", -15);
+    await setPanelNumber("Y from centre", 20);
+    await setPanelNumber("Hole diameter", 6.5);
+    await click("Pot");
+    await setPanelNumber("X from centre", 15);
+    await setPanelNumber("Y from centre", -20);
+    await setPanelNumber("Max panel thickness", 2);
+    await click("Select all");
+    await click("Align Y");
+    let panelData = await exportedPanel();
+    assert.deepEqual(panelData.configuration.components.map(c => c.y), [20, 20]);
+    assert.match(panelData.warnings.join(" "), /exceeds the specified 2 mm/);
+    const editor = document.querySelector(".panel-front-editor");
+    await React.act(async () => editor.dispatchEvent(new dom.window.KeyboardEvent("keydown", { key: "ArrowUp", bubbles: true })));
+    panelData = await exportedPanel();
+    assert.deepEqual(panelData.configuration.components.map(c => c.y), [21, 21]);
+    // Pointer capture keeps a selected group moving together; grid snapping uses the grabbed item.
+    const savedPoint = Object.getOwnPropertyDescriptor(globalThis, "DOMPoint");
+    Object.defineProperty(globalThis, "DOMPoint", { configurable: true, value: class { constructor(x, y) { this.x = x; this.y = y; } matrixTransform() { return this; } } });
+    editor.getScreenCTM = () => ({ inverse: () => ({}) });
+    let captured = false;
+    editor.setPointerCapture = () => { captured = true; };
+    editor.hasPointerCapture = () => captured;
+    editor.releasePointerCapture = () => { captured = false; };
+    const pointer = (type, x, y) => { const event = new dom.window.MouseEvent(type, { clientX: x, clientY: y, bubbles: true }); Object.defineProperty(event, "pointerId", { value: 1 }); return event; };
+    try {
+      await React.act(async () => editor.querySelector("[data-item] rect").dispatchEvent(pointer("pointerdown", 0, 0)));
+      await React.act(async () => editor.dispatchEvent(pointer("pointermove", 2.4, -4.6)));
+      await React.act(async () => editor.dispatchEvent(pointer("pointerup", 2.4, -4.6)));
+      panelData = await exportedPanel();
+      assert.deepEqual(panelData.configuration.components.map(c => c.x), [-13, 17]);
+      assert.deepEqual(panelData.configuration.components.map(c => c.y), [26, 26]);
+      assert.equal(captured, false);
+    } finally { if (savedPoint) Object.defineProperty(globalThis, "DOMPoint", savedPoint); else delete globalThis.DOMPoint; }
+    await click("Display");
+    await setPanelNumber("Opening width", 18);
+    await setPanelNumber("Opening height", 10);
+    await click("Switch");
+    await setPanelNumber("Y from centre", -35);
+    await click("Duplicate Switch");
+    await click("Remove Switch copy");
+    await selectValue(field("Mounting openings"), "slots");
+    await toggleSection("Ventilation pattern");
+    await click("Panel ventilation");
+    await click("Wave");
+    panelData = await exportedPanel();
+    assert.ok(panelData.ventilation.count > 0);
+    assert.equal(panelData.configuration.components.length, 4);
+    assert.equal(panelData.configuration.mounting, "slots");
+    assert.equal(panelData.configuration.vents.design.layers.length, 2);
+    // Use the actual SVG parser, text outlines and fabrication layer controls.
+    const upload = document.querySelector('[aria-label="Import panel artwork SVG"]');
+    Object.defineProperty(upload, "files", { configurable: true, value: [{ name: "label.svg", size: 150, text: async () => '<svg xmlns="http://www.w3.org/2000/svg"><rect width="20" height="5" /></svg>' }] });
+    await React.act(async () => upload.dispatchEvent(new dom.window.Event("change", { bubbles: true })));
+    panelData = await exportedPanel();
+    assert.equal(panelData.configuration.artwork[0].operation, "engrave");
+    assert.equal(panelData.layers.engrave.length, 1);
+    await setPanelNumber("Y from centre", 40);
+    await selectValue(field("Artwork operation"), "cut");
+    panelData = await exportedPanel();
+    assert.equal(panelData.layers.engrave.length, 0);
+    await selectValue(field("Artwork operation"), "engrave");
+    const oldFetch = globalThis.fetch;
+    globalThis.fetch = async url => ({ ok: true, json: async () => JSON.parse(readFileSync(path.join(project, "public", url), "utf8")) });
+    try { await click("Add text"); } finally { globalThis.fetch = oldFetch; }
+    const textInput = field("Text");
+    await React.act(async () => {
+      Object.getOwnPropertyDescriptor(dom.window.HTMLInputElement.prototype, "value").set.call(textInput, "OUT");
+      textInput.dispatchEvent(new dom.window.Event("input", { bubbles: true }));
+    });
+    await click("Apply text");
+    await setPanelNumber("Y from centre", -50);
+    panelData = await exportedPanel();
+    assert.equal(panelData.configuration.artwork[1].source.text, "OUT");
+    assert.equal(panelData.configuration.artwork[1].operation, "engrave");
+    await click("Cutting layout");
+    await click("Export panel cut and engrave SVG");
+    assert.match(downloads.at(-1).name, /panel-3u-20hp.svg$/);
+    const panelSvgDoc = new dom.window.DOMParser().parseFromString(await downloads.at(-1).blob.text(), "image/svg+xml");
+    assert.equal(document.querySelector('[data-layer="cut"]').getAttribute("d"), panelSvgDoc.querySelector("#panel-cut").getAttribute("d"));
+    assert.equal(document.querySelectorAll('[data-layer="engrave"]').length, panelSvgDoc.querySelectorAll("#engrave path").length);
+    await selectValue(field("Panel format"), "intellijel-1u");
+    panelData = await exportedPanel(); assert.equal(panelData.dimensions.height, 39.65);
+    await selectValue(field("Panel format"), "pulp-logic-1u");
+    panelData = await exportedPanel(); assert.equal(panelData.dimensions.height, 43.18); assert.equal(panelData.configuration.hp, 18);
+    await selectValue(field("Panel format"), "3u");
+    await click("Material library");
+    await React.act(async () => document.querySelector('dialog button[aria-label="Green"]').click());
+    await selectValue(document.querySelector("dialog select"), "opaque");
+    await click("Close notes");
+    await click("Build notes");
+    assert.match(document.querySelector("dialog").textContent, /A face for your next idea/);
+    await click("Close notes");
+    await click("Synth protector");
+    await click("Panel designer");
+    panelData = await exportedPanel();
+    assert.equal(panelData.configuration.tint.id, "green");
+    assert.equal(panelData.configuration.transparency, "opaque");
+    assert.equal(panelData.configuration.components.length, 4);
+    assert.equal(panelData.configuration.artwork.length, 2);
+    await click("Perspective");
+    assert.equal(button("Perspective").getAttribute("aria-pressed"), "true");
 
     await click("Synth stand");
     assert.equal(button("35°").getAttribute("aria-pressed"), "true");
