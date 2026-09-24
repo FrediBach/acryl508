@@ -100,7 +100,7 @@ test("mode switching preserves independent designs and routes material choices a
     assert.equal(button("Front extension").getAttribute("aria-checked"), "true");
     await click("35°");
     await click("Material library");
-    await React.act(async () => document.querySelector('dialog button[aria-label="Blue (Blau)"]').click());
+    await React.act(async () => document.querySelector('dialog button[aria-label="Blue"]').click());
     const selectValue = async (select, value) => React.act(async () => {
       select.value = value;
       select.dispatchEvent(new dom.window.Event("change", { bubbles: true }));
@@ -149,7 +149,7 @@ test("mode switching preserves independent designs and routes material choices a
     assert.equal(materialCase.panelTints.front.id, "black");
     assert.equal(materialCase.panelTransparencies.front, "opaque");
     assert.equal(materialCase.panelTransparencies.bottom, "transparent");
-    await click("Red (Rot)");
+    await click("Red");
     await click("Export JSON");
     materialCase = JSON.parse(await downloads.at(-1).blob.text()).configuration;
     assert.ok(Object.values(materialCase.panelTints).every(tint => tint.id === "red"));

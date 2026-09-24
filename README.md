@@ -345,11 +345,12 @@ module depth, rail profiles, joint fit and loaded stability need prototype check
 ## Acrylic colors and transparency
 
 Both designers and the material library offer the shop’s eleven color families:
-Farblos, Schwarz, Weiss, Grau, Orange, Rot, Gelb, Blau, Grün, Umbra and Braun.
+Colorless, Black, White, Grey, Orange, Red, Yellow, Blue, Green, Umber and Brown.
+The chooser uses English throughout. Orange retains the original signal orange;
+yellow uses a warmer golden shade to better match the actual sheets.
 Color and transparency are independent; the case can also set both per sheet.
 Applying a color to all sheets preserves their transparency choices and vice versa.
-The four transparency presets are Blickdurchlässig (see-through), Opak (deckend),
-Opal (milchig), and Volltransparent. Their shared physical-material renderer varies
+The four transparency presets are See-through, Opaque, Milky, and Fully transparent. Their shared physical-material renderer varies
 transmission, roughness, absorption and milky color mixing. These are appearance
 approximations, not measured supplier properties or a stock availability matrix.
 JSON exports retain `transparency` and optional case `panelTransparencies`; older
