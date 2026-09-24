@@ -22,7 +22,10 @@ clear hierarchy, restrained colour, and controls that show what they change.
 - Theme follows the operating system until explicitly selected; the local preference
   persists across visits. A prepaint script avoids a flash of the wrong theme.
 - Camera controls expose perspective, front, top, reset, exploded assembly, example
-  modules, and expanded view. Animation is limited to direct manipulation.
+  modules, cutting layout, and expanded view. The case cutting layout uses the same
+  sheet placement and paths as SVG export, including vents, joints, handles,
+  mounting holes and custom cutouts. Each sheet uses its selected tint; fully
+  removed sheets stay empty and are reported in the layout caption. Animation is limited to direct manipulation.
 - All actionable icons have accessible names; selected controls expose pressed state.
   Native dialogs handle keyboard focus and Escape. Focus rings use the accent token.
 - Desktop uses the available viewport height: a 64 px header and a flexible workspace.

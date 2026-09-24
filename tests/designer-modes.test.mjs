@@ -23,7 +23,7 @@ test("mode switching preserves independent designs and routes material choices a
   // Test real controls and shell with only the WebGL renderers stubbed.
   function load(file) {
     if (cache.has(file)) return cache.get(file).exports;
-    if (file.endsWith("/preview-stage.tsx")) return { PreviewStage: () => React.createElement("div", null, "Case preview") };
+    if (file.endsWith("/case-preview.tsx")) return { CasePreview: () => React.createElement("div", null, "Case preview") };
     if (file.endsWith("/protector-preview.tsx")) return { ProtectorPreview: () => React.createElement("div", null, "Protector preview") };
     if (file.endsWith("/stand-preview.tsx")) return { StandPreview: () => React.createElement("div", null, "Stand preview") };
     const mod = { exports: {} }; cache.set(file, mod);
@@ -51,6 +51,30 @@ test("mode switching preserves independent designs and routes material choices a
     const { ConfiguratorShell } = load(path.join(project, "components/configurator-shell.tsx"));
     await React.act(async () => { root.render(React.createElement(ConfiguratorShell)); });
     assert.equal(button("Case designer").getAttribute("aria-pressed"), "true");
+    await click("Cutting layout");
+    assert.equal(button("Cutting layout").getAttribute("aria-pressed"), "true");
+    assert.equal(button("Perspective").getAttribute("aria-pressed"), "false");
+    const caseLayout = () => document.querySelector('svg[aria-label="Case cutting layout: all five enclosure sheets"]');
+    assert.equal(caseLayout().querySelectorAll("path").length, 5);
+    const originalBottomPath = caseLayout().querySelector('[data-part="bottom"] path').getAttribute("d");
+    await click("Export all sheets as SVG");
+    const exportedLayout = new dom.window.DOMParser().parseFromString(await downloads.at(-1).blob.text(), "image/svg+xml");
+    for (const part of caseLayout().querySelectorAll("g[data-part]")) {
+      assert.equal(part.querySelector("path").getAttribute("d"), exportedLayout.querySelector(`[data-part="${part.dataset.part}"] path`).getAttribute("d"));
+    }
+    await click("Front");
+    assert.equal(caseLayout(), null);
+    assert.equal(button("Front").getAttribute("aria-pressed"), "true");
+    await click("Cutting layout");
+    await click("Exploded view");
+    assert.equal(caseLayout(), null);
+    assert.equal(button("Exploded view").getAttribute("aria-pressed"), "true");
+    await click("Cutting layout");
+    assert.equal(button("Exploded view").getAttribute("aria-pressed"), "false");
+    await click("Reset camera");
+    assert.equal(caseLayout(), null);
+    assert.equal(button("Perspective").getAttribute("aria-pressed"), "true");
+    await click("Cutting layout");
     const section = title => [...document.querySelectorAll(".config-section")].find(element => element.querySelector("h3").textContent === title);
     const toggleSection = async title => React.act(async () => { section(title).querySelector("summary").click(); });
     assert.equal(section("Dimensions").open, true);
@@ -61,6 +85,7 @@ test("mode switching preserves independent designs and routes material choices a
     await toggleSection("Accessories");
     assert.match(section("Accessories").querySelector("summary").textContent, /1 handle/);
     await click("104");
+    assert.notEqual(caseLayout().querySelector('[data-part="bottom"] path').getAttribute("d"), originalBottomPath, "Cutting layout updates when case dimensions change");
     assert.equal(section("Accessories").open, false, "Unrelated changes preserve collapsed sections");
     assert.match(section("Accessories").querySelector("summary").textContent, /2 handles/);
     await toggleSection("Accessories");
