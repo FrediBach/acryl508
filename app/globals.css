@@ -169,7 +169,7 @@
 .section-number { font-size: 9px; color: var(--signal); }
 .section-heading h3 { margin: 0; font-size: 11px; font-weight: 550; }
 .section-detail { margin-left: auto; font-size: 6.7px; letter-spacing: .5px; color: var(--muted-foreground); }
-.control-panel.case-control-panel { padding: 0 16px 16px; }
+.control-panel.accordion-control-panel { padding: 0 16px 16px; }
 .config-intro { margin: 12px 0; font-size: 9px; line-height: 1.5; color: var(--muted-foreground); }
 .config-section { margin-bottom: 8px; border: 1px solid var(--border); border-radius: 4px; }
 .config-section[open] { border-color: var(--strong-border); }
@@ -194,9 +194,9 @@
 .config-disclosure[open] > summary > svg { transform: rotate(180deg); }
 .config-disclosure-body { padding: 4px 0; }
 .config-section-body .vent-controls { margin-bottom: 0; }
-.case-control-panel .preset-row { flex-wrap: wrap; gap: 6px; }
+.accordion-control-panel .preset-row { flex-wrap: wrap; gap: 6px; }
 .case-control-panel .rack-row { grid-template-columns: 23px minmax(60px, 1fr) repeat(3, 26px); }
-.case-control-panel .field-note { text-align: right; }
+.accordion-control-panel .field-note { text-align: right; }
 .field-heading, .inline-field { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 10px; }
 .field-note { color: var(--muted-foreground); font-size: 9px; }
 .segmented-control { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--border); border-radius: 3px; padding: 3px; margin-top: 9px; background: var(--surface); gap: 3px; }
@@ -439,7 +439,7 @@
   .config-section-summary, .config-intro { font-size: 9px; }
   .config-group-title, .config-disclosure > summary { font-size: 10px; }
   .case-control-panel .rack-row { grid-template-columns: 20px minmax(56px, 1fr) repeat(3, 32px); gap: 4px; }
-  .case-control-panel .swatch-list { gap: 10px; }
+  .accordion-control-panel .swatch-list { gap: 10px; }
   .field-heading, .inline-field, .foot-shape-field legend { font-size: 12px; }
   .segment { height: 35px; font-size: 12px; }
   .rack-row { grid-template-columns: 27px minmax(100px, 1fr) repeat(3, 32px); gap: 5px; }

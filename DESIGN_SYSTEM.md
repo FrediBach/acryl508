@@ -39,6 +39,11 @@ collapsing a card preserves its controls and edits. Internal groups use spacing
 and rules, with additional row angles and ventilation effects behind secondary
 disclosures. Disabled ventilation hides its editor while preserving the pattern.
 Side-panel edge margin is grouped with sheet thickness under Material.
+The stand sidebar shares the same card component, spacing, keyboard interaction,
+and live summaries. Its five cards are Your instrument (open initially), Playing
+angle, Material & fit, Cable management, and Your parts. Front extension and
+rounded edges have their own internal groups. Summaries show the actual cable
+hole diameter and automatic part counts as the stand dimensions change.
 
 ## Product constraints
 

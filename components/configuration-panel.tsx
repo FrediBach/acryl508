@@ -1,7 +1,8 @@
 import { ArrowDown, ArrowUp, Check, ChevronDown, Minus, Plus, Trash2 } from "lucide-react";
-import { useId, useState, type CSSProperties, type ReactNode } from "react";
+import { useId, useState, type CSSProperties } from "react";
 import { acrylicTints, busboards, footShapes, handleCount, handleDimensions, handleSizeLimits, sledWebThickness, maxRackUnits, maxSideMarginRatio, minSideMarginRatio, panelSides, panelTint, panelTintsFrom, rackFormatLabel, rackRows, rackRowAngles, rackRowLayout, maxRowAngle, maxTotalRowAngle, ventStyles, sidePanelMargin, totalRackUnits, type CaseConfiguration, type PanelSide, type RackUnit } from "@/lib/configurator";
 
+import { ConfigSection } from "@/components/config-section";
 import { CutoutControls } from "@/components/cutout-controls";
 import { VentControls } from "@/components/vent-controls";
 import { cableHolderLayout, cableHolderLimits } from "@/lib/cable-holder";
@@ -9,16 +10,6 @@ import type { CasePanels } from "@/lib/case-panels";
 import type { CutoutAction } from "@/lib/custom-cutouts";
 
 type Props = { panels: CasePanels; onCutoutAction: (action: CutoutAction) => void; config: CaseConfiguration; onChange: (update: Partial<CaseConfiguration>) => void };
-function ConfigSection({ number, title, summary, children, defaultOpen = false, id }: { number: string; title: string; summary: string; children: ReactNode; defaultOpen?: boolean; id?: string }) {
-  return <details className="config-section" open={defaultOpen} id={id}>
-    <summary className="config-section-trigger">
-      <span className="section-number" aria-hidden="true">{number}</span>
-      <span className="config-section-label"><h3>{title}</h3><span className="config-section-summary">{summary}</span></span>
-      <ChevronDown className="config-section-chevron" size={14} aria-hidden="true" />
-    </summary>
-    <div className="config-section-body">{children}</div>
-  </details>;
-}
 function RangeField({ label, value, min, max, unit, onChange }: { label: string; value: number; min: number; max: number; unit: string; onChange: (value: number) => void }) {
   const id = useId();
   const [draft, setDraft] = useState(String(value));
@@ -68,7 +59,7 @@ export function ConfigurationPanel({ config, panels, onChange, onCutoutAction }:
   }
   const accessoriesSummary = [config.handle && `${handleCount(config)} ${handleCount(config) === 1 ? "handle" : "handles"}`, config.cableHolder && "Cable holder"].filter(Boolean).join(" · ") || "No accessories";
   const powerSummary = config.busboard !== "none" && !panels.powerBoard?.fits ? `${busboards[config.busboard]} · Does not fit` : `${busboards[config.busboard]}${panels.mountingConflicts > 0 ? " · Mount conflicts" : ""}`;
-  return <aside className="control-panel case-control-panel" aria-label="Case controls">
+  return <aside className="control-panel accordion-control-panel case-control-panel" aria-label="Case controls">
     <div className="panel-heading"><h2>Your configuration</h2><span className="micro-label">01—07</span></div>
     <p className="config-intro">Open a section to fine-tune your case.</p>
     <ConfigSection number="01" title="Dimensions" summary={`${config.hp} HP · ${config.depth} mm deep`} defaultOpen>
