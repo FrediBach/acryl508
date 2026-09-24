@@ -11,11 +11,17 @@ type Props = { protector: SynthProtector; dark: boolean; exploded: boolean; inst
 function ProtectorModel({ protector, exploded, instrument }: Props) {
   const { config } = protector, t = config.thickness * unit;
   return <group>
-    {protector.parts.map(part => <group key={part.id}
-      position={part.kind === "cover" ? [0, protector.coverUnderside * unit + (exploded ? 0.8 : 0), 0] : [part.side * (config.width / 2 + config.edgeGap) * unit, config.height * unit, -part.depthPosition * unit - part.side * t / 2]}
-      rotation={part.kind === "cover" ? [-Math.PI / 2, 0, 0] : [0, part.side < 0 ? Math.PI : 0, 0]}>
-      <Sheet polygons={part.polygons} thickness={config.thickness} tint={config.tint} transparency={config.transparency} />
-    </group>)}
+    {protector.parts.map(part => {
+      const angle = part.rotationY;
+      const position: [number, number, number] = part.kind === "cover" ? [0, protector.coverUnderside * unit + (exploded ? 0.7 : 0), 0]
+        : part.kind === "strip" ? [part.center[0] * unit, (config.height + protector.retention.stripBottom) * unit + (exploded ? 1.3 : 0), -part.center[1] * unit]
+        : [part.center[0] * unit - Math.sin(angle) * t / 2, config.height * unit, -part.center[1] * unit - Math.cos(angle) * t / 2];
+      return <group key={part.id} position={position} rotation={[0, angle, 0]}>
+        <group rotation={part.kind === "foot" ? [0, 0, 0] : [-Math.PI / 2, 0, 0]}>
+          <Sheet polygons={part.polygons} thickness={config.thickness} tint={config.tint} transparency={config.transparency} />
+        </group>
+      </group>;
+    })}
     {instrument && <group>
       <mesh position={[0, config.height * unit / 2, 0]}><boxGeometry args={[config.width * unit, config.height * unit, config.depth * unit]} /><meshStandardMaterial color="#383c39" roughness={0.8} /></mesh>
       <mesh position={[0, config.height * unit + 0.006, config.depth * unit * 0.2]} rotation={[-Math.PI / 2, 0, 0]}><planeGeometry args={[(config.width - 45) * unit, config.depth * unit * 0.35]} /><meshStandardMaterial color="#73796e" /></mesh>
@@ -27,7 +33,7 @@ function CameraRig({ protector, view, resetKey, exploded }: Props) {
   const controls = useRef<OrbitControlsImpl>(null);
   const { camera, size, invalidate } = useThree();
   const width = protector.dimensions.width * unit, depth = protector.dimensions.depth * unit;
-  const height = protector.overallHeight * unit + (exploded ? 0.8 : 0);
+  const height = protector.overallHeight * unit + (exploded ? 1.3 : 0);
   useEffect(() => {
     const aspect = size.width / Math.max(1, size.height);
     const span = view === "side" ? depth : view === "top" ? width : Math.hypot(width, depth);
