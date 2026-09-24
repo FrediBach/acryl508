@@ -111,7 +111,7 @@ export function rackRowLayout(config: RackLayoutConfiguration) {
   const rows = [];
   for (let index = units.length - 1; index >= 0; index--) {
     const increment = increments[index];
-    const gap = increment > 0 ? Math.max(8, 2 * (config.thickness ?? 5)) + 14 * Math.tan(increment * Math.PI / 360) : 0;
+    const gap = increment > 0 ? (Math.max(8, 2 * (config.thickness ?? 5)) + 14 * Math.tan(increment * Math.PI / 360)) / 3 : 0;
     const bend = (angle + increment / 2) * Math.PI / 180;
     distance += gap * Math.cos(bend);
     rise += gap * Math.sin(bend);

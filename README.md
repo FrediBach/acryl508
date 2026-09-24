@@ -332,8 +332,9 @@ from the table (at most 60° per bend). The front row remains the stance referen
 Zero increments preserve the original flat layout; older configurations default
 to zero. Row size changes preserve angles, and moving/removing rows updates both.
 
-Rails retain their standard pitch within each bay. Each bend adds at least 8 mm
-or two sheet thicknesses of clearance, plus a rotation allowance; the rear panel
+Rails retain their standard pitch within each bay. Each bend adds a compact gap:
+one-third of the combined base clearance (8 mm or two sheet thicknesses) and
+rotation allowance; the rear panel
 also reserves space for the tilted rail. The shared geometry reshapes the side
 rims and rear panel, places matching rail holes and end-panel slots, and updates
 case dimensions, board fit, the 3D preview, and JSON/SVG exports. Integral feet

@@ -40,7 +40,7 @@ test("row increments accumulate toward the rear and preserve standard rail pitch
     const rear = rackRowPoint(rows[index], rows[index].length / 2);
     const front = rackRowPoint(rows[index + 1], -rows[index + 1].length / 2);
     near(Math.hypot(rear.z - front.z, rear.y - front.y), rows[index].gap);
-    assert.ok(rows[index].gap >= 10);
+    near(rows[index].gap, (10 + 14 * Math.tan(rows[index].increment * Math.PI / 360)) / 3);
   }
   assert.ok(rackEnvelope(config).rise > 0);
   near(caseDimensions(config).height, config.depth + config.thickness + sidePanelMargin(config) + rackEnvelope(config).rise);
