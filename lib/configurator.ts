@@ -6,7 +6,8 @@ import { sinusodaHoles, sinusodaJuice, sinusodaPlacement } from "./sinusoda";
 import { trolleyBus, trolleyHoles, trolleyMountingHoles, trolleyPlacement } from "./trolley";
 import { compactPwr, compactPwrHoles, compactPwrPlacement } from "./compactpwr";
 
-export type AcrylicTint = { id: string; label: string; color: string };
+import { defaultTint, defaultTransparency, type AcrylicTint, type AcrylicTransparency } from "./acrylic-material";
+export { acrylicTints, type AcrylicTint } from "./acrylic-material";
 export type PanelSide = CutoutSide;
 export const panelSides = cutoutSides;
 export type Busboard = "none" | "sinusoda" | "trolley" | "compactpwr";
@@ -19,7 +20,7 @@ export type VentCoverage = "bands" | "field";
 export type VentMix = "checkerboard" | "rows" | "columns";
 export type CaseConfiguration = {
   hp: number; rows: number; rowUnits: RackUnit[]; depth: number; thickness: number; sideMarginRatio: number;
-  tint: AcrylicTint; individualPanelTints?: boolean; panelTints?: Partial<Record<PanelSide, AcrylicTint>>;
+  tint: AcrylicTint; transparency?: AcrylicTransparency; panelTransparencies?: Partial<Record<PanelSide, AcrylicTransparency>>; individualPanelTints?: boolean; panelTints?: Partial<Record<PanelSide, AcrylicTint>>;
   angle: number; rowAngles?: number[]; vents: boolean; busboard: Busboard;
   ventStyle: VentStyle; ventDensity: VentDensity;
   ventLayout: VentLayout; ventCoverage: VentCoverage; ventMix: VentMix;
@@ -28,18 +29,17 @@ export type CaseConfiguration = {
   cableHolder?: boolean; cableHolderHeight?: number; cableHolderSlitWidth?: number;
   cutouts: CustomCutout[];
 };
-export const acrylicTints: AcrylicTint[] = [
-  { id: "clear", label: "Crystal", color: "#cae5e1" },
-  { id: "orange", label: "Signal orange", color: "#ff6a18" },
-  { id: "smoke", label: "Smoke", color: "#686d70" },
-  { id: "green", label: "Sea glass", color: "#57b7a6" },
-  { id: "blue", label: "Cobalt", color: "#578fc8" },
-];
 export function panelTintsFrom(tint: AcrylicTint): Record<PanelSide, AcrylicTint> {
   return Object.fromEntries(panelSides.map(({ value }) => [value, tint])) as Record<PanelSide, AcrylicTint>;
 }
 export function panelTint(config: Pick<CaseConfiguration, "tint" | "individualPanelTints" | "panelTints">, side: PanelSide) {
   return config.individualPanelTints ? config.panelTints?.[side] ?? config.tint : config.tint;
+}
+export function panelTransparency(config: Pick<CaseConfiguration, "transparency" | "individualPanelTints" | "panelTransparencies">, side: PanelSide) {
+  return (config.individualPanelTints ? config.panelTransparencies?.[side] : undefined) ?? config.transparency ?? defaultTransparency;
+}
+export function panelTransparenciesFrom(transparency: AcrylicTransparency = defaultTransparency): Record<PanelSide, AcrylicTransparency> {
+  return Object.fromEntries(panelSides.map(({ value }) => [value, transparency])) as Record<PanelSide, AcrylicTransparency>;
 }
 export const maxRackUnits = 9;
 export const rackUnitPitch = 44.45;
@@ -71,7 +71,7 @@ export const ventDensities: { value: VentDensity; label: string }[] = [
   { value: "low", label: "Low" }, { value: "medium", label: "Medium" }, { value: "high", label: "High" },
 ];
 export const defaultConfiguration: CaseConfiguration = {
-  hp: 84, rows: 1, rowUnits: [3], depth: 75, thickness: 5, sideMarginRatio: 2, tint: acrylicTints[1], angle: 0, vents: true, busboard: "none",
+  hp: 84, rows: 1, rowUnits: [3], depth: 75, thickness: 5, sideMarginRatio: 2, tint: defaultTint, transparency: defaultTransparency, angle: 0, vents: true, busboard: "none",
   handle: false, handleMode: "auto", handleWidth: 160, handleHeight: 70, footShape: "wedge", cutouts: [], ventStyle: "long-slits", ventDensity: "medium",
   ventDesign: defaultVentDesign,
   ventLayout: "aligned", ventCoverage: "bands", ventMix: "checkerboard",
@@ -168,7 +168,7 @@ export function configurationExport(config: CaseConfiguration, cutoutReports: Cu
   const holder = cableHolderLayout(config);
   return {
     product: "Acryl508", version: 9, units: "mm", status: "design-concept",
-    configuration: { ...config, handleWidth: handleDimensions(config).width, handleHeight: handleDimensions(config).height, ventLayout: config.ventLayout ?? "aligned", ventCoverage: config.ventCoverage ?? "bands", ventMix: config.ventMix ?? "checkerboard", ventDesign: normalizeVentDesign(config.ventDesign), material: "GS cast acrylic", fasteners: "Black socket-head screws", assembly: "Mechanical; no glue" },
+    configuration: { ...config, transparency: config.transparency ?? defaultTransparency, handleWidth: handleDimensions(config).width, handleHeight: handleDimensions(config).height, ventLayout: config.ventLayout ?? "aligned", ventCoverage: config.ventCoverage ?? "bands", ventMix: config.ventMix ?? "checkerboard", ventDesign: normalizeVentDesign(config.ventDesign), material: "GS cast acrylic", fasteners: "Black socket-head screws", assembly: "Mechanical; no glue" },
     ventilation: {
       minimumWebMm: Math.max(3, config.thickness), borderMm: Math.max(8, 2 * config.thickness),
       coverage: "Two bands or a full field with a solid centre strip. Staggered rows are offset by half a column pitch and shortened at the borders. Mixed openings alternate round dots and short slits by opening, row or column.",

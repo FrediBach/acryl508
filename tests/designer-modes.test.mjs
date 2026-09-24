@@ -99,10 +99,18 @@ test("mode switching preserves independent designs and routes material choices a
     await toggleSection("Playing angle");
     assert.equal(button("Front extension").getAttribute("aria-checked"), "true");
     await click("35°");
-    await click("Material library"); await click("Cobalt");
+    await click("Material library");
+    await React.act(async () => document.querySelector('dialog button[aria-label="Blue (Blau)"]').click());
+    const selectValue = async (select, value) => React.act(async () => {
+      select.value = value;
+      select.dispatchEvent(new dom.window.Event("change", { bubbles: true }));
+    });
+    await selectValue(document.querySelector("dialog select"), "opal");
+    await click("Close notes");
     await click("Export JSON");
     const stand = JSON.parse(await downloads.at(-1).blob.text());
     assert.equal(stand.mode, "synth-stand"); assert.equal(stand.configuration.angle, 35); assert.equal(stand.configuration.tint.id, "blue");
+    assert.equal(stand.configuration.transparency, "opal");
     assert.equal(stand.configuration.cableHoles, true);
     assert.equal(stand.configuration.roundedEdges, true);
     assert.equal(stand.configuration.frontExtension, true);
@@ -110,7 +118,7 @@ test("mode switching preserves independent designs and routes material choices a
     assert.equal(stand.edgeRounding.requestedRadius, 3);
     assert.equal(stand.cableManagement.totalCount, (stand.construction.ribCount - 1) * 3);
     assert.match(section("Playing angle").querySelector("summary").textContent, /35° tilt/);
-    assert.match(section("Material & fit").querySelector("summary").textContent, /Cobalt/);
+    assert.match(section("Material & fit").querySelector("summary").textContent, /Blue/);
     assert.ok(section("Cable management").querySelector("summary").textContent.includes(`${stand.cableManagement.totalCount} holes`));
     assert.ok(section("Your parts").querySelector("summary").textContent.includes(`${stand.construction.totalParts} parts`));
     await click("Cutting layout");
@@ -125,6 +133,36 @@ test("mode switching preserves independent designs and routes material choices a
     await click("Export JSON");
     const caseData = JSON.parse(await downloads.at(-1).blob.text());
     assert.equal(caseData.configuration.hp, 104); assert.equal(caseData.configuration.tint.id, "orange");
+    assert.equal(caseData.configuration.transparency, "transparent");
+    await toggleSection("Material");
+    assert.equal(document.querySelectorAll('[aria-label="Acrylic color"] button').length, 11);
+    await click("Use individual acrylic materials for each sheet");
+    await selectValue(document.querySelector("#panel-tint-front"), "black");
+    const transparencySelect = label => {
+      const field = [...document.querySelectorAll("label")].find(element => element.textContent === label);
+      assert.ok(field, `field ${label} exists`);
+      return document.getElementById(field.htmlFor);
+    };
+    await selectValue(transparencySelect("Front transparency"), "opaque");
+    await click("Export JSON");
+    let materialCase = JSON.parse(await downloads.at(-1).blob.text()).configuration;
+    assert.equal(materialCase.panelTints.front.id, "black");
+    assert.equal(materialCase.panelTransparencies.front, "opaque");
+    assert.equal(materialCase.panelTransparencies.bottom, "transparent");
+    await click("Red (Rot)");
+    await click("Export JSON");
+    materialCase = JSON.parse(await downloads.at(-1).blob.text()).configuration;
+    assert.ok(Object.values(materialCase.panelTints).every(tint => tint.id === "red"));
+    assert.equal(materialCase.panelTransparencies.front, "opaque", "Applying color preserves sheet finishes");
+    await selectValue(document.querySelector("#panel-tint-left"), "white");
+    await selectValue(transparencySelect("All sheets’ transparency"), "see-through");
+    await click("Export JSON");
+    materialCase = JSON.parse(await downloads.at(-1).blob.text()).configuration;
+    assert.ok(Object.values(materialCase.panelTransparencies).every(value => value === "see-through"));
+    assert.equal(materialCase.panelTints.left.id, "white", "Applying transparency preserves sheet colors");
+    await click("Use individual acrylic materials for each sheet");
+    await click("Use individual acrylic materials for each sheet");
+    assert.equal(document.querySelector("#panel-tint-left").value, "white", "Toggling individual mode retains choices");
     // Exercise the real row controls through both exports, including row edits.
     const addRow = async units => React.act(async () => {
       [...document.querySelectorAll(".rack-add button")].find(element => element.textContent.trim() === `${units}U`).click();
@@ -165,6 +203,7 @@ test("mode switching preserves independent designs and routes material choices a
     assert.equal(document.querySelector('input[aria-label="Extension length in mm"]'), null);
     await click("Export JSON");
     const compactStand = JSON.parse(await downloads.at(-1).blob.text());
+    assert.equal(compactStand.configuration.transparency, "opal", "Case edits preserve stand finish");
     assert.equal(compactStand.frontExtension.length, 0);
     assert.equal(compactStand.configuration.frontExtensionLength, 15);
     assert.equal(button("Rounded edges").getAttribute("aria-checked"), "true");

@@ -1,9 +1,9 @@
 import polygonClipping, { type MultiPolygon, type Pair } from "polygon-clipping";
-import { acrylicTints, type AcrylicTint } from "./configurator";
+import { defaultTint, defaultTransparency, type AcrylicTint, type AcrylicTransparency } from "./acrylic-material";
 
 export type StandConfiguration = {
   width: number; depth: number; height: number; angle: number;
-  thickness: number; clearance: number; tint: AcrylicTint;
+  thickness: number; clearance: number; tint: AcrylicTint; transparency?: AcrylicTransparency;
   cableHoles: boolean; cableHoleDiameter: number;
   roundedEdges: boolean; cornerRadius: number;
   frontExtension: boolean; frontExtensionLength: number;
@@ -17,7 +17,7 @@ export const standLimits = {
   frontExtensionLength: { min: 5, max: 100 },
 };
 export const defaultStandConfiguration: StandConfiguration = {
-  width: 550, depth: 280, height: 70, angle: 25, thickness: 6, clearance: 0.15, tint: acrylicTints[1],
+  width: 550, depth: 280, height: 70, angle: 25, thickness: 6, clearance: 0.15, tint: defaultTint, transparency: defaultTransparency,
   cableHoles: false, cableHoleDiameter: 20,
   roundedEdges: false, cornerRadius: 3,
   frontExtension: false, frontExtensionLength: 15,
@@ -27,7 +27,7 @@ export type StandPart = {
   polygons: MultiPolygon; width: number; height: number; minX: number;
 };
 export function normalizeStandConfiguration(input: StandConfiguration): StandConfiguration {
-  const config = { ...input, cableHoles: input.cableHoles === true, roundedEdges: input.roundedEdges === true, frontExtension: input.frontExtension === true };
+  const config = { ...input, transparency: input.transparency ?? defaultTransparency, cableHoles: input.cableHoles === true, roundedEdges: input.roundedEdges === true, frontExtension: input.frontExtension === true };
   for (const key of Object.keys(standLimits) as (keyof typeof standLimits)[]) {
     const { min, max } = standLimits[key];
     config[key] = Math.max(min, Math.min(max, Number.isFinite(input[key]) ? input[key] : defaultStandConfiguration[key]));

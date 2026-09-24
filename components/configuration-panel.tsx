@@ -1,7 +1,9 @@
-import { ArrowDown, ArrowUp, Check, ChevronDown, Minus, Plus, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronDown, Minus, Plus, Trash2 } from "lucide-react";
 import { useId, useState, type CSSProperties } from "react";
-import { acrylicTints, busboards, footShapes, handleCount, handleDimensions, handleSizeLimits, sledWebThickness, maxRackUnits, maxSideMarginRatio, minSideMarginRatio, panelSides, panelTint, panelTintsFrom, rackFormatLabel, rackRows, rackRowAngles, rackRowLayout, maxRowAngle, maxTotalRowAngle, ventStyles, sidePanelMargin, totalRackUnits, type CaseConfiguration, type PanelSide, type RackUnit } from "@/lib/configurator";
+import { acrylicTints, busboards, footShapes, handleCount, handleDimensions, handleSizeLimits, sledWebThickness, maxRackUnits, maxSideMarginRatio, minSideMarginRatio, panelSides, panelTint, panelTintsFrom, panelTransparency, panelTransparenciesFrom, rackFormatLabel, rackRows, rackRowAngles, rackRowLayout, maxRowAngle, maxTotalRowAngle, ventStyles, sidePanelMargin, totalRackUnits, type CaseConfiguration, type PanelSide, type RackUnit } from "@/lib/configurator";
 
+import { materialLabel, type AcrylicTransparency } from "@/lib/acrylic-material";
+import { ColorChooser, TransparencyChooser, MaterialPreviewNote } from "@/components/material-controls";
 import { ConfigSection } from "@/components/config-section";
 import { CutoutControls } from "@/components/cutout-controls";
 import { VentControls } from "@/components/vent-controls";
@@ -48,10 +50,13 @@ export function ConfigurationPanel({ config, panels, onChange, onCutoutAction }:
   function selectTint(tint: typeof acrylicTints[number]) {
     onChange({ tint, ...(config.individualPanelTints ? { panelTints: panelTintsFrom(tint) } : {}) });
   }
+  function selectTransparency(transparency: AcrylicTransparency) {
+    onChange({ transparency, ...(config.individualPanelTints ? { panelTransparencies: panelTransparenciesFrom(transparency) } : {}) });
+  }
   function toggleIndividualTints() {
     onChange(config.individualPanelTints
       ? { individualPanelTints: false }
-      : { individualPanelTints: true, panelTints: config.panelTints ?? panelTintsFrom(config.tint) });
+      : { individualPanelTints: true, panelTints: config.panelTints ?? panelTintsFrom(config.tint), panelTransparencies: config.panelTransparencies ?? panelTransparenciesFrom(config.transparency) });
   }
   function selectPanelTint(side: PanelSide, tintId: string) {
     const tint = acrylicTints.find(option => option.id === tintId) ?? config.tint;
@@ -112,15 +117,16 @@ export function ConfigurationPanel({ config, panels, onChange, onCutoutAction }:
         </div>
       </details>}
     </ConfigSection>
-    <ConfigSection number="03" title="Material" summary={`${config.individualPanelTints ? "Individual tints" : config.tint.label} · ${config.thickness} mm acrylic`} id="materials">
+    <ConfigSection number="03" title="Material" summary={`${config.individualPanelTints ? "Individual materials" : materialLabel(config.tint, config.transparency)} · ${config.thickness} mm acrylic`} id="materials">
       <div className="config-group">
-      <div className="field-heading"><span>{config.individualPanelTints ? "Apply tint to all sheets" : "Acrylic tint"}</span><span className="field-note">{config.tint.label}</span></div>
-      <div className="swatch-list" aria-label="Acrylic tint">{acrylicTints.map(tint => <button key={tint.id} className={`tint-swatch ${config.tint.id === tint.id ? "tint-swatch-active" : ""}`} style={{ "--swatch": tint.color } as CSSProperties} aria-label={`Apply ${tint.label} acrylic to all sheets`} aria-pressed={config.tint.id === tint.id} title={tint.label} onClick={() => selectTint(tint)}><span className="swatch-surface">{config.tint.id === tint.id && <Check size={18} strokeWidth={1.7} />}</span><span className="swatch-caption">{tint.id === "orange" ? "Orange" : tint.id === "green" ? "Sea glass" : tint.label}</span></button>)}</div>
-      <div className="inline-field"><label htmlFor="individual-panel-tints">Individual sheet tints</label><button id="individual-panel-tints" role="switch" aria-checked={Boolean(config.individualPanelTints)} aria-label="Use individual acrylic tints for each sheet" aria-describedby="individual-panel-tints-note" className={`toggle ${config.individualPanelTints ? "toggle-on" : ""}`} onClick={toggleIndividualTints}><span>{config.individualPanelTints ? <Plus size={10} /> : <Minus size={10} />}</span></button></div>
-      <p className="control-note" id="individual-panel-tints-note">{config.individualPanelTints ? "Choose a tint for each of the five enclosure sheets. The swatches above still apply one tint to all sheets." : "All five sheets use the acrylic tint selected above."}</p>
-      {config.individualPanelTints && <div className="panel-tint-list" aria-label="Individual sheet tints">{panelSides.map(side => {
+      <ColorChooser tint={config.tint} onChange={selectTint} label={config.individualPanelTints ? "Apply color to all sheets" : "Acrylic color"} />
+      <TransparencyChooser value={config.transparency} onChange={selectTransparency} label={config.individualPanelTints ? "All sheets’ transparency" : "Transparency"} />
+      <MaterialPreviewNote />
+      <div className="inline-field"><label htmlFor="individual-panel-tints">Individual sheet materials</label><button id="individual-panel-tints" role="switch" aria-checked={Boolean(config.individualPanelTints)} aria-label="Use individual acrylic materials for each sheet" aria-describedby="individual-panel-tints-note" className={`toggle ${config.individualPanelTints ? "toggle-on" : ""}`} onClick={toggleIndividualTints}><span>{config.individualPanelTints ? <Plus size={10} /> : <Minus size={10} />}</span></button></div>
+      <p className="control-note" id="individual-panel-tints-note">{config.individualPanelTints ? "Choose a color and transparency for each sheet. The controls above apply their respective setting to all sheets." : "All five sheets use the color and transparency selected above."}</p>
+      {config.individualPanelTints && <div className="panel-tint-list" aria-label="Individual sheet materials">{panelSides.map(side => {
         const selected = panelTint(config, side.value);
-        return <label key={side.value} htmlFor={`panel-tint-${side.value}`}><span><i style={{ background: selected.color }} />{side.label}</span><span className="select-wrap"><select id={`panel-tint-${side.value}`} value={selected.id} onChange={event => selectPanelTint(side.value, event.target.value)}>{acrylicTints.map(tint => <option key={tint.id} value={tint.id}>{tint.label}</option>)}</select><ChevronDown size={12} /></span></label>;
+        return <div className="panel-material" key={side.value}><label className="inline-field" htmlFor={`panel-tint-${side.value}`}><span><i style={{ background: selected.color }} />{side.label}</span><span className="select-wrap"><select id={`panel-tint-${side.value}`} aria-label={`${side.label} color`} value={selected.id} onChange={event => selectPanelTint(side.value, event.target.value)}>{acrylicTints.map(tint => <option key={tint.id} value={tint.id}>{tint.label} · {tint.shopLabel}</option>)}</select><ChevronDown size={12} /></span></label><TransparencyChooser compact label={`${side.label} transparency`} value={panelTransparency(config, side.value)} onChange={transparency => onChange({ panelTransparencies: { ...config.panelTransparencies, [side.value]: transparency } })} /></div>;
       })}</div>}
       <div className="inline-field"><label htmlFor="thickness">Sheet thickness</label><div className="select-wrap"><select id="thickness" value={config.thickness} onChange={event => onChange({ thickness: Number(event.target.value) })}>{[3, 4, 5, 6].map(value => <option key={value} value={value}>{value} mm</option>)}</select><ChevronDown size={12} /></div></div>
       </div>

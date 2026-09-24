@@ -5,6 +5,7 @@ import { ContactShadows, Environment, Lightformer, Line, OrbitControls } from "@
 import { Path, Shape, Vector3 } from "three";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import type { MultiPolygon } from "polygon-clipping";
+import { acrylicMaterial, type AcrylicTint, type AcrylicTransparency } from "@/lib/acrylic-material";
 import type { SynthStand } from "@/lib/synth-stand";
 import { panelEdgePoints } from "@/lib/panel-edges";
 
@@ -23,11 +24,11 @@ function shapesFrom(polygons: MultiPolygon) {
     return shape;
   });
 }
-function Sheet({ polygons, thickness, color }: { polygons: MultiPolygon; thickness: number; color: string }) {
+function Sheet({ polygons, thickness, tint, transparency }: { polygons: MultiPolygon; thickness: number; tint: AcrylicTint; transparency?: AcrylicTransparency }) {
   const shapes = useMemo(() => shapesFrom(polygons), [polygons]);
   const args = useMemo(() => [shapes, { depth: thickness * unit, bevelEnabled: false }] as const, [shapes, thickness]);
   const edges = useMemo(() => panelEdgePoints(shapes, thickness * unit, 12, 15), [shapes, thickness]);
-  return <mesh><extrudeGeometry args={args} /><meshPhysicalMaterial color={color} roughness={0.16} transmission={0.78} thickness={thickness * unit * 2} ior={1.49} clearcoat={1} attenuationColor={color} attenuationDistance={1.2} />{edges.length > 0 && <Line points={edges} segments color={color} raycast={() => null} />}</mesh>;
+  return <mesh><extrudeGeometry args={args} /><meshPhysicalMaterial {...acrylicMaterial(tint, thickness * unit, transparency)} />{edges.length > 0 && <Line points={edges} segments color={tint.color} raycast={() => null} />}</mesh>;
 }
 function StandModel({ stand, exploded, instrument }: Pick<Props, "stand" | "exploded" | "instrument">) {
   const { config, frontHeight } = stand;
@@ -39,7 +40,7 @@ function StandModel({ stand, exploded, instrument }: Pick<Props, "stand" | "expl
     {stand.parts.map(part => <group key={part.id}
       position={part.kind === "rib" ? [part.position * unit - t / 2, lift, 0] : [0, 0, -part.position * unit - t / 2]}
       rotation={part.kind === "rib" ? [0, Math.PI / 2, 0] : [0, 0, 0]}>
-      <Sheet polygons={part.polygons} thickness={config.thickness} color={config.tint.color} />
+      <Sheet polygons={part.polygons} thickness={config.thickness} tint={config.tint} transparency={config.transparency} />
     </group>)}
     {instrument && <group position={[0, frontHeight * unit + lift + (exploded ? 0.7 : 0), 0]} rotation={[angle, 0, 0]}>
       <mesh position={[0, config.height * unit / 2, -config.depth * unit / 2]}>

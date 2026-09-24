@@ -23,7 +23,7 @@ This starter does not use `wrangler.jsonc`.
 - responsive configurator shell under `app/`
 - top-bar Case designer / Synth stand modes with independent in-session configurations
 - automatic slotted acrylic synth stands with solid ribs, three cross braces, 3D and cutting layouts, and JSON/SVG export
-- interactive Three.js case preview with ordered, mix-and-match 1U/3U rows, live dimensions, and optional per-sheet acrylic tints
+- interactive Three.js case preview with ordered, mix-and-match 1U/3U rows, live dimensions, and optional per-sheet acrylic colors and transparency
 - interlocking case panels retained by rail-end screws, with stance and handles integral to the side panels
 - adjustable side-panel retaining margins from the original 2× sheet thickness to a guarded near-flush 1× profile
 - bottom ventilation with long slits, short slits, round or hexagonal holes, and three densities
@@ -341,3 +341,16 @@ case dimensions, board fit, the 3D preview, and JSON/SVG exports. Integral feet
 are automatic for angled layouts, with four contact pads at a flat stance.
 The enclosure remains five acrylic sheets. As elsewhere in the designer, actual
 module depth, rail profiles, joint fit and loaded stability need prototype checks.
+
+## Acrylic colors and transparency
+
+Both designers and the material library offer the shop’s eleven color families:
+Farblos, Schwarz, Weiss, Grau, Orange, Rot, Gelb, Blau, Grün, Umbra and Braun.
+Color and transparency are independent; the case can also set both per sheet.
+Applying a color to all sheets preserves their transparency choices and vice versa.
+The four transparency presets are Blickdurchlässig (see-through), Opak (deckend),
+Opal (milchig), and Volltransparent. Their shared physical-material renderer varies
+transmission, roughness, absorption and milky color mixing. These are appearance
+approximations, not measured supplier properties or a stock availability matrix.
+JSON exports retain `transparency` and optional case `panelTransparencies`; older
+configurations without these fields default to fully transparent.
