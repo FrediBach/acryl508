@@ -48,7 +48,11 @@ test("mode switching preserves independent designs and routes material choices a
     const match = [...document.querySelectorAll("button")].find(element => element.getAttribute("aria-label") === label || element.textContent.trim() === label);
     assert.ok(match, `button ${label} exists`); return match;
   };
-  const click = async label => React.act(async () => { button(label).click(); });
+  const click = async label => React.act(async () => {
+    const target = button(label), menu = target.closest(".project-menu");
+    if (menu && !menu.open) menu.querySelector("summary").click();
+    target.click();
+  });
   try {
     const { ConfiguratorShell } = load(path.join(project, "components/configurator-shell.tsx"));
     await React.act(async () => { root.render(React.createElement(ConfiguratorShell)); });

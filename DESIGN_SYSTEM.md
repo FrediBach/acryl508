@@ -48,6 +48,13 @@ angle, Material & fit, Cable management, and Your parts. Front extension and
 rounded edges have their own internal groups. Summaries show the actual cable
 hole diameter and automatic part counts as the stand dimensions change.
 
+The project toolbar is a quiet, 48 px utility row below navigation. The project
+name appears as inline text with an editable border on hover/focus; saved status
+sits alongside it on desktop. Compact undo/redo controls and a Project disclosure
+hold the file actions. The menu closes after selection, on Escape, on outside
+click, or when keyboard focus leaves it. At narrow widths, secondary save status
+is hidden while the editable name, history and project actions remain available.
+
 ## Product constraints
 
 The top bar offers Case designer, Synth stand and Synth protector modes. All share the theme,
