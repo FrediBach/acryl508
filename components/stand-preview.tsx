@@ -5,7 +5,7 @@ import { ContactShadows, Environment, Lightformer, Line, OrbitControls } from "@
 import { Path, Shape, Vector3 } from "three";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import type { MultiPolygon } from "polygon-clipping";
-import { acrylicMaterial, type AcrylicTint, type AcrylicTransparency } from "@/lib/acrylic-material";
+import { acrylicMaterial, acrylicEdgeOpacity, type AcrylicTint, type AcrylicTransparency } from "@/lib/acrylic-material";
 import type { SynthStand } from "@/lib/synth-stand";
 import { panelEdgePoints } from "@/lib/panel-edges";
 
@@ -28,7 +28,8 @@ function Sheet({ polygons, thickness, tint, transparency }: { polygons: MultiPol
   const shapes = useMemo(() => shapesFrom(polygons), [polygons]);
   const args = useMemo(() => [shapes, { depth: thickness * unit, bevelEnabled: false }] as const, [shapes, thickness]);
   const edges = useMemo(() => panelEdgePoints(shapes, thickness * unit, 12, 15), [shapes, thickness]);
-  return <mesh><extrudeGeometry args={args} /><meshPhysicalMaterial {...acrylicMaterial(tint, thickness * unit, transparency)} />{edges.length > 0 && <Line points={edges} segments color={tint.color} raycast={() => null} />}</mesh>;
+  const edgeOpacity = acrylicEdgeOpacity(transparency);
+  return <mesh><extrudeGeometry args={args} /><meshPhysicalMaterial {...acrylicMaterial(tint, thickness * unit, transparency)} />{edges.length > 0 && <Line points={edges} segments color={tint.color} transparent={edgeOpacity < 1} opacity={edgeOpacity} depthWrite={edgeOpacity === 1} raycast={() => null} />}</mesh>;
 }
 function StandModel({ stand, exploded, instrument }: Pick<Props, "stand" | "exploded" | "instrument">) {
   const { config, frontHeight } = stand;

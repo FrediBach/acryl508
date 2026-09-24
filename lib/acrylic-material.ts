@@ -29,18 +29,28 @@ export function transparencyOption(value: AcrylicTransparency = defaultTranspare
 export function materialLabel(tint: AcrylicTint, transparency?: AcrylicTransparency) {
   return `${tint.label} · ${transparencyOption(transparency).label}`;
 }
+export function acrylicEdgeOpacity(transparency?: AcrylicTransparency) {
+  // Opal sheets scatter at their cut edges instead of outlining every face
+  // with a saturated, unlit line. Keep a faint edge to read the joinery.
+  return transparency === "opal" ? 0.18 : 1;
+}
 // Appearance presets, not supplier measurements. Thickness is in scene units.
 // Transmission preserves surface reflections; alpha opacity stays at one.
 export function acrylicMaterial(tint: AcrylicTint, thickness: number, transparency: AcrylicTransparency = defaultTransparency): MeshPhysicalMaterialParameters {
   const finish = transparencyOption(transparency).id;
   const opal = finish === "opal";
+  // Approximate bulk diffusion with rough transmission, separate from the
+  // smoother acrylic surface. More material obscures more of the background.
+  // Avoid a large linear-space white mix: it turns orange into pale salmon.
+  const opticalDepth = Math.max(0, thickness) / 0.05;
+  const opalTransmission = 0.68 * Math.exp(-0.38 * opticalDepth);
   return {
-    color: new Color(tint.color).lerp(new Color("#ffffff"), opal ? 0.42 : 0),
-    metalness: 0, roughness: opal ? 0.65 : finish === "see-through" ? 0.24 : 0.1,
-    transmission: finish === "opaque" ? 0 : opal ? 0.32 : finish === "see-through" ? 0.72 : 1,
+    color: new Color(tint.color).lerp(new Color("#ffffff"), opal ? 0.025 : 0),
+    metalness: 0, roughness: opal ? Math.min(0.7, 0.48 + opticalDepth * 0.06) : finish === "see-through" ? 0.24 : 0.1,
+    transmission: finish === "opaque" ? 0 : opal ? opalTransmission : finish === "see-through" ? 0.72 : 1,
     transparent: false, opacity: 1, thickness, ior: 1.49,
-    clearcoat: 1, clearcoatRoughness: 0.07, envMapIntensity: 1.25,
+    clearcoat: opal ? 0.35 : 1, clearcoatRoughness: opal ? 0.18 : 0.07, envMapIntensity: 1.25,
     attenuationColor: tint.color,
-    attenuationDistance: finish === "transparent" ? 1.2 : opal ? 0.12 : 0.45,
+    attenuationDistance: finish === "transparent" ? 1.2 : opal ? 0.22 : 0.45,
   };
 }

@@ -351,7 +351,10 @@ yellow uses a warmer golden shade to better match the actual sheets.
 Color and transparency are independent; the case can also set both per sheet.
 Applying a color to all sheets preserves their transparency choices and vice versa.
 The four transparency presets are See-through, Opaque, Milky, and Fully transparent. Their shared physical-material renderer varies
-transmission, roughness, absorption and milky color mixing. These are appearance
+transmission, roughness and absorption. Milky acrylic uses thickness-dependent
+rough transmission with a smoother surface reflection, preserves the selected
+pigment, and softens the preview’s edge lines. Bulk scattering is approximated,
+not simulated volumetrically. These are appearance
 approximations, not measured supplier properties or a stock availability matrix.
 JSON exports retain `transparency` and optional case `panelTransparencies`; older
 configurations without these fields default to fully transparent.

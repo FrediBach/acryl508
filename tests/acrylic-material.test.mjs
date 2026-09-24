@@ -34,3 +34,14 @@ test("sheet transparency follows individual mode and falls back for legacy or pa
   assert.equal(panelTransparency({ tint: defaultConfiguration.tint }, "front"), "transparent");
   assert.equal(configurationExport(config).configuration.panelTransparencies.front, "opaque");
 });
+
+test("milky sheets retain their pigment and diffuse more light as thickness increases", () => {
+  const orange = acrylicTints.find(tint => tint.id === "orange");
+  const thin = acrylicMaterial(orange, 0.03, "opal");
+  const thick = acrylicMaterial(orange, 0.1, "opal");
+  assert.ok(thick.transmission < thin.transmission);
+  assert.ok(thick.roughness > thin.roughness);
+  assert.ok(thick.clearcoat > 0 && thick.clearcoatRoughness < thick.roughness, "Surface reflection stays smoother than the diffused interior");
+  assert.ok(thick.color.g < thick.color.r * 0.25 && thick.color.b < thick.color.g * 0.3, "Milky orange remains orange rather than pale pink");
+  assert.equal(thick.opacity, 1, "Thicker sheets never use alpha fading");
+});
