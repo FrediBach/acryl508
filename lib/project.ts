@@ -96,6 +96,7 @@ export function readCase(input: unknown): CaseConfiguration {
   config.angle = number(config.angle, "Stance angle", 0, 30);
   config.sideMarginRatio = number(config.sideMarginRatio, "Side margin", 1, 2);
   config.busboard = choice(config.busboard, ["none", "sinusoda", "trolley", "compactpwr"], "busboard");
+  config.flatFootStyle = choice(config.flatFootStyle, ["pads", "arch", "runners"], "flat foot style");
   config.footShape = choice(config.footShape, ["wedge", "arch", "sled"], "foot shape");
   config.patchBoardSide = choice(config.patchBoardSide, ["left", "right", "both"], "patch cable board side");
   config.handleMode = choice(config.handleMode, ["auto", "single", "left", "right", "pair"], "handle layout");
@@ -159,6 +160,6 @@ export function parseProject(source: string, current: Designs = initialDesigns, 
   // Existing single-designer JSON exports remain useful: import only that mode.
   const mode = data.mode === "synth-stand" ? "stand" : data.mode === "synth-protector" ? "protector" : data.mode === "panel-designer" ? "panel" : data.product === "Acryl508" && !data.mode ? "case" : undefined;
   if (!mode || data.units !== "mm") throw new Error("Choose an Acryl508 project or configuration JSON file.");
-  number(data.version, "Export version", 1, { case: 10, stand: 6, protector: 2, panel: 1 }[mode]);
+  number(data.version, "Export version", 1, { case: 11, stand: 6, protector: 2, panel: 1 }[mode]);
   return makeProject("Imported design", mode, { ...current, [mode]: readers[mode](data.configuration) }, currentFonts);
 }

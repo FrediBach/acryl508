@@ -4,6 +4,7 @@ import { ContactShadows, Environment, Lightformer, Line, OrbitControls } from "@
 import { Canvas, useThree } from "@react-three/fiber";
 import { Path, Shape, Vector3 } from "three";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
+import { flatFeetLayout } from "@/lib/flat-feet";
 import { patchBoardLayout, patchBoardSides } from "@/lib/patch-board";
 import { caseDimensions, handleSides, handleDimensions, panelTint, panelTransparency, rackEnvelope, rackRowLayout, sidePanelMargin, type CaseConfiguration } from "@/lib/configurator";
 import { acrylicMaterial, acrylicEdgeOpacity } from "@/lib/acrylic-material";
@@ -77,7 +78,8 @@ function AcrylicCase({ config, panels, exploded, modules }: Pick<Props, "config"
   const { width, length } = caseDimensions(config);
   const w = width * unit, l = length * unit, h = (config.depth + config.thickness + sidePanelMargin(config)) * unit, t = config.thickness * unit;
   const a = config.angle * Math.PI / 180;
-  const lift = caseLift(l, config.angle, rackEnvelope(config).angled);
+  const feet = flatFeetLayout(config);
+  const lift = caseLift(l, config.angle, rackEnvelope(config).angled, feet.enabled ? feet.height * unit : 0);
   const explode = exploded ? 0.4 : 0;
   const { baseBottom, baseTop, endOuter } = panels.layout;
   const tints = { bottom: panelTint(config, "bottom"), left: panelTint(config, "left"), right: panelTint(config, "right"), rear: panelTint(config, "rear"), front: panelTint(config, "front") };
@@ -110,6 +112,8 @@ function CameraRig({ config, view, resetKey, exploded }: Pick<Props, "config" | 
   const width = dimensions.width * unit, length = dimensions.length * unit, height = dimensions.height * unit;
   const handleSize = handleDimensions(config);
   const automaticFeet = rackEnvelope(config).angled;
+  const feet = flatFeetLayout(config);
+  const flatFeetRise = feet.enabled ? feet.height * unit : 0;
   const board = patchBoardLayout(config);
   const gripWidth = Math.max(config.handle ? handleSize.width * unit : 0, config.patchBoard ? board.width * unit : 0);
   const grips = handleSides(config), boards = patchBoardSides(config);
@@ -119,7 +123,7 @@ function CameraRig({ config, view, resetKey, exploded }: Pick<Props, "config" | 
   useEffect(() => {
     const aspect = size.width / size.height;
     const radians = config.angle * Math.PI / 180;
-    const totalHeight = caseLift(length, config.angle, automaticFeet) + Math.sin(radians) * Math.max(length, gripWidth) / 2 + Math.cos(radians) * (height + gripRise);
+    const totalHeight = caseLift(length, config.angle, automaticFeet, flatFeetRise) + Math.sin(radians) * Math.max(length, gripWidth) / 2 + Math.cos(radians) * (height + gripRise);
     const fit = Math.max(width / aspect, Math.max(length, gripWidth) * 0.85, totalHeight * 1.3, 1.85) * (exploded ? 2.8 : 2.35);
     const target = new Vector3(0, totalHeight / 2, 0);
     const direction = view === "top" ? new Vector3(0, 1, 0.001) : view === "front" ? new Vector3(0, 0.1, 1) : new Vector3(0.65, 0.72, 1).normalize();
@@ -127,7 +131,7 @@ function CameraRig({ config, view, resetKey, exploded }: Pick<Props, "config" | 
     camera.lookAt(target);
     if (controls.current) { controls.current.target.copy(target); controls.current.update(); }
     invalidate();
-  }, [camera, size.width, size.height, width, length, height, config.angle, automaticFeet, gripWidth, gripRise, view, resetKey, exploded, invalidate]);
+  }, [camera, size.width, size.height, width, length, height, config.angle, automaticFeet, flatFeetRise, gripWidth, gripRise, view, resetKey, exploded, invalidate]);
   return <OrbitControls ref={controls} makeDefault enablePan={false} enableDamping minDistance={1.3} maxDistance={28} maxPolarAngle={Math.PI / 2 - 0.03} />;
 }
 class PreviewBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {

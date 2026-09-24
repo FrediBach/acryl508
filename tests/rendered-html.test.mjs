@@ -77,7 +77,7 @@ test("export retains the complete configuration and marks unverified board fit",
   for (const [key, value] of Object.entries(config)) assert.deepEqual(exported.configuration[key], value);
   assert.deepEqual(exported.outerDimensions, caseDimensions(config));
   assert.equal(exported.status, "design-concept");
-  assert.equal(exported.version, 10);
+  assert.equal(exported.version, 11);
   assert.equal(exported.units, "mm");
   assert.equal(exported.configuration.material, "GS cast acrylic");
   assert.match(exported.notes.join(" "), /not a cutting template/);

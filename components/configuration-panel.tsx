@@ -7,6 +7,7 @@ import { ColorChooser, TransparencyChooser, MaterialPreviewNote } from "@/compon
 import { ConfigSection } from "@/components/config-section";
 import { CutoutControls } from "@/components/cutout-controls";
 import { VentControls } from "@/components/vent-controls";
+import { flatFeetLayout, flatFootStyles, flatFootHeightLimits } from "@/lib/flat-feet";
 import { patchBoardLayout, patchBoardLimits, patchBoardSides } from "@/lib/patch-board";
 import { cableHolderLayout, cableHolderLimits } from "@/lib/cable-holder";
 import type { CasePanels } from "@/lib/case-panels";
@@ -38,6 +39,7 @@ export function ConfigurationPanel({ config, panels, onChange, onCutoutAction }:
   const handleSize = handleDimensions(config);
   const board = patchBoardLayout(config);
   const holder = cableHolderLayout(config);
+  const feet = flatFeetLayout(config);
   const rackUnits = totalRackUnits(config);
   function updateRows(nextRows: RackUnit[], nextAngles = rowAngles) {
     const update = { rows: nextRows.length, rowUnits: nextRows, rowAngles: nextAngles };
@@ -75,7 +77,7 @@ export function ConfigurationPanel({ config, panels, onChange, onCutoutAction }:
       <div className="preset-row"><span>Quick set</span>{[42, 62, 84, 104, 126].map(hp => <button key={hp} onClick={() => onChange({ hp })} aria-pressed={config.hp === hp} className={config.hp === hp ? "preset-active" : ""}>{hp}</button>)}</div>
       <RangeField label="Internal depth" value={config.depth} min={50} max={180} unit="mm" onChange={depth => onChange({ depth })} />
     </ConfigSection>
-    <ConfigSection number="02" title="Rows & stance" summary={`${rackFormatLabel(config)} · ${config.angle === 0 ? "Flat stance" : `${config.angle}° stance`}${angledRows ? " · Angled rows" : ""}`}>
+    <ConfigSection number="02" title="Rows & stance" summary={`${rackFormatLabel(config)} · ${config.angle === 0 ? feet.enabled ? `Flat · ${flatFootStyles.find(style => style.value === feet.style)?.label} feet` : "Flat stance" : `${config.angle}° stance`}${angledRows ? " · Angled rows" : ""}`}>
       <div className="config-group">
       <div className="field-heading"><span>Rack rows</span><span className="field-note">{rackFormatLabel(config)} · {rackUnits}U total</span></div>
       <div className="rack-layout" aria-label="Rack row layout">
@@ -96,13 +98,24 @@ export function ConfigurationPanel({ config, panels, onChange, onCutoutAction }:
       <div className="config-group">
         <h4 className="config-group-title">Stance</h4>
       <div className="segmented-control stance-control" role="group" aria-label="Stance angle">{[0, 10, 20, 30].map(angle => <button key={angle} className={`segment ${config.angle === angle ? "segment-active" : ""}`} aria-pressed={config.angle === angle} onClick={() => onChange({ angle, rowAngles: rackRowAngles({ ...config, angle }) })}>{angle === 0 ? "Flat" : `${angle}°`}</button>)}</div>
-      <fieldset className="foot-shape-field" disabled={config.angle === 0} aria-describedby="foot-shape-note">
+      {config.angle > 0 ? <>
+      <fieldset className="foot-shape-field" aria-describedby="foot-shape-note">
         <legend>Side profile <span className="field-note">One continuous sheet</span></legend>
         <div className="segmented-control foot-shape-control">{footShapes.map(shape => <button key={shape.value} className={`segment ${config.footShape === shape.value ? "segment-active" : ""}`} aria-pressed={config.footShape === shape.value} title={shape.description} onClick={() => onChange({ footShape: shape.value })}>{shape.label}</button>)}</div>
       </fieldset>
-      <p className="control-note" id="foot-shape-note">{config.angle === 0 ? angledRows ? "Four integral feet support the angled rows. Choose a stance angle to use wedge, arch or sled supports." : "Choose an angle to shape the side panels into the stance." : footShapes.find(shape => shape.value === config.footShape)?.description}</p>
-      {config.angle > 0 && config.footShape === "sled" && <p className="control-note">At least {sledWebThickness(config.thickness)} mm of material around the opening. Short, shallow stances stay solid where the opening would leave too little material.</p>}
-      {config.angle > 0 && <p className="control-note">The sides extend to the floor. Five panels, with no extra stance hardware.</p>}
+      <p className="control-note" id="foot-shape-note">{footShapes.find(shape => shape.value === config.footShape)?.description}</p>
+      {config.footShape === "sled" && <p className="control-note">At least {sledWebThickness(config.thickness)} mm of material around the opening. Short, shallow stances stay solid where the opening would leave too little material.</p>}
+      <p className="control-note">The sides extend to the floor. Five panels, with no extra stance hardware.</p>
+      </> : <>
+      <div className="inline-field"><label htmlFor="flat-feet">Flat-case feet</label><button id="flat-feet" role="switch" aria-checked={Boolean(config.flatFeet)} aria-label="Flat-case feet" aria-describedby="flat-feet-note" className={`toggle ${config.flatFeet ? "toggle-on" : ""}`} onClick={() => onChange({ flatFeet: !config.flatFeet })}><span>{config.flatFeet ? <Plus size={10} /> : <Minus size={10} />}</span></button></div>
+      <p className="control-note" id="flat-feet-note">{feet.enabled ? "Feet cut into the side sheets lift the case evenly without tilting it." : angledRows ? "Angled rows keep their automatic low arch supports. Enable flat-case feet to choose a style and height." : "Add integral feet beneath the side panels while keeping the case level."}</p>
+      {feet.enabled && <>
+        <div className="segmented-control foot-shape-control" role="group" aria-label="Flat feet style">{flatFootStyles.map(style => <button key={style.value} className={`segment ${feet.style === style.value ? "segment-active" : ""}`} aria-pressed={feet.style === style.value} title={style.description} onClick={() => onChange({ flatFootStyle: style.value })}>{style.label}</button>)}</div>
+        <p className="control-note">{flatFootStyles.find(style => style.value === feet.style)?.description}</p>
+        <RangeField label="Foot height" value={feet.height} min={flatFootHeightLimits.min} max={flatFootHeightLimits.max} unit="mm" onChange={flatFootHeight => onChange({ flatFootHeight })} />
+        <p className="control-note">Height below the enclosure. All profiles use simple cuts in the existing sheets, with no extra parts or hardware.</p>
+      </>}
+      </>}
       </div>
       {rows.length > 1 && <details className="config-disclosure" aria-label="Additional row angles">
         <summary><span>Additional row angles</span><span>{angledRows ? "Custom tilt" : "All flat"}</span><ChevronDown size={12} aria-hidden="true" /></summary>

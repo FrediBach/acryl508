@@ -1,4 +1,5 @@
 import { Path, Shape, Vector2 } from "three";
+import { flatFeetBottomEdge, type flatFeetLayout } from "./flat-feet";
 import type { patchBoardLayout } from "./patch-board";
 import { sledWebThickness, type FootShape } from "./configurator";
 
@@ -6,8 +7,8 @@ import { sledWebThickness, type FootShape } from "./configurator";
 export const handleRise = 0.7;
 export const footFloor = 0.015;
 
-export function caseLift(length: number, angle: number, automaticFeet = false) {
-  return angle > 0 ? Math.sin(angle * Math.PI / 180) * length / 2 + 0.08 : automaticFeet ? 0.08 : 0.035;
+export function caseLift(length: number, angle: number, automaticFeet = false, flatFeetRise = 0) {
+  return angle > 0 ? Math.sin(angle * Math.PI / 180) * length / 2 + 0.08 : flatFeetRise > 0 ? footFloor + flatFeetRise : automaticFeet ? 0.08 : 0.035;
 }
 
 type HandleSize = { width: number; height: number };
@@ -54,7 +55,7 @@ function gripOpening(width: number, height: number, rise: number) {
   return path;
 }
 
-export function createSideProfile(panel: Shape, length: number, height: number, thickness: number, angle: number, style: FootShape, handle: boolean, handleSize: HandleSize = { width: 1.6, height: handleRise }, rim?: { x: number; y: number }[], automaticFeet = false, patchBoard?: ReturnType<typeof patchBoardLayout>) {
+export function createSideProfile(panel: Shape, length: number, height: number, thickness: number, angle: number, style: FootShape, handle: boolean, handleSize: HandleSize = { width: 1.6, height: handleRise }, rim?: { x: number; y: number }[], automaticFeet = false, patchBoard?: ReturnType<typeof patchBoardLayout>, flatFeet?: ReturnType<typeof flatFeetLayout>) {
   const shape = new Shape();
   shape.holes = panel.holes.map(hole => hole.clone());
   const half = length / 2;
@@ -78,15 +79,19 @@ export function createSideProfile(panel: Shape, length: number, height: number, 
     shape.lineTo(to, rimHeight(to));
   };
   const band = Math.max(thickness, 0.035);
-  shape.moveTo(-half, hasFeet ? floor(-half) : 0);
-  if (hasFeet && (style === "arch" || (automaticFeet && angle === 0))) {
-    const pad = Math.min(0.22, length * 0.2);
-    const left = -half + pad, right = half - pad;
-    shape.lineTo(left, floor(left));
-    const archTop = automaticFeet && angle === 0 ? 0 : -band;
-    shape.bezierCurveTo(left, archTop, right, archTop, right, floor(right));
+  if (angle === 0 && flatFeet?.enabled) {
+    flatFeetBottomEdge(shape, length, thickness, flatFeet);
+  } else {
+    shape.moveTo(-half, hasFeet ? floor(-half) : 0);
+    if (hasFeet && (style === "arch" || (automaticFeet && angle === 0))) {
+      const pad = Math.min(0.22, length * 0.2);
+      const left = -half + pad, right = half - pad;
+      shape.lineTo(left, floor(left));
+      const archTop = automaticFeet && angle === 0 ? 0 : -band;
+      shape.bezierCurveTo(left, archTop, right, archTop, right, floor(right));
+    }
+    shape.lineTo(half, hasFeet ? floor(half) : 0);
   }
-  shape.lineTo(half, hasFeet ? floor(half) : 0);
   shape.lineTo(half, rimHeight(half));
   if (handle || patchBoard) {
     const width = Math.max(handle ? handleSize.width : 0, (patchBoard?.width ?? 0) / 100);

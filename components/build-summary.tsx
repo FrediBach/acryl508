@@ -1,5 +1,6 @@
 import { materialLabel, transparencyOption } from "@/lib/acrylic-material";
 import { ArrowDownToLine } from "lucide-react";
+import { flatFeetLayout, flatFootStyles } from "@/lib/flat-feet";
 import { patchBoardLayout, patchBoardSides } from "@/lib/patch-board";
 import { cableHolderLayout } from "@/lib/cable-holder";
 import { caseDimensions, footShapes, handleCount, handleSides, handleDimensions, panelCount, panelSides, panelTint, panelTransparency, rackFormatLabel, rackRowLayout, sidePanelMargin, ventStyles, type CaseConfiguration } from "@/lib/configurator";
@@ -9,6 +10,7 @@ export function BuildSummary({ config, canExportSvg = true, onExportJson, onExpo
   const rows = rackRowLayout(config);
   const holder = cableHolderLayout(config);
   const board = patchBoardLayout(config);
+  const feet = flatFeetLayout(config);
   return (
     <section className="summary-panel" aria-label="Design summary">
       <div className="summary-title">
@@ -26,6 +28,7 @@ export function BuildSummary({ config, canExportSvg = true, onExportJson, onExpo
         {config.cableHolder && <div><dt>Cable holder</dt><dd>{holder.slitCount} × {holder.slitWidth} mm slits · {holder.height} mm rise</dd></div>}
         <div><dt>Side margin</dt><dd>{sidePanelMargin(config).toFixed(1)} mm</dd></div>
         <div><dt>Stance</dt><dd>{config.angle ? `${footShapes.find(shape => shape.value === config.footShape)?.label} · ${config.angle}°` : "Flat"}</dd></div>
+        {feet.enabled && <div><dt>Flat-case feet</dt><dd>{flatFootStyles.find(style => style.value === feet.style)?.label} · {feet.height} mm</dd></div>}
         {rows.some(row => row.angle > 0) && <>
           <div><dt>Row angles</dt><dd>{rows.map(row => `${config.angle + row.angle}°`).join(" / ")} <small>rear → front</small></dd></div>
           <div><dt>Support feet</dt><dd>Integral to side panels</dd></div>
