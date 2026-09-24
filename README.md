@@ -465,14 +465,21 @@ worker. The preview displays the actual mesh in the same pose used for fitting;
 SVG and JSON use the resolved cutting geometry. JSON also includes the source
 mesh and orientation. Exports are blocked while fitting or when fitting fails.
 
-The compact footprint adds one sheet thickness at the front and rear of the
-tilted mesh, plus the optional front extension. Model dimensions must be
-60–1400 mm wide, 40–1000 mm deep and 1–1000 mm tall. Triangle projections are
-resolved to 0.0000001 mm to stabilize shared edges. Thin contact fins are
-automatically trimmed to flat caps with a minimum horizontal span of two sheet
-thicknesses, removing material only. Optional rounding also softens convex
-contact corners; joint slots are cut afterwards to preserve their fit. Regions
-without a model surface stay at tie height. No separate front stops are added in model
-mode: inspect how the contour locates the object and prevents sliding. Fit is
-only as accurate as the source mesh and its units. Check vents, balance, surface
-grip, joint fit and strength on a prototype; no load rating is calculated.
+The compact footprint reserves two sheet thicknesses in front of the tilted
+mesh (three in diagonal mode) for integral retaining lips, and one at the rear.
+The optional front extension adds to that footprint; turning it off retains the
+lips. Each front-reaching rib gets a lip backed outward from the mesh's actual
+front contact boundary, with at least two sheet thicknesses of material before
+rounding. Its height is capped at 18 mm above the local underside, or 60% of the
+model's unrotated height for thin objects. The full sheet thickness is considered
+when clearing the mesh. Side-ending diagonal ribs retain their underside fit.
+
+Model dimensions must be 60–1400 mm wide, 40–1000 mm deep and 1–1000 mm tall.
+Triangle projections are resolved to 0.0000001 mm to stabilize shared edges.
+Other thin contact fins are trimmed to blunt ends. Optional rounding softens
+convex contact corners, and joints are cut into the complete fitted outline
+only after shaping, so their fit stays independent of the lip and contour.
+Regions without a model surface stay at tie height except for the intentional
+front lips. JSON records the lip positions and heights. Fit is only as accurate
+as the source mesh and its units. Check vents, balance, surface grip, retention,
+joint fit and strength on a prototype; no load rating is calculated.

@@ -27,7 +27,7 @@ test("uploaded mesh supplies dimensions, compact footprint, preview pose and exp
     near(stand.config.width, 550); near(stand.config.depth, 280); near(stand.config.height, 70);
     const posed = positionStandObject(stand.config.object, angle, stand.frontHeight);
     near(Math.min(...posed.points.map(p => p[1])), stand.frontHeight);
-    near(stand.rear - stand.front, posed.depth + 2 * stand.config.thickness);
+    near(stand.rear - stand.front, posed.depth + (advancedMode ? 4 : 3) * stand.config.thickness);
     near(stand.synthTop, posed.top);
     for (const part of stand.parts) {
       assert.equal(part.polygons.length, 1, part.id);
@@ -165,7 +165,10 @@ test("tilted mesh end spikes get flat caps even with Rounded edges off", () => {
     const a = angle * Math.PI / 180;
     const oldFrontTip = stand.frontHeight + 70 * Math.cos(a);
     assert.ok(at(rib, 0.001) < oldFrontTip - 10, "front tip is shortened substantially");
-    near(at(rib, 0.001), at(rib, Math.min(2 * thickness, 70 * Math.sin(a)) - 0.001));
+    const lip = stand.objectFit.frontStops.find(stop => stop.partId === rib.id);
+    near(at(rib, lip.outerX + 0.01), lip.topHeight);
+    near(at(rib, lip.contactX - 0.01), lip.topHeight);
+    assert.ok(lip.topHeight > lip.baseHeight + 10);
     const rear = 280 * Math.cos(a) + 70 * Math.sin(a);
     near(at(rib, rear - 0.001), at(rib, rear - 2 * thickness + 0.001));
     // The main playing-angle surface still contacts the object exactly.
@@ -190,5 +193,34 @@ test("optional rounding softens fitted caps, preserves joint fit and never grows
       assert.deepEqual(part.slots, original.slots);
       assert.equal(part.polygons.length, 1);
     }
+  }
+});
+
+
+test("thin and shallow-tilt models retain a blunt front lip that blocks forward sliding", () => {
+  for (const height of [10, 20, 70]) for (const angle of [0, 5, 15, 25, 45]) for (const thickness of [5, 10]) for (const roundedEdges of [false, true]) for (const advancedMode of [false, true]) {
+    let stand;
+    assert.doesNotThrow(() => { stand = createSynthStand(config(model(box(550, 280, height)), { angle, thickness, roundedEdges, cornerRadius: 10, advancedMode })); }, `height=${height}, angle=${angle}, thickness=${thickness}, rounded=${roundedEdges}, diagonal=${advancedMode}`);
+    const a = angle * Math.PI / 180, e = 0.00001;
+    const bodyPoint = (d, h, slide) => [(d - slide) * Math.cos(a) - h * Math.sin(a) + height * Math.sin(a), stand.frontHeight + (d - slide) * Math.sin(a) + h * Math.cos(a)];
+    const body = slide => [[[bodyPoint(e,e,slide), bodyPoint(280-e,e,slide), bodyPoint(280-e,height-e,slide), bodyPoint(e,height-e,slide), bodyPoint(e,e,slide)]]];
+    assert.ok(stand.objectFit.frontStops.length >= 2, "at least two front retaining ribs");
+    let blocked = 0;
+    for (const stop of stand.objectFit.frontStops) {
+      const rib = stand.parts.find(p => p.id === stop.partId);
+      assert.ok(stop.topHeight - stop.baseHeight >= Math.min(18, height * 0.6) - 1e-6);
+      assert.ok(stop.contactX - stop.outerX >= 2 * thickness - 1e-6);
+      let catchesObject = false;
+      for (const v of [-thickness / 2, 0, thickness / 2]) {
+        const section = rib.polygons.map(poly => poly.map(ring => ring.map(([u,y]) => [rib.placement.depth + u * Math.sin(rib.placement.yaw) - v * Math.cos(rib.placement.yaw), y])));
+        assert.ok(area(polygonClipping.intersection(section, body(0))) < 1e-6, "lip must stay outside the object across the whole sheet thickness");
+        if (area(polygonClipping.intersection(section, body(1))) > 0.001) catchesObject = true;
+      }
+      if (catchesObject) blocked++;
+    }
+    assert.ok(blocked >= 2, `two front lips block 1 mm of sliding: height=${height}, angle=${angle}, thickness=${thickness}, rounded=${roundedEdges}, diagonal=${advancedMode}; found ${blocked}`);
+    assert.equal(stand.stopHeight, Math.min(18, height * 0.6));
+    assert.deepEqual(standExport(stand).objectFit.frontStops, stand.objectFit.frontStops);
+    assert.match(standSvg(stand), /front retaining lips/);
   }
 });

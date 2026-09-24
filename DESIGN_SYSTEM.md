@@ -181,8 +181,11 @@ sheet thickness; fitted ribs are listed individually. Pending and failed fits
 replace the preview with a status and disable exports. Geometry runs in a
 cancellable worker so changing angle does not block interaction.
 
-Model-fitted supports automatically trim thin fins above tie height into blunt
-caps before cutting joints. The minimum span is two sheet thicknesses. Broad
-contact surfaces and underside clearances remain; material is only removed.
-Rounded edges also softens convex corners of the fitted outline. Preview and
-both exports use the same trimmed geometry; no extra control is required.
+Model-fitted supports include broad, capped front retaining lips. Ribs reaching
+the front gain material outward from the model contact boundary, with a minimum
+span of two sheet thicknesses before rounding. Lip height is at most 18 mm or
+60% of model height above the local underside. The compact footprint includes
+the lip allowance, independently of the optional front extension. Remaining
+thin fins are trimmed. Rounded edges softens convex corners before joints are
+cut into the complete fitted outline. Preview and both exports share this
+geometry; the Playing angle section reports the retaining lip height.

@@ -28,7 +28,7 @@ export function StandObjectControls({ model, error, onChange }: { model?: StandO
         <label>Up axis<select value={model.up} onChange={event => onChange({ ...model, up: event.target.value as StandObject["up"] })}><option value="z">Z up</option><option value="y">Y up</option><option value="x">X up</option><option value="-z">−Z up</option><option value="-y">−Y up</option><option value="-x">−X up</option></select></label>
         <label>Face forward<select value={model.turn} onChange={event => onChange({ ...model, turn: Number(event.target.value) })}>{[0, 90, 180, 270].map(value => <option key={value} value={value}>{value}°</option>)}</select></label>
       </div>
-      <p className="control-note">Dimensions come from the model. Supports follow its underside across the whole acrylic thickness. Thin tips are automatically trimmed into blunt ends. Enable Rounded edges to soften the outline corners. Model fit adds no front stops: check that the object is restrained from sliding.</p>
+      <p className="control-note">Dimensions come from the model. Supports follow its underside across the whole acrylic thickness. Thin tips are automatically trimmed into blunt ends. Enable Rounded edges to soften the outline corners. Broad front lips follow the model to retain it. Their tops are capped to avoid sharp fins.</p>
     </>}
     {busy && <p className="control-note" role="status">Reading model…</p>}
     {(uploadError || error) && <p className="stand-object-error" role="alert">{uploadError || error}</p>}

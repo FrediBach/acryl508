@@ -122,7 +122,7 @@ export function trimContactSpikes(profile: MultiPolygon, floor: number, minimumW
   const levels = [...new Set([floor, ...points.filter(p => p[1] > floor).map(p => p[1])])].sort((a, b) => a - b);
   const edges = profile.flatMap(poly => poly.flatMap(ring => ring.slice(1).map((p, i) => [ring[i], p] as const)))
     .filter(([a, b]) => a[1] !== b[1]);
-  const xAt = ([a, b]: readonly [Pair, Pair], y: number) => a[0] + (b[0] - a[0]) * (y - a[1]) / (b[1] - a[1]);
+  const xAt = ([a, b]: readonly [Pair, Pair], y: number) => y === a[1] ? a[0] : y === b[1] ? b[0] : a[0] + (b[0] - a[0]) * (y - a[1]) / (b[1] - a[1]);
   for (let i = 1; i < levels.length; i++) {
     const low = levels[i - 1], high = levels[i], middle = (low + high) / 2;
     const crossings = edges.filter(([a, b]) => middle > Math.min(a[1], b[1]) && middle < Math.max(a[1], b[1]))
@@ -145,6 +145,7 @@ export function trimContactSpikes(profile: MultiPolygon, floor: number, minimumW
     for (let i = 0; i < batches.length; i += 64) next.push(polygonClipping.union(batches[i], ...batches.slice(i + 1, i + 64)));
     batches = next;
   }
-  // Guard against any floating-point expansion at reconstructed slice edges.
-  return batches.length ? polygonClipping.intersection(profile, batches[0]) : [];
+  // Every retained slice lies on the input edges. Avoid re-intersecting the
+  // same near-coincident edges, which can break polygon-clipping's ring walk.
+  return batches[0] ?? [];
 }
