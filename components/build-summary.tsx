@@ -3,7 +3,7 @@ import { ArrowDownToLine } from "lucide-react";
 import { cableHolderLayout } from "@/lib/cable-holder";
 import { caseDimensions, footShapes, handleCount, handleDimensions, panelCount, panelSides, panelTint, panelTransparency, rackFormatLabel, rackRowLayout, sidePanelMargin, ventStyles, type CaseConfiguration } from "@/lib/configurator";
 
-export function BuildSummary({ config, onExportJson, onExportSvg }: { config: CaseConfiguration; onExportJson: () => void; onExportSvg: () => void }) {
+export function BuildSummary({ config, canExportSvg = true, onExportJson, onExportSvg }: { canExportSvg?: boolean; config: CaseConfiguration; onExportJson: () => void; onExportSvg: () => void }) {
   const dimensions = caseDimensions(config);
   const rows = rackRowLayout(config);
   const holder = cableHolderLayout(config);
@@ -31,9 +31,10 @@ export function BuildSummary({ config, onExportJson, onExportSvg }: { config: Ca
         {config.vents && config.ventDesign?.layers.length > 0 && <div><dt>Vent effects</dt><dd>{config.ventDesign.layers.length} layers · {config.ventDesign.size}% base size</dd></div>}
         <div><dt>Custom cutouts</dt><dd>{config.cutouts.length || "None"}</dd></div>
       </dl>
+      {!canExportSvg && <p className="cutout-warning" role="alert">Resolve empty panels and cutout errors before exporting SVG.</p>}
       <div className="summary-actions">
         <button className="button button-dark summary-export" onClick={onExportJson} aria-label="Export configuration as JSON"><ArrowDownToLine size={15} />JSON</button>
-        <button className="button button-orange summary-export" onClick={onExportSvg} aria-label="Export all sheets as SVG"><ArrowDownToLine size={15} />SVG sheets</button>
+        <button className="button button-orange summary-export" disabled={!canExportSvg} onClick={onExportSvg} aria-label="Export all sheets as SVG"><ArrowDownToLine size={15} />SVG sheets</button>
       </div>
     </section>
   );

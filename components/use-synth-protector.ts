@@ -2,8 +2,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { createSynthProtector, type ProtectorConfiguration, type SynthProtector } from "@/lib/synth-protector";
 
+import { useGeometryInput } from "./use-geometry-input";
+
 type Result = { input: ProtectorConfiguration; protector?: SynthProtector; error?: string };
-export function useSynthProtector(config: ProtectorConfiguration) {
+export function useSynthProtector(appearance: ProtectorConfiguration) {
+  const config = useGeometryInput(appearance);
   const manual = useMemo(() => createSynthProtector({ ...config, object: undefined }), [config]);
   const [result, setResult] = useState<Result>();
   useEffect(() => {
@@ -20,5 +23,7 @@ export function useSynthProtector(config: ProtectorConfiguration) {
     return () => { clearTimeout(timer); worker?.terminate(); };
   }, [config]);
   const current = config.object && result?.input === config ? result : undefined;
-  return { protector: current?.protector ?? manual, protectorError: current?.error, protectorBusy: !!config.object && !current };
+  const resolved = current?.protector ?? manual;
+  const protector = useMemo(() => ({ ...resolved, config: { ...resolved.config, tint: appearance.tint, transparency: appearance.transparency ?? "transparent" } }), [resolved, appearance.tint, appearance.transparency]);
+  return { protector, protectorError: current?.error, protectorBusy: !!config.object && !current };
 }

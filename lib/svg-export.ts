@@ -1,5 +1,5 @@
 import type { Shape } from "three";
-import type { CasePanels } from "./case-panels";
+import { caseCanExport, type CasePanels } from "./case-panels";
 import { rackFormatLabel, type CaseConfiguration, type PanelSide } from "./configurator";
 import { mapPolygons, polygonBounds, shapesToPolygons } from "./custom-cutouts";
 import type { MultiPolygon } from "polygon-clipping";
@@ -75,6 +75,7 @@ export function caseSheetLayout(panels: CasePanels) {
 }
 
 export function configurationSvg(config: CaseConfiguration, panels: CasePanels) {
+  if (!caseCanExport(panels)) throw new Error("Resolve empty panels and cutout calculation errors before exporting SVG.");
   const boardNote = config.busboard === "trolley" ? ` ${trolleyBus.name}: ${trolleyBus.accuracy} ${trolleyBus.mounting}`
     : config.busboard === "compactpwr" ? ` ${compactPwr.name}: ${compactPwr.accuracy} ${compactPwr.mounting}`
     : config.busboard === "sinusoda" ? " Sinusoda Juice: 226 x 86 x 19 mm envelope from data sheet. All 28 mounting centres are photo-derived estimates; diameter 3.2 mm assumed. Verify on hardware before drilling." : "";

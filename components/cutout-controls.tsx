@@ -4,10 +4,12 @@ import { AlertTriangle, Copy, Plus, Trash2, Upload } from "lucide-react";
 import type { CaseConfiguration } from "@/lib/configurator";
 import type { CasePanels } from "@/lib/case-panels";
 import { cutoutSides, maxCutouts, outlinePath, placedCutout, polygonBounds, type CustomCutout, type CutoutAction, type CutoutSide } from "@/lib/custom-cutouts";
-import { builtinFonts, importFont, importSvg, loadBuiltinFont, textOutlines, type CutoutFont } from "@/lib/cutout-sources";
+import { builtinFonts, importSvg, loadBuiltinFont, textOutlines } from "@/lib/cutout-sources";
 
 type Props = { config: CaseConfiguration; panels: CasePanels; onAction: (action: CutoutAction) => void };
-export type FontOption = { id: string; name: string; font?: CutoutFont };
+export type { FontOption } from "@/lib/project-fonts";
+import { addProjectFont, type FontOption } from "@/lib/project-fonts";
+import { useProjectFonts } from "./use-project-fonts";
 const message = (error: unknown) => error instanceof Error ? error.message : "The cutout could not be imported. Try a simpler outline.";
 const round = (value: number) => Math.round(value * 10) / 10;
 
@@ -57,7 +59,7 @@ export function CutoutControls({ config, panels, onAction }: Props) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [fonts, setFonts] = useState<FontOption[]>(builtinFonts);
+  const fonts = useProjectFonts();
   const input = useRef<HTMLInputElement>(null);
   const selected = config.cutouts.find(cutout => cutout.id === selectedId) ?? config.cutouts[0];
   const face = selected ? panels.faces[selected.side] : null;
@@ -88,13 +90,7 @@ export function CutoutControls({ config, panels, onAction }: Props) {
       add(importSvg(await file.text()), { kind: "svg", fileName: file.name }, file.name.replace(/\.svg$/i, ""));
     } catch (error) { setError(message(error)); } finally { setBusy(false); }
   }
-  async function uploadFont(file: File) {
-    if (file.size > 5_000_000) throw new Error("Choose a font smaller than 5 MB.");
-    const id = crypto.randomUUID();
-    const font = await importFont(await file.arrayBuffer(), file.name.replace(/\.(ttf|otf)$/i, ""));
-    setFonts(current => [...current, { id, name: font.name, font }]);
-    return id;
-  }
+  const uploadFont = addProjectFont;
   function place(event: React.PointerEvent<SVGSVGElement>) {
     const svg = event.currentTarget;
     const matrix = svg.getScreenCTM();
@@ -114,7 +110,7 @@ export function CutoutControls({ config, panels, onAction }: Props) {
       <button className="icon-button" aria-label={`Remove ${cutout.name}`} onClick={() => onAction({ type: "remove", id: cutout.id })}><Trash2 size={13} /></button>
     </div>)}</div>}
     {selected && face && bounds && <div className="cutout-editor" key={selected.id}>
-      {selected.source.kind === "text" && <TextEditor cutout={selected} fonts={fonts} onImport={uploadFont} onUpdate={patch => onAction({ type: "update", id: selected.id, patch })} />}
+      {selected.source.kind === "text" && <TextEditor key={selected.source.kind === "text" ? `${selected.id}-${selected.source.fontId}-${selected.source.text}` : selected.id} cutout={selected} fonts={fonts} onImport={uploadFont} onUpdate={patch => onAction({ type: "update", id: selected.id, patch })} />}
       <label className="cutout-field">Panel side<select value={selected.side} onChange={event => update({ side: event.target.value as CutoutSide })}>{cutoutSides.map(side => <option key={side.value} value={side.value}>{side.label}</option>)}</select></label>
       <div className="cutout-numbers">
         <NumberControl label="Scale · width (mm)" value={selected.width} min={1} max={1000} onChange={width => update({ width })} />

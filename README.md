@@ -21,7 +21,7 @@ This starter does not use `wrangler.jsonc`.
 ## Included
 
 - responsive configurator shell under `app/`
-- top-bar Case designer / Synth stand / Synth protector / Panel designer modes with independent in-session configurations
+- top-bar Case designer / Synth stand / Synth protector / Panel designer modes with independent configurations, local autosave, and portable project files
 - Eurorack blank and DIY panels with component openings, SVG/font artwork, separate cut/engrave exports, alignment and ventilation
 - automatic slotted acrylic synth stands with solid ribs, three cross braces, 3D and cutting layouts, and JSON/SVG export
 - optional local STL/OBJ fitting for stands and protectors, with units, orientation and angle controls; protectors use a level cover above the posed model and individual contour-fitted feet with broad locating lips
@@ -41,17 +41,74 @@ This starter does not use `wrangler.jsonc`.
 - `npm run build`: verify the production build
 - `npm run build:vercel`: build with native Next.js for Vercel
 - `npm run start:vercel`: serve the native Next.js production build locally
+- `npm run typecheck`: check application source independently of generated build files
+- `npm run check`: run type checking, lint, build and tests
 - `npm run lint`: run ESLint
 - `npm run doctor`: scan the React codebase for health issues
 - `npm test`: build and verify the application contract and output
+
+## Projects, recovery and history
+
+The project toolbar names the workspace and autosaves all four designers in
+IndexedDB after a short pause. Reloading restores the last autosave, including
+uploaded meshes and up to ten imported fonts. **Save copy** keeps a named
+snapshot; **Open** lists those copies. These saves belong to this browser and
+origin, not an account: clearing site data removes them, and another device or
+deployment URL has separate storage. Storage errors are shown explicitly.
+
+**Project file** downloads a version 1 `.acryl508.json` file containing all four
+editable configurations, source meshes and font bytes. **Import JSON** opens
+these files or existing single-designer exports. Single-designer imports replace
+only their corresponding design. Legacy exports with custom text retain their
+outlines, but their original fonts must be imported again to edit text when font
+bytes were not included. New project files retain those fonts. Files are limited
+to 80 MB and validated before any live state is replaced. Failed recovery does
+not overwrite the saved draft. Download files for portable backups; project
+files can contain fonts subject to their own redistribution licences.
+
+Undo and redo retain up to 50 changes, with each pointer drag or slider gesture
+as one step. Use the toolbar or Ctrl/Cmd Z and Ctrl/Cmd Shift Z (Ctrl Y also
+works). Text fields retain native text undo. Undo returns to the designer whose
+settings changed. Opening a project starts a fresh history; history itself is
+not persisted. **Save current & start new** first saves a named copy.
+
+Imported fonts are shared between case and panel modes. Appearance-only changes
+reuse geometry, and color/transparency edits do not restart uploaded-model
+fitting. Panel artwork and component geometry still recalculate when edited.
+
+## Fabrication workspace
+
+Open **Fabrication workspace** below the designer for part dimensions, material
+groups, hardware quantities and consolidated geometry warnings. Empty case
+panels and failed cutout calculations block SVG export, including programmatic
+exports; JSON remains available for troubleshooting.
+
+Enter stock width, height and border/gap in millimetres to arrange the actual cut
+outlines on separate sheets. A deterministic shelf layout keeps materials
+separate, optionally rotates parts 90°, and never scales them. This is a simple
+arrangement, not optimized nesting. Downloads are blocked if any part cannot fit
+or the active geometry is unresolved. Each sheet downloads separately, with red
+cut paths and a blue engraving group; stock borders and preview guides are not
+cut paths.
+
+**Download fit coupon** makes an edge-slot comb and a separate tab from the
+selected sheet thickness, comparing 0–0.4 mm clearance and including the active
+stand/protector clearance. Slot labels are SVG text in the engraving group.
+Insert the tab edge-on; cut with the same material and CAM kerf settings planned
+for the final parts. The coupon tests slot fit, not strength or loaded stability.
 
 ## Vercel
 
 Import this repository into Vercel with the repository root as the project root.
 `vercel.json` selects the Next.js framework, installs from the npm lockfile, and
-runs `npm run build:vercel` (Next.js with Webpack) with `.next` as the output directory. No environment
+runs `npm run build:vercel` (Next.js with Webpack) with `.next-vercel` as the output directory. No environment
 variables are required. The existing `dev`, `build`, and `start` scripts retain
 the vinext / Cloudflare Sites workflow.
+
+Next.js uses `.next-vercel` and `tsconfig.next.json`, while vinext continues to
+use `dist` and `.next` route declarations. `npm run typecheck` uses stable
+`env.d.ts` declarations and checks source independently of either generator.
+CI runs the checks and both production builds, then repeats source type checking.
 
 The page title, description, canonical URL, Open Graph tags, and X card are
 defined in `app/layout.tsx`. Absolute sharing URLs use the incoming request host,
@@ -431,7 +488,7 @@ Cutting removes disconnected islands after all openings are subtracted.
 Engraving retains letter counters and is clipped to the remaining acrylic.
 Artwork is uniformly scaled and can be moved or rotated. Up to 64 component
 openings and 20 artworks are supported. Designs and imported fonts are retained
-while switching modes in this visit; reloading starts a new session.
+while switching modes and are included in autosaved workspaces and downloadable project files.
 
 Ventilation offers circles, short rounded slits and hexagons, aligned or
 staggered rows, adjustable size/pitch/border, and the shared Regular, Wave,
@@ -454,8 +511,7 @@ Acrylic panels do not provide metal-panel electrical shielding.
 ### Fit a synth stand to a 3D model
 
 In **Synth stand → Your instrument**, optionally choose an STL (binary or ASCII)
-or OBJ file, up to 15 MB and 30,000 triangles. Files are parsed locally and kept
-only for this browser session. Set the source units (mm, cm, m or inches), up
+or OBJ file, up to 15 MB and 30,000 triangles. Files are parsed locally and included in browser autosave and downloaded project files. Set the source units (mm, cm, m or inches), up
 axis and quarter-turn orientation; confirm the resulting dimensions, then set
 the playing angle. Removing the model restores the manual dimensions.
 

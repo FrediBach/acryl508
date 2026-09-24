@@ -77,3 +77,7 @@ export function createCasePanels(config: CaseConfiguration) {
   return { faces, layout: panels.layout, ventilation, powerBoard, mountingHoles, mountingConflicts, reports: cutoutSides.map(({ value }) => faces[value].report) };
 }
 export type CasePanels = ReturnType<typeof createCasePanels>;
+
+export function caseCanExport(panels: CasePanels) {
+  return panels.reports.every(report => !report.empty && !report.error);
+}

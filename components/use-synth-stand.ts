@@ -2,8 +2,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { createSynthStand, type StandConfiguration, type SynthStand } from "@/lib/synth-stand";
 
+import { useGeometryInput } from "./use-geometry-input";
+
 type Result = { input: StandConfiguration; stand?: SynthStand; error?: string };
-export function useSynthStand(config: StandConfiguration) {
+export function useSynthStand(appearance: StandConfiguration) {
+  const config = useGeometryInput(appearance);
   const manual = useMemo(() => createSynthStand({ ...config, object: undefined }), [config]);
   const [result, setResult] = useState<Result>();
   useEffect(() => {
@@ -22,5 +25,7 @@ export function useSynthStand(config: StandConfiguration) {
     return () => { clearTimeout(timer); worker?.terminate(); };
   }, [config]);
   const current = config.object && result?.input === config ? result : undefined;
-  return { stand: current?.stand ?? manual, standError: current?.error, standBusy: !!config.object && !current };
+  const resolved = current?.stand ?? manual;
+  const stand = useMemo(() => ({ ...resolved, config: { ...resolved.config, tint: appearance.tint, transparency: appearance.transparency ?? "transparent" } }), [resolved, appearance.tint, appearance.transparency]);
+  return { stand, standError: current?.error, standBusy: !!config.object && !current };
 }

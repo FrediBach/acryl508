@@ -7,11 +7,12 @@ import path from "node:path";
 import vm from "node:vm";
 import ts from "typescript";
 import { JSDOM } from "jsdom";
+import { IDBFactory } from "fake-indexeddb";
 
 test("mode switching preserves independent designs and routes material choices and exports", async () => {
   const dom = new JSDOM("<!doctype html><html><body><div id='root'></div></body></html>", { url: "http://localhost" });
   const previous = new Map();
-  for (const [key, value] of Object.entries({ window: dom.window, document: dom.window.document, navigator: dom.window.navigator, localStorage: dom.window.localStorage, DOMParser: dom.window.DOMParser, XMLSerializer: dom.window.XMLSerializer, SVGSVGElement: dom.window.SVGSVGElement, IS_REACT_ACT_ENVIRONMENT: true })) {
+  for (const [key, value] of Object.entries({ indexedDB: new IDBFactory(), Element: dom.window.Element, window: dom.window, document: dom.window.document, navigator: dom.window.navigator, localStorage: dom.window.localStorage, DOMParser: dom.window.DOMParser, XMLSerializer: dom.window.XMLSerializer, SVGSVGElement: dom.window.SVGSVGElement, IS_REACT_ACT_ENVIRONMENT: true })) {
     previous.set(key, Object.getOwnPropertyDescriptor(globalThis, key));
     Object.defineProperty(globalThis, key, { configurable: true, writable: true, value });
   }
@@ -127,12 +128,12 @@ test("mode switching preserves independent designs and routes material choices a
     assert.equal(button("Front extension").getAttribute("aria-checked"), "true");
     await click("35°");
     await click("Material library");
-    await React.act(async () => document.querySelector('dialog button[aria-label="Blue"]').click());
+    await React.act(async () => document.querySelector('dialog:not(.project-dialog) button[aria-label="Blue"]').click());
     const selectValue = async (select, value) => React.act(async () => {
       select.value = value;
       select.dispatchEvent(new dom.window.Event("change", { bubbles: true }));
     });
-    await selectValue(document.querySelector("dialog select"), "opal");
+    await selectValue(document.querySelector("dialog:not(.project-dialog) select"), "opal");
     await click("Close notes");
     await click("Export JSON");
     const stand = JSON.parse(await downloads.at(-1).blob.text());
@@ -160,8 +161,8 @@ test("mode switching preserves independent designs and routes material choices a
     assert.ok(document.querySelector('[aria-label="Synth protector controls"]'));
     await click("50 mm");
     await click("Material library");
-    await React.act(async () => document.querySelector('dialog button[aria-label="Red"]').click());
-    await selectValue(document.querySelector("dialog select"), "see-through");
+    await React.act(async () => document.querySelector('dialog:not(.project-dialog) button[aria-label="Red"]').click());
+    await selectValue(document.querySelector("dialog:not(.project-dialog) select"), "see-through");
     await click("Close notes");
     await click("Export JSON");
     const protector = JSON.parse(await downloads.at(-1).blob.text());
@@ -176,7 +177,7 @@ test("mode switching preserves independent designs and routes material choices a
     assert.match(downloads.at(-1).name, /protector.*sheets\.svg$/);
     assert.match(await downloads.at(-1).blob.text(), /Body-to-cover clearance 50 mm/);
     await click("Build notes");
-    assert.match(document.querySelector("dialog").textContent, /A little room above the controls/);
+    assert.match(document.querySelector("dialog:not(.project-dialog)").textContent, /A little room above the controls/);
     await click("Close notes");
     await click("Synth stand");
     await click("Export JSON");
@@ -330,6 +331,14 @@ test("mode switching preserves independent designs and routes material choices a
       assert.deepEqual(panelData.configuration.components.map(c => c.x), [-13, 17]);
       assert.deepEqual(panelData.configuration.components.map(c => c.y), [26, 26]);
       assert.equal(captured, false);
+      await click("Undo design change");
+      panelData = await exportedPanel();
+      assert.deepEqual(panelData.configuration.components.map(c => c.x), [-15, 15]);
+      assert.deepEqual(panelData.configuration.components.map(c => c.y), [21, 21]);
+      await click("Redo design change");
+      panelData = await exportedPanel();
+      assert.deepEqual(panelData.configuration.components.map(c => c.x), [-13, 17]);
+
     } finally { if (savedPoint) Object.defineProperty(globalThis, "DOMPoint", savedPoint); else delete globalThis.DOMPoint; }
     await click("Display");
     await setPanelNumber("Opening width", 18);
@@ -384,11 +393,11 @@ test("mode switching preserves independent designs and routes material choices a
     panelData = await exportedPanel(); assert.equal(panelData.dimensions.height, 43.18); assert.equal(panelData.configuration.hp, 18);
     await selectValue(field("Panel format"), "3u");
     await click("Material library");
-    await React.act(async () => document.querySelector('dialog button[aria-label="Green"]').click());
-    await selectValue(document.querySelector("dialog select"), "opaque");
+    await React.act(async () => document.querySelector('dialog:not(.project-dialog) button[aria-label="Green"]').click());
+    await selectValue(document.querySelector("dialog:not(.project-dialog) select"), "opaque");
     await click("Close notes");
     await click("Build notes");
-    assert.match(document.querySelector("dialog").textContent, /A face for your next idea/);
+    assert.match(document.querySelector("dialog:not(.project-dialog)").textContent, /A face for your next idea/);
     await click("Close notes");
     await click("Synth protector");
     await click("Panel designer");
@@ -445,9 +454,11 @@ test("mode switching preserves independent designs and routes material choices a
     previous.set("Worker", Object.getOwnPropertyDescriptor(globalThis, "Worker"));
     const { createSynthStand } = load(path.join(project, "lib/synth-stand.ts"));
     const { createSynthProtector } = load(path.join(project, "lib/synth-protector.ts"));
+    let fittingJobs = 0;
     globalThis.Worker = class {
       terminated = false;
       postMessage(configuration) {
+        fittingJobs++;
         setTimeout(() => {
           if (this.terminated) return;
           try { this.onmessage({ data: "headroom" in configuration ? { protector: createSynthProtector(configuration) } : { stand: createSynthStand(configuration) } }); }
@@ -469,6 +480,19 @@ test("mode switching preserves independent designs and routes material choices a
     let fitted = JSON.parse(await downloads.at(-1).blob.text());
     assert.equal(fitted.configuration.width, 600);
     assert.equal(fitted.objectFit.name, "my-synth.obj");
+    const jobsBeforeAppearance = fittingJobs;
+    await click("Material library");
+    await React.act(async () => document.querySelector('dialog:not(.project-dialog) button[aria-label="Green"]').click());
+    await click("Close notes");
+    assert.equal(button("Export stand sheets as SVG").disabled, false, "Appearance edits keep fitted export ready");
+    await settleFit();
+    assert.equal(fittingJobs, jobsBeforeAppearance, "Appearance changes must not restart model fitting");
+    await click("Project file");
+    const fittedProject = JSON.parse(await downloads.at(-1).blob.text());
+    assert.equal(fittedProject.format, "acryl508-project");
+    assert.ok(fittedProject.designs.stand.object.vertices.length > 0);
+    assert.equal(fittedProject.designs.stand.tint.id, "green");
+
     await click("15°");
     await settleFit();
     await click("Export stand configuration as JSON");
@@ -536,8 +560,77 @@ test("mode switching preserves independent designs and routes material choices a
     assert.equal(JSON.parse(await downloads.at(-1).blob.text()).objectFit, null);
     await click("Synth stand");
     await click("Build notes");
-    assert.match(document.querySelector("dialog").textContent, /Slot together\. Play at your angle/);
-    assert.match(document.querySelector("dialog").textContent, /no load capacity or stability rating/);
+    assert.match(document.querySelector("dialog:not(.project-dialog)").textContent, /Slot together\. Play at your angle/);
+    assert.match(document.querySelector("dialog:not(.project-dialog)").textContent, /no load capacity or stability rating/);
+    await click("Close notes");
+    await click("Project file");
+    const projectBackup = await downloads.at(-1).blob.text();
+    const projectData = JSON.parse(projectBackup);
+    assert.equal(projectData.designs.case.hp, 104);
+    assert.equal(projectData.designs.panel.components.length, 4);
+    await click("Save copy");
+    // IndexedDB commits asynchronously; wait for the operation, not a fixed UI state assumption.
+    await React.act(async () => new Promise(resolve => setTimeout(resolve, 30)));
+    await click("Case designer");
+    await click("84");
+    await click("Open");
+    await React.act(async () => new Promise(resolve => setTimeout(resolve, 30)));
+    assert.equal(document.querySelector('.project-dialog').open, true);
+    await click("Open project");
+    await React.act(async () => new Promise(resolve => setTimeout(resolve, 30)));
+    await click("Case designer");
+    assert.equal(button("104").getAttribute("aria-pressed"), "true", "Named project restores the saved case");
+    await click("84");
+    const projectUpload = document.querySelector('input[aria-label="Import project JSON"]');
+    Object.defineProperty(projectUpload, "files", { configurable: true, value: [{ name: "backup.json", size: projectBackup.length, text: async () => projectBackup }] });
+    await React.act(async () => projectUpload.dispatchEvent(new dom.window.Event("change", { bubbles: true })));
+    await click("Case designer");
+    assert.equal(button("104").getAttribute("aria-pressed"), "true", "Project JSON restores the saved case");
+    assert.equal(button("Undo design change").disabled, true, "Opening a project starts a fresh history");
+    const beforeInvalidImport = JSON.stringify(projectData.designs);
+    Object.defineProperty(projectUpload, "files", { configurable: true, value: [{ name: "bad.json", size: 2, text: async () => "{}" }] });
+    await React.act(async () => projectUpload.dispatchEvent(new dom.window.Event("change", { bubbles: true })));
+    assert.match(document.querySelector('.project-toolbar [role="alert"]').textContent, /Choose an Acryl508/);
+    await click("Project file");
+    assert.deepEqual(JSON.parse(await downloads.at(-1).blob.text()).designs.panel, JSON.parse(beforeInvalidImport).panel);
+    // Remount against the same database to exercise actual recovery.
+    await React.act(async () => new Promise(resolve => setTimeout(resolve, 850)));
+    await React.act(async () => root.render(null));
+    await React.act(async () => root.render(React.createElement(ConfiguratorShell)));
+    await React.act(async () => new Promise(resolve => setTimeout(resolve, 30)));
+    await click("Case designer");
+    assert.equal(button("104").getAttribute("aria-pressed"), "true", "Autosave restores after remount");
+    const opentype = require("opentype.js");
+    const glyphPath = new opentype.Path(); glyphPath.moveTo(0, 0); glyphPath.lineTo(500, 0); glyphPath.lineTo(500, 700); glyphPath.lineTo(0, 700); glyphPath.close();
+    const testFont = new opentype.Font({ familyName: "Case Font", styleName: "Regular", unitsPerEm: 1000, ascender: 800, descender: -200, glyphs: [new opentype.Glyph({ name: ".notdef", advanceWidth: 600, path: new opentype.Path() }), new opentype.Glyph({ name: "A", unicode: 65, advanceWidth: 600, path: glyphPath })] });
+    const fontBytes = testFont.toArrayBuffer();
+    const fontProject = structuredClone(projectData);
+    fontProject.mode = "case";
+    fontProject.fonts = [{ id: "case-font", name: "Case Font", data: Buffer.from(fontBytes).toString("base64") }];
+    fontProject.designs.case.cutouts = [{ id: "editable-text", name: "A", source: { kind: "text", text: "A", fontId: "case-font", fontName: "Case Font" }, polygons: [[[[0, 0], [1, 0], [1, 1], [0, 1], [0, 0]]]], side: "front", x: 0, y: 0, width: 20, rotation: 0 }];
+    const fontSource = JSON.stringify(fontProject);
+    const recoveredUpload = document.querySelector('input[aria-label="Import project JSON"]');
+    Object.defineProperty(recoveredUpload, "files", { configurable: true, value: [{ name: "font-project.json", size: fontSource.length, text: async () => fontSource }] });
+    await React.act(async () => recoveredUpload.dispatchEvent(new dom.window.Event("change", { bubbles: true })));
+    await click("Synth stand");
+    await click("Case designer");
+    const fontSelect = document.querySelector('.cutout-text-editor select');
+    assert.equal(fontSelect.value, "case-font", "Imported font remains selected after switching modes");
+    const recoveredTextInput = document.querySelector('.cutout-text-editor input');
+    await React.act(async () => {
+      Object.getOwnPropertyDescriptor(dom.window.HTMLInputElement.prototype, "value").set.call(recoveredTextInput, "AAA");
+      recoveredTextInput.dispatchEvent(new dom.window.Event("input", { bubbles: true }));
+    });
+    await click("Apply text");
+    await click("Export JSON");
+    const editedText = JSON.parse(await downloads.at(-1).blob.text()).configuration.cutouts[0];
+    assert.equal(editedText.source.text, "AAA");
+    assert.equal(editedText.source.fontId, "case-font");
+    await click("Panel designer");
+    await click("Project file");
+    assert.equal(JSON.parse(await downloads.at(-1).blob.text()).fonts[0].data, fontProject.fonts[0].data);
+
+
   } finally {
     await React.act(async () => root.unmount());
     URL.createObjectURL = originalCreate; URL.revokeObjectURL = originalRevoke;

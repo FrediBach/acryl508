@@ -4,5 +4,5 @@
   "installCommand": "npm ci",
   "buildCommand": "npm run build:vercel",
   "devCommand": "next dev",
-  "outputDirectory": ".next"
+  "outputDirectory": ".next-vercel"
 }
