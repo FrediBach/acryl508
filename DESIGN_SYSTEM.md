@@ -189,3 +189,18 @@ the lip allowance, independently of the optional front extension. Remaining
 thin fins are trimmed. Rounded edges softens convex corners before joints are
 cut into the complete fitted outline. Preview and both exports share this
 geometry; the Playing angle section reports the retaining lip height.
+
+
+The protector also accepts a local STL/OBJ model in Your instrument, with the same
+units and orientation controls and a separate object angle (0–45°). The level
+cover clears the highest posed mesh point by the chosen clearance; its footprint
+uses the posed bounds plus overhang. Each foot follows the upper envelope across
+its whole sheet thickness, with a 12 mm contact band and a broad outer locating
+lip. Downward needles are trimmed while the outside lip remains. Overhang grows
+if required for a lip at least two sheet thicknesses wide. Slots and locking-strip
+holes stay level even when contact heights differ. Unsupported or overlapping
+feet produce an actionable error; pending and failed fits cannot be exported.
+The actual uploaded mesh replaces the illustrative synth. Removing it restores
+manual dimensions. Stand and protector models remain independent in-session.
+Preview, cutting layout and exports share the fitted outlines. Models cannot
+identify delicate controls; contact positions must still be inspected.

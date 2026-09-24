@@ -2,11 +2,11 @@
 import { Component, Suspense, useEffect, useMemo, useRef, type ReactNode } from "react";
 import { Canvas, useThree } from "@react-three/fiber";
 import { ContactShadows, Environment, Lightformer, Line, OrbitControls } from "@react-three/drei";
-import { BufferGeometry, Float32BufferAttribute, DoubleSide, Path, Shape, Vector3 } from "three";
+import { Path, Shape, Vector3 } from "three";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import type { MultiPolygon } from "polygon-clipping";
 import { acrylicMaterial, acrylicEdgeOpacity, type AcrylicTint, type AcrylicTransparency } from "@/lib/acrylic-material";
-import { positionStandObject } from "@/lib/stand-object";
+import { UploadedObject } from "@/components/uploaded-object";
 import type { SynthStand } from "@/lib/synth-stand";
 import { panelEdgePoints } from "@/lib/panel-edges";
 
@@ -32,17 +32,6 @@ export function Sheet({ polygons, thickness, tint, transparency }: { polygons: M
   const edgeOpacity = acrylicEdgeOpacity(transparency);
   return <mesh><extrudeGeometry args={args} /><meshPhysicalMaterial {...acrylicMaterial(tint, thickness * unit, transparency)} />{edges.length > 0 && <Line points={edges} segments color={tint.color} transparent={edgeOpacity < 1} opacity={edgeOpacity} depthWrite={edgeOpacity === 1} raycast={() => null} />}</mesh>;
 }
-function UploadedObject({ stand, lift }: { stand: SynthStand; lift: number }) {
-  const geometry = useMemo(() => {
-    const posed = positionStandObject(stand.config.object!, stand.config.angle, stand.frontHeight);
-    const result = new BufferGeometry();
-    result.setAttribute("position", new Float32BufferAttribute(posed.points.flatMap(([x, y, z]) => [x * unit, y * unit, -z * unit]), 3));
-    result.computeVertexNormals();
-    return result;
-  }, [stand.config.object, stand.config.angle, stand.frontHeight]);
-  useEffect(() => () => geometry.dispose(), [geometry]);
-  return <mesh geometry={geometry} position={[0, lift, 0]}><meshStandardMaterial color="#535c58" roughness={0.7} side={DoubleSide} /></mesh>;
-}
 function StandModel({ stand, exploded, instrument }: Pick<Props, "stand" | "exploded" | "instrument">) {
   const { config, frontHeight } = stand;
   const t = config.thickness * unit;
@@ -55,7 +44,7 @@ function StandModel({ stand, exploded, instrument }: Pick<Props, "stand" | "expl
       rotation={[0, part.placement.yaw, 0]}>
       <Sheet polygons={part.polygons} thickness={config.thickness} tint={config.tint} transparency={config.transparency} />
     </group>)}
-    {instrument && config.object ? <UploadedObject stand={stand} lift={lift + (exploded ? 0.7 : 0)} /> : instrument && <group position={[0, frontHeight * unit + lift + (exploded ? 0.7 : 0), 0]} rotation={[angle, 0, 0]}>
+    {instrument && config.object ? <UploadedObject object={config.object} angle={config.angle} floor={frontHeight} lift={lift + (exploded ? 0.7 : 0)} /> : instrument && <group position={[0, frontHeight * unit + lift + (exploded ? 0.7 : 0), 0]} rotation={[angle, 0, 0]}>
       <mesh position={[0, config.height * unit / 2, -config.depth * unit / 2]}>
         <boxGeometry args={[config.width * unit, config.height * unit, config.depth * unit]} /><meshStandardMaterial color="#383c39" roughness={0.7} transparent opacity={0.72} />
       </mesh>

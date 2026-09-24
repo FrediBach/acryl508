@@ -4,8 +4,9 @@ import { ArrowDownToLine, Check, Layers3, X } from "lucide-react";
 import { BuildSummary } from "@/components/build-summary";
 import { ConfigurationPanel } from "@/components/configuration-panel";
 import { ConfiguratorHeader, type DesignerMode } from "@/components/configurator-header";
+import { useSynthProtector } from "@/components/use-synth-protector";
 import { ProtectorDesigner } from "@/components/protector-designer";
-import { createSynthProtector, defaultProtectorConfiguration, protectorBuildNotes, protectorExport, protectorSvg } from "@/lib/synth-protector";
+import { defaultProtectorConfiguration, protectorBuildNotes, protectorExport, protectorSvg } from "@/lib/synth-protector";
 import { PanelDesigner } from "@/components/panel-designer";
 import { createPanel, defaultPanelConfiguration, normalizePanelConfiguration, panelBuildNotes, panelExport, panelSvg } from "@/lib/panel-designer";
 import { useSynthStand } from "@/components/use-synth-stand";
@@ -26,7 +27,7 @@ export function ConfiguratorShell() {
   const [panelConfig, setPanelConfig] = useState(defaultPanelConfiguration);
   const panel = useMemo(() => createPanel(panelConfig), [panelConfig]);
   const [protectorConfig, setProtectorConfig] = useState(defaultProtectorConfiguration);
-  const protector = useMemo(() => createSynthProtector(protectorConfig), [protectorConfig]);
+  const { protector, protectorError, protectorBusy } = useSynthProtector(protectorConfig);
   const { stand, standError, standBusy } = useSynthStand(standConfig);
   const panels = useMemo(() => createCasePanels(config), [config]);
   const [dark, setDark] = useState(false);
@@ -74,6 +75,7 @@ export function ConfiguratorShell() {
       return;
     }
     if (mode === "protector") {
+      if (protectorError || protectorBusy) return;
       download(JSON.stringify(protectorExport(protector), null, 2), "application/json", `acryl508-protector-${protector.config.width}mm-${protector.config.headroom}mm.json`);
       showExported("JSON");
       return;
@@ -96,6 +98,7 @@ export function ConfiguratorShell() {
       return;
     }
     if (mode === "protector") {
+      if (protectorError || protectorBusy) return;
       download(protectorSvg(protector), "image/svg+xml", `acryl508-protector-${protector.config.width}mm-${protector.config.headroom}mm-sheets.svg`);
       showExported("SVG");
       return;
@@ -120,7 +123,7 @@ export function ConfiguratorShell() {
     <ConfiguratorHeader mode={mode} onModeChange={setMode} dark={dark} onThemeChange={toggleTheme} onInfo={openInfo} onExport={exportDesign} />
     <main id="configure" className="workspace">
       <h1 className="sr-only">{mode === "panel" ? "Acrylic Eurorack panel designer" : mode === "case" ? "Acrylic Eurorack case configurator" : mode === "protector" ? "Slotted acrylic synth protector designer" : "Slotted acrylic synth stand designer"}</h1>
-      {mode === "panel" ? <PanelDesigner panel={panel} dark={dark} onChange={patch => setPanelConfig(current => normalizePanelConfiguration({ ...current, ...patch }))} onExportJson={exportDesign} onExportSvg={exportSheets} /> : mode === "protector" ? <ProtectorDesigner protector={protector} dark={dark} onChange={patch => setProtectorConfig(current => ({ ...current, ...patch }))} onExportJson={exportDesign} onExportSvg={exportSheets} /> : mode === "stand" ? <StandDesigner stand={stand} object={standConfig.object} objectError={standError} busy={standBusy} dark={dark} onChange={patch => setStandConfig(current => ({ ...current, ...patch }))} onExportJson={exportDesign} onExportSvg={exportSheets} /> : <div className="configurator-grid"><div className="preview-column"><PreviewStage panels={panels} config={config} dark={dark} /><BuildSummary config={config} onExportJson={exportDesign} onExportSvg={exportSheets} /></div><ConfigurationPanel panels={panels} onCutoutAction={cutoutAction} config={config} onChange={updateConfig} /></div>}
+      {mode === "panel" ? <PanelDesigner panel={panel} dark={dark} onChange={patch => setPanelConfig(current => normalizePanelConfiguration({ ...current, ...patch }))} onExportJson={exportDesign} onExportSvg={exportSheets} /> : mode === "protector" ? <ProtectorDesigner protector={protector} object={protectorConfig.object} objectError={protectorError} busy={protectorBusy} dark={dark} onChange={patch => setProtectorConfig(current => ({ ...current, ...patch }))} onExportJson={exportDesign} onExportSvg={exportSheets} /> : mode === "stand" ? <StandDesigner stand={stand} object={standConfig.object} objectError={standError} busy={standBusy} dark={dark} onChange={patch => setStandConfig(current => ({ ...current, ...patch }))} onExportJson={exportDesign} onExportSvg={exportSheets} /> : <div className="configurator-grid"><div className="preview-column"><PreviewStage panels={panels} config={config} dark={dark} /><BuildSummary config={config} onExportJson={exportDesign} onExportSvg={exportSheets} /></div><ConfigurationPanel panels={panels} onCutoutAction={cutoutAction} config={config} onChange={updateConfig} /></div>}
     </main>
     <div className={`export-toast ${exported ? "toast-visible" : ""}`} role="status">{exported && <><Check size={15} />{exported === "SVG" ? mode === "panel" ? "Panel cut and engrave layers downloaded as SVG." : "All sheets downloaded as SVG." : "Configuration downloaded as JSON."}</>}</div>
     <dialog ref={dialog} className="info-dialog" aria-labelledby="dialog-title" onClose={() => setInfo(null)} onClick={event => { if (event.target === event.currentTarget) dialog.current?.close(); }}>

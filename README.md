@@ -24,6 +24,7 @@ This starter does not use `wrangler.jsonc`.
 - top-bar Case designer / Synth stand / Synth protector / Panel designer modes with independent in-session configurations
 - Eurorack blank and DIY panels with component openings, SVG/font artwork, separate cut/engrave exports, alignment and ventilation
 - automatic slotted acrylic synth stands with solid ribs, three cross braces, 3D and cutting layouts, and JSON/SVG export
+- optional local STL/OBJ fitting for stands and protectors, with units, orientation and angle controls; protectors use a level cover above the posed model and individual contour-fitted feet with broad locating lips
 - interactive Three.js case preview with ordered, mix-and-match 1U/3U rows, live dimensions, and optional per-sheet acrylic colors and transparency
 - interlocking case panels retained by rail-end screws, with stance and handles integral to the side panels
 - adjustable side-panel retaining margins from the original 2× sheet thickness to a guarded near-flush 1× profile
@@ -483,3 +484,20 @@ Regions without a model surface stay at tie height except for the intentional
 front lips. JSON records the lip positions and heights. Fit is only as accurate
 as the source mesh and its units. Check vents, balance, surface grip, retention,
 joint fit and strength on a prototype; no load rating is calculated.
+
+### Fit a synth protector to a 3D model
+
+In **Synth protector → Your instrument**, upload an STL/OBJ and set its units,
+up axis, orientation and object angle. The cover stays horizontal above the
+highest posed mesh point, with the chosen clearance and overhang. Individual
+feet follow the upper surface across the full sheet thickness. They retain
+broad outside locating lips while downward needles are trimmed away. Overhang
+increases when necessary to leave two sheet thicknesses outside the model.
+
+Foot inset and additional feet remain adjustable. Cover slots and optional
+retaining-strip holes stay aligned despite different contact heights. Fits
+with missing contact surfaces or overlapping feet block export and explain
+which settings to adjust. Preview and SVG/JSON share the fitted outlines;
+JSON includes the model and pose. Models and manual settings are independent
+between stand and protector modes. Inspect contacts around keys, knobs and
+other delicate surfaces: the mesh does not identify suitable bearing points.

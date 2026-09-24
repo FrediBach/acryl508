@@ -444,12 +444,13 @@ test("mode switching preserves independent designs and routes material choices a
     // Keep real parsing, fitting and controls; emulate only the worker transport.
     previous.set("Worker", Object.getOwnPropertyDescriptor(globalThis, "Worker"));
     const { createSynthStand } = load(path.join(project, "lib/synth-stand.ts"));
+    const { createSynthProtector } = load(path.join(project, "lib/synth-protector.ts"));
     globalThis.Worker = class {
       terminated = false;
       postMessage(configuration) {
         setTimeout(() => {
           if (this.terminated) return;
-          try { this.onmessage({ data: { stand: createSynthStand(configuration) } }); }
+          try { this.onmessage({ data: "headroom" in configuration ? { protector: createSynthProtector(configuration) } : { stand: createSynthStand(configuration) } }); }
           catch (error) { this.onmessage({ data: { error: error.message } }); }
         }, 0);
       }
@@ -493,6 +494,47 @@ test("mode switching preserves independent designs and routes material choices a
     assert.equal(button("Export stand sheets as SVG").disabled, false);
     await click("Export stand configuration as JSON");
     assert.equal(JSON.parse(await downloads.at(-1).blob.text()).objectFit, null);
+    await click("Synth protector");
+    assert.equal(document.querySelector('.stand-object-name'), null, "Models are independent between modes");
+    const protectorUpload = document.querySelector('.stand-object-file');
+    Object.defineProperty(protectorUpload, "files", { configurable: true, value: [{ name: "protector-synth.obj", size: objText.length, text: async () => objText }] });
+    await React.act(async () => protectorUpload.dispatchEvent(new dom.window.Event("change", { bubbles: true })));
+    assert.equal(button("Export protector sheets as SVG").disabled, true);
+    await settleFit();
+    assert.equal(button("Export protector sheets as SVG").disabled, false);
+    assert.equal(document.querySelector('input[aria-label="Synth width in mm"]'), null);
+    await click("25°");
+    await settleFit();
+    await click("Export protector configuration as JSON");
+    const modelProtector = JSON.parse(await downloads.at(-1).blob.text());
+    assert.equal(modelProtector.objectFit.name, "protector-synth.obj");
+    assert.equal(modelProtector.configuration.width, 600);
+    assert.equal(modelProtector.configuration.angle, 25);
+    assert.equal(modelProtector.configuration.headroom, 50);
+    await click("Cutting layout");
+    const protectorPaths = [...document.querySelectorAll(".stand-cutting-layout path")].map(p => p.getAttribute("d"));
+    await click("Export protector sheets as SVG");
+    const protectorSvg = new dom.window.DOMParser().parseFromString(await downloads.at(-1).blob.text(), "image/svg+xml");
+    assert.deepEqual(protectorPaths, [...protectorSvg.querySelectorAll("path")].map(p => p.getAttribute("d")));
+    const protectorUnits = document.querySelector('.stand-object-settings select');
+    await selectValue(protectorUnits, "m");
+    await settleFit();
+    assert.match(document.querySelector('[role="alert"]').textContent, /units/);
+    assert.equal(button("Export protector sheets as SVG").disabled, true);
+    const beforeInvalidExport = downloads.length;
+    await click("Export JSON");
+    assert.equal(downloads.length, beforeInvalidExport, "Header export also guards failed fits");
+    await selectValue(protectorUnits, "mm");
+    await settleFit();
+    await click("Synth stand");
+    assert.equal(document.querySelector('.stand-object-name'), null);
+    await click("Synth protector");
+    assert.match(document.querySelector('.stand-object-name').textContent, /protector-synth.obj/);
+    await click("Remove 3D model");
+    assert.equal(document.querySelector('input[aria-label="Synth width in mm"]').value, "550");
+    await click("Export protector configuration as JSON");
+    assert.equal(JSON.parse(await downloads.at(-1).blob.text()).objectFit, null);
+    await click("Synth stand");
     await click("Build notes");
     assert.match(document.querySelector("dialog").textContent, /Slot together\. Play at your angle/);
     assert.match(document.querySelector("dialog").textContent, /no load capacity or stability rating/);
