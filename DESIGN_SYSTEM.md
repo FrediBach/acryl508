@@ -180,3 +180,9 @@ supports. Standard and diagonal layouts share contour fitting across the full
 sheet thickness; fitted ribs are listed individually. Pending and failed fits
 replace the preview with a status and disable exports. Geometry runs in a
 cancellable worker so changing angle does not block interaction.
+
+Model-fitted supports automatically trim thin fins above tie height into blunt
+caps before cutting joints. The minimum span is two sheet thicknesses. Broad
+contact surfaces and underside clearances remain; material is only removed.
+Rounded edges also softens convex corners of the fitted outline. Preview and
+both exports use the same trimmed geometry; no extra control is required.

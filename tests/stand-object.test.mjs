@@ -4,7 +4,7 @@ import polygonClipping from "polygon-clipping";
 import { BoxGeometry, SphereGeometry } from "three";
 import { loadTypescript } from "./load-typescript.mjs";
 const { createSynthStand, defaultStandConfiguration, standSvg, standExport } = await loadTypescript("../lib/synth-stand.ts");
-const { positionStandObject } = await loadTypescript("../lib/stand-object.ts");
+const { positionStandObject, trimContactSpikes, objectContactCut } = await loadTypescript("../lib/stand-object.ts");
 const { readStandObject } = await loadTypescript("../lib/stand-object-import.ts");
 const near = (a, b, tolerance = 1e-6) => assert.ok(Math.abs(a - b) < tolerance, `${a} ≈ ${b}`);
 function box(width = 550, depth = 280, height = 70, offset = [0, 0, 0]) {
@@ -135,4 +135,60 @@ test("curved, asymmetric models fit each rib separately without flattening the u
     assert.ok(at(rib, 150) > at(rib, 140));
   }
   assert.ok(at(ribs[0], 140) > at(ribs[1], 140));
+});
+
+
+const area = polygons => polygons.reduce((sum, polygon) => sum + polygon.reduce((total, ring, index) => {
+  const signed = ring.slice(1).reduce((value, point, i) => value + ring[i][0] * point[1] - point[0] * ring[i][1], 0) / 2;
+  return total + (index ? -1 : 1) * Math.abs(signed);
+}, 0), 0);
+
+test("thin contact fins are trimmed into broad caps without filling any object clearance", () => {
+  const floor = 20, width = 12;
+  const profile = [[[[0,0], [100,0], [100,20], [92,20], [92,65], [90,65], [90,20],
+    [65,20], [65,35], [35,35], [35,20], [20,20], [0,80], [0,0]]]];
+  const trimmed = trimContactSpikes(profile, floor, width);
+  assert.equal(trimmed.length, 1);
+  assert.ok(area(polygonClipping.difference(trimmed, profile)) < 1e-7, "only removes material");
+  near(at({ polygons: trimmed }, 0.01), 44); // 80 - 3 × 12, a 12 mm cap
+  near(at({ polygons: trimmed }, 11), 44);
+  near(at({ polygons: trimmed }, 91), 20); // delete the 2 mm wide upright fin
+  near(at({ polygons: trimmed }, 50), 35); // retain the broad useful contact
+  assert.deepEqual(polygonClipping.intersection(trimmed, rectangle(-1, -1, 101, floor)), polygonClipping.intersection(profile, rectangle(-1, -1, 101, floor)));
+  assert.ok(area(polygonClipping.difference(trimmed, trimContactSpikes(trimmed, floor, width))) < 1e-7, "trimming is stable when reapplied");
+});
+
+test("tilted mesh end spikes get flat caps even with Rounded edges off", () => {
+  for (const angle of [15, 25, 45]) for (const thickness of [5, 6, 10]) {
+    const stand = createSynthStand(config(model(), { angle, thickness, roundedEdges: false }));
+    const rib = stand.parts.find(part => part.kind === "rib");
+    const a = angle * Math.PI / 180;
+    const oldFrontTip = stand.frontHeight + 70 * Math.cos(a);
+    assert.ok(at(rib, 0.001) < oldFrontTip - 10, "front tip is shortened substantially");
+    near(at(rib, 0.001), at(rib, Math.min(2 * thickness, 70 * Math.sin(a)) - 0.001));
+    const rear = 280 * Math.cos(a) + 70 * Math.sin(a);
+    near(at(rib, rear - 0.001), at(rib, rear - 2 * thickness + 0.001));
+    // The main playing-angle surface still contacts the object exactly.
+    const middle = 70 * Math.sin(a) + 140 * Math.cos(a);
+    near(at(rib, middle), stand.frontHeight + 140 * Math.sin(a), 1e-5);
+    assert.equal(standExport(stand).objectFit.minimumTipWidth, 2 * thickness);
+    assert.match(standSvg(stand), /thin tips trimmed/);
+  }
+});
+
+test("optional rounding softens fitted caps, preserves joint fit and never grows into the mesh", () => {
+  for (const advancedMode of [false, true]) {
+    const input = config(model(), { angle: 25, advancedMode, thickness: 6 });
+    const flat = createSynthStand(input), rounded = createSynthStand({ ...input, roundedEdges: true, cornerRadius: 3 });
+    const posed = positionStandObject(input.object, input.angle, flat.frontHeight);
+    for (const part of rounded.parts.filter(p => p.kind === "rib")) {
+      const original = flat.parts.find(p => p.id === part.id);
+      assert.ok(area(polygonClipping.difference(part.polygons, original.polygons)) < 1e-6);
+      assert.ok(area(polygonClipping.difference(original.polygons, part.polygons)) > 0.01);
+      const { cut } = objectContactCut(posed.points, part.placement, input.thickness, posed.top + 1);
+      assert.ok(area(polygonClipping.intersection(part.polygons, cut)) < 1e-6);
+      assert.deepEqual(part.slots, original.slots);
+      assert.equal(part.polygons.length, 1);
+    }
+  }
 });

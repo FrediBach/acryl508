@@ -468,9 +468,11 @@ mesh and orientation. Exports are blocked while fitting or when fitting fails.
 The compact footprint adds one sheet thickness at the front and rear of the
 tilted mesh, plus the optional front extension. Model dimensions must be
 60–1400 mm wide, 40–1000 mm deep and 1–1000 mm tall. Triangle projections are
-resolved to 0.0000001 mm to stabilize shared edges. Contact edges stay sharp;
-rounding still applies to lower outside corners and braces. Regions without a
-model surface stay at tie height. No separate front stops are added in model
+resolved to 0.0000001 mm to stabilize shared edges. Thin contact fins are
+automatically trimmed to flat caps with a minimum horizontal span of two sheet
+thicknesses, removing material only. Optional rounding also softens convex
+contact corners; joint slots are cut afterwards to preserve their fit. Regions
+without a model surface stay at tie height. No separate front stops are added in model
 mode: inspect how the contour locates the object and prevents sliding. Fit is
 only as accurate as the source mesh and its units. Check vents, balance, surface
 grip, joint fit and strength on a prototype; no load rating is calculated.

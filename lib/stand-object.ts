@@ -106,3 +106,45 @@ export function objectContactCut(points: ObjectPoint[], position: { width: numbe
   }
   return { cut: batches[0] ?? [], intervals: merged };
 }
+
+/** Horizontal opening above the tie: at each height keep only material spans
+ * at least minimumWidth wide. A tapered fin ends in a flat cap where it reaches
+ * that width. Work between vertex heights so narrow mesh details cannot hide
+ * between samples; interpolate the exact height where a span becomes too thin.
+ * Apply before joint slots, which must retain their independent fit geometry. */
+export function trimContactSpikes(profile: MultiPolygon, floor: number, minimumWidth: number): MultiPolygon {
+  if (!profile.length) return profile;
+  const points = profile.flat(2);
+  const left = Math.min(...points.map(p => p[0])), right = Math.max(...points.map(p => p[0]));
+  const bottom = Math.min(...points.map(p => p[1]));
+  const rect = (x1: number, y1: number, x2: number, y2: number): MultiPolygon => [[[[x1, y1], [x2, y1], [x2, y2], [x1, y2], [x1, y1]]]];
+  const retained: MultiPolygon[] = [polygonClipping.intersection(profile, rect(left - 1, bottom - 1, right + 1, floor))];
+  const levels = [...new Set([floor, ...points.filter(p => p[1] > floor).map(p => p[1])])].sort((a, b) => a - b);
+  const edges = profile.flatMap(poly => poly.flatMap(ring => ring.slice(1).map((p, i) => [ring[i], p] as const)))
+    .filter(([a, b]) => a[1] !== b[1]);
+  const xAt = ([a, b]: readonly [Pair, Pair], y: number) => a[0] + (b[0] - a[0]) * (y - a[1]) / (b[1] - a[1]);
+  for (let i = 1; i < levels.length; i++) {
+    const low = levels[i - 1], high = levels[i], middle = (low + high) / 2;
+    const crossings = edges.filter(([a, b]) => middle > Math.min(a[1], b[1]) && middle < Math.max(a[1], b[1]))
+      .sort((a, b) => xAt(a, middle) - xAt(b, middle));
+    for (let j = 0; j + 1 < crossings.length; j += 2) {
+      const a = crossings[j], b = crossings[j + 1];
+      const lowWidth = xAt(b, low) - xAt(a, low), highWidth = xAt(b, high) - xAt(a, high);
+      if (Math.max(lowWidth, highWidth) < minimumWidth) continue;
+      let start = low, end = high;
+      if (lowWidth < minimumWidth) start = low + (high - low) * (minimumWidth - lowWidth) / (highWidth - lowWidth);
+      if (highWidth < minimumWidth) end = low + (high - low) * (minimumWidth - lowWidth) / (highWidth - lowWidth);
+      if (end - start < 1e-8) continue;
+      const ring: Pair[] = [[xAt(a, start), start], [xAt(b, start), start], [xAt(b, end), end], [xAt(a, end), end]];
+      retained.push([[ [...ring, ring[0]] ]]);
+    }
+  }
+  let batches = retained.filter(p => p.length);
+  while (batches.length > 1) {
+    const next: MultiPolygon[] = [];
+    for (let i = 0; i < batches.length; i += 64) next.push(polygonClipping.union(batches[i], ...batches.slice(i + 1, i + 64)));
+    batches = next;
+  }
+  // Guard against any floating-point expansion at reconstructed slice edges.
+  return batches.length ? polygonClipping.intersection(profile, batches[0]) : [];
+}
