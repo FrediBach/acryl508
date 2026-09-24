@@ -104,7 +104,7 @@ export function ProjectToolbar({ designs, mode, canUndo, canRedo, onUndo, onRedo
           <button disabled={busy || !ready} onClick={() => void run(async () => { setSaved(await listSavedProjects()); dialog.current?.showModal(); })}><FolderOpen size={15} /><span>Open</span></button>
           <div className="project-menu-separator" />
           <button disabled={busy || !ready} onClick={() => input.current?.click()}><Upload size={15} /><span>Import JSON</span></button>
-          <button aria-label="Project file" disabled={busy || !ready} onClick={() => { downloadFile(JSON.stringify(project()), "application/json", `${(name.trim() || "acryl508-project").replace(/[^a-z0-9_-]/gi, "-")}.acryl508.json`); setStatus("Project file downloaded"); }}><Download size={15} /><span>Project file</span><small>Download</small></button>
+          <button aria-label="Download project" title="Back up all four designs, imported models and fonts" disabled={busy || !ready} onClick={() => { downloadFile(JSON.stringify(project()), "application/json", `${(name.trim() || "acryl508-project").replace(/[^a-z0-9_-]/gi, "-")}.acryl508.json`); setStatus("Project file downloaded"); }}><Download size={15} /><span>Download project</span></button>
           <p>Saved on this device</p>
         </div>
       </details>

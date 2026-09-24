@@ -33,7 +33,7 @@ export function BuildSummary({ config, canExportSvg = true, onExportJson, onExpo
       </dl>
       {!canExportSvg && <p className="cutout-warning" role="alert">Resolve empty panels and cutout errors before exporting SVG.</p>}
       <div className="summary-actions">
-        <button className="button button-dark summary-export" onClick={onExportJson} aria-label="Export configuration as JSON"><ArrowDownToLine size={15} />JSON</button>
+        <button className="button button-dark summary-export" onClick={onExportJson} title="Download only this design’s settings and geometry" aria-label="Export case design JSON"><ArrowDownToLine size={15} />Design JSON</button>
         <button className="button button-orange summary-export" disabled={!canExportSvg} onClick={onExportSvg} aria-label="Export all sheets as SVG"><ArrowDownToLine size={15} />SVG sheets</button>
       </div>
     </section>

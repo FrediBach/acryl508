@@ -139,7 +139,7 @@ test("mode switching preserves independent designs and routes material choices a
     });
     await selectValue(document.querySelector("dialog:not(.project-dialog) select"), "opal");
     await click("Close notes");
-    await click("Export JSON");
+    await click("Design JSON");
     const stand = JSON.parse(await downloads.at(-1).blob.text());
     assert.equal(stand.mode, "synth-stand"); assert.equal(stand.configuration.angle, 35); assert.equal(stand.configuration.tint.id, "blue");
     assert.equal(stand.configuration.transparency, "opal");
@@ -168,7 +168,7 @@ test("mode switching preserves independent designs and routes material choices a
     await React.act(async () => document.querySelector('dialog:not(.project-dialog) button[aria-label="Red"]').click());
     await selectValue(document.querySelector("dialog:not(.project-dialog) select"), "see-through");
     await click("Close notes");
-    await click("Export JSON");
+    await click("Design JSON");
     const protector = JSON.parse(await downloads.at(-1).blob.text());
     assert.equal(protector.mode, "synth-protector");
     assert.equal(protector.configuration.headroom, 50);
@@ -184,7 +184,7 @@ test("mode switching preserves independent designs and routes material choices a
     assert.match(document.querySelector("dialog:not(.project-dialog)").textContent, /A little room above the controls/);
     await click("Close notes");
     await click("Synth stand");
-    await click("Export JSON");
+    await click("Design JSON");
     assert.equal(JSON.parse(await downloads.at(-1).blob.text()).configuration.tint.id, "blue");
     await click("Synth protector");
     assert.equal(button("50 mm").getAttribute("aria-pressed"), "true");
@@ -200,7 +200,7 @@ test("mode switching preserves independent designs and routes material choices a
     await setProtectorNumber("Extra feet per front / rear edge in feet", 3);
     await toggleSection("Locking strips");
     await click("Through-tabs & locking strips");
-    await click("Export JSON");
+    await click("Design JSON");
     const retained = JSON.parse(await downloads.at(-1).blob.text());
     assert.equal(retained.construction.footCount, 16);
     assert.equal(retained.construction.stripCount, 4);
@@ -212,19 +212,19 @@ test("mode switching preserves independent designs and routes material choices a
     await click("Export protector sheets as SVG");
     assert.match(await downloads.at(-1).blob.text(), /16 feet, 4 retaining strips/);
     await click("Feet on all four edges");
-    await click("Export JSON");
+    await click("Design JSON");
     const sideOnly = JSON.parse(await downloads.at(-1).blob.text());
     assert.equal(sideOnly.construction.footCount, 6);
     assert.equal(sideOnly.construction.stripCount, 2);
     await click("Through-tabs & locking strips");
-    await click("Export JSON");
+    await click("Design JSON");
     assert.equal(JSON.parse(await downloads.at(-1).blob.text()).construction.stripCount, 0);
     await click("Feet on all four edges");
     assert.equal(document.querySelector('input[aria-label="Extra feet per front / rear edge in feet"]').value, "3");
 
     await click("Case designer");
     assert.equal(button("104").getAttribute("aria-pressed"), "true");
-    await click("Export JSON");
+    await click("Design JSON");
     const caseData = JSON.parse(await downloads.at(-1).blob.text());
     assert.equal(caseData.configuration.hp, 104); assert.equal(caseData.configuration.tint.id, "orange");
     assert.equal(caseData.configuration.transparency, "transparent");
@@ -238,19 +238,19 @@ test("mode switching preserves independent designs and routes material choices a
       return document.getElementById(field.htmlFor);
     };
     await selectValue(transparencySelect("Front transparency"), "opaque");
-    await click("Export JSON");
+    await click("Design JSON");
     let materialCase = JSON.parse(await downloads.at(-1).blob.text()).configuration;
     assert.equal(materialCase.panelTints.front.id, "black");
     assert.equal(materialCase.panelTransparencies.front, "opaque");
     assert.equal(materialCase.panelTransparencies.bottom, "transparent");
     await click("Red");
-    await click("Export JSON");
+    await click("Design JSON");
     materialCase = JSON.parse(await downloads.at(-1).blob.text()).configuration;
     assert.ok(Object.values(materialCase.panelTints).every(tint => tint.id === "red"));
     assert.equal(materialCase.panelTransparencies.front, "opaque", "Applying color preserves sheet finishes");
     await selectValue(document.querySelector("#panel-tint-left"), "white");
     await selectValue(transparencySelect("All sheets’ transparency"), "see-through");
-    await click("Export JSON");
+    await click("Design JSON");
     materialCase = JSON.parse(await downloads.at(-1).blob.text()).configuration;
     assert.ok(Object.values(materialCase.panelTransparencies).every(value => value === "see-through"));
     assert.equal(materialCase.panelTints.left.id, "white", "Applying transparency preserves sheet colors");
@@ -271,18 +271,18 @@ test("mode switching preserves independent designs and routes material choices a
     await setRowAngle(1, 35);
     await addRow(1);
     await setRowAngle(2, 20);
-    await click("Export JSON");
+    await click("Design JSON");
     let angledCase = JSON.parse(await downloads.at(-1).blob.text());
     assert.deepEqual(angledCase.configuration.rowAngles, [35, 20, 0]);
     assert.deepEqual(angledCase.rowLayout.rows.map(row => row.angle), [55, 20, 0]);
     assert.equal(angledCase.rowLayout.automaticFeet, true);
     await click("30°");
-    await click("Export JSON");
+    await click("Design JSON");
     angledCase = JSON.parse(await downloads.at(-1).blob.text());
     assert.deepEqual(angledCase.configuration.rowAngles, [25, 20, 0]);
     await click("Move row 1 toward front");
     await click("Remove row 1");
-    await click("Export JSON");
+    await click("Design JSON");
     angledCase = JSON.parse(await downloads.at(-1).blob.text());
     assert.deepEqual(angledCase.configuration.rowAngles, [25, 0]);
     await click("Export all sheets as SVG");
@@ -299,7 +299,7 @@ test("mode switching preserves independent designs and routes material choices a
       Object.getOwnPropertyDescriptor(dom.window.HTMLInputElement.prototype, "value").set.call(input, String(value));
       input.dispatchEvent(new dom.window.Event("input", { bubbles: true }));
     });
-    const exportedPanel = async () => { await click("Export JSON"); return JSON.parse(await downloads.at(-1).blob.text()); };
+    const exportedPanel = async () => { await click("Design JSON"); return JSON.parse(await downloads.at(-1).blob.text()); };
     await click("20 HP");
     await click("Jack");
     await setPanelNumber("X from centre", -15);
@@ -418,7 +418,7 @@ test("mode switching preserves independent designs and routes material choices a
     assert.equal(button("Front extension").getAttribute("aria-checked"), "true");
     await click("Front extension");
     assert.equal(document.querySelector('input[aria-label="Extension length in mm"]'), null);
-    await click("Export JSON");
+    await click("Design JSON");
     const compactStand = JSON.parse(await downloads.at(-1).blob.text());
     assert.equal(compactStand.configuration.transparency, "opal", "Case edits preserve stand finish");
     assert.equal(compactStand.frontExtension.length, 0);
@@ -429,13 +429,13 @@ test("mode switching preserves independent designs and routes material choices a
     assert.equal(button("Cable holes in braces").getAttribute("aria-checked"), "true");
     await click("Cable holes in braces");
     assert.equal(document.querySelector('input[aria-label="Cable hole diameter in mm"]'), null);
-    await click("Export stand configuration as JSON");
+    await click("Export stand design JSON");
     const standardStand = JSON.parse(await downloads.at(-1).blob.text());
     await click("Advanced · diagonal");
     assert.equal(button("Advanced · diagonal").getAttribute("aria-pressed"), "true");
     assert.equal(document.querySelector('input[aria-label="Diagonal sweep in °"]'), null);
     assert.match(document.querySelector(".stand-mode-control").textContent, /every crossing stays at 90°/);
-    await click("Export stand configuration as JSON");
+    await click("Export stand design JSON");
     const diagonalStand = JSON.parse(await downloads.at(-1).blob.text());
     assert.equal(diagonalStand.configuration.advancedMode, true);
     assert.ok(diagonalStand.diagonal.angle > 0);
@@ -452,7 +452,7 @@ test("mode switching preserves independent designs and routes material choices a
     assert.equal(button("Advanced · diagonal").getAttribute("aria-pressed"), "true");
     await click("Standard");
     assert.equal(document.querySelector('input[aria-label="Diagonal sweep in °"]'), null);
-    await click("Export stand configuration as JSON");
+    await click("Export stand design JSON");
     assert.deepEqual(JSON.parse(await downloads.at(-1).blob.text()).parts, standardStand.parts);
     // Keep real parsing, fitting and controls; emulate only the worker transport.
     previous.set("Worker", Object.getOwnPropertyDescriptor(globalThis, "Worker"));
@@ -480,7 +480,7 @@ test("mode switching preserves independent designs and routes material choices a
     await settleFit();
     assert.equal(button("Export stand sheets as SVG").disabled, false);
     assert.equal(document.querySelector('input[aria-label="Synth width in mm"]'), null);
-    await click("Export stand configuration as JSON");
+    await click("Export stand design JSON");
     let fitted = JSON.parse(await downloads.at(-1).blob.text());
     assert.equal(fitted.configuration.width, 600);
     assert.equal(fitted.objectFit.name, "my-synth.obj");
@@ -491,7 +491,7 @@ test("mode switching preserves independent designs and routes material choices a
     assert.equal(button("Export stand sheets as SVG").disabled, false, "Appearance edits keep fitted export ready");
     await settleFit();
     assert.equal(fittingJobs, jobsBeforeAppearance, "Appearance changes must not restart model fitting");
-    await click("Project file");
+    await click("Download project");
     const fittedProject = JSON.parse(await downloads.at(-1).blob.text());
     assert.equal(fittedProject.format, "acryl508-project");
     assert.ok(fittedProject.designs.stand.object.vertices.length > 0);
@@ -499,7 +499,7 @@ test("mode switching preserves independent designs and routes material choices a
 
     await click("15°");
     await settleFit();
-    await click("Export stand configuration as JSON");
+    await click("Export stand design JSON");
     fitted = JSON.parse(await downloads.at(-1).blob.text());
     assert.equal(fitted.configuration.angle, 15);
     await click("Cutting layout");
@@ -520,7 +520,7 @@ test("mode switching preserves independent designs and routes material choices a
     await click("Remove 3D model");
     assert.equal(document.querySelector('input[aria-label="Synth width in mm"]').value, "550");
     assert.equal(button("Export stand sheets as SVG").disabled, false);
-    await click("Export stand configuration as JSON");
+    await click("Export stand design JSON");
     assert.equal(JSON.parse(await downloads.at(-1).blob.text()).objectFit, null);
     await click("Synth protector");
     assert.equal(document.querySelector('.stand-object-name'), null, "Models are independent between modes");
@@ -533,7 +533,7 @@ test("mode switching preserves independent designs and routes material choices a
     assert.equal(document.querySelector('input[aria-label="Synth width in mm"]'), null);
     await click("25°");
     await settleFit();
-    await click("Export protector configuration as JSON");
+    await click("Export protector design JSON");
     const modelProtector = JSON.parse(await downloads.at(-1).blob.text());
     assert.equal(modelProtector.objectFit.name, "protector-synth.obj");
     assert.equal(modelProtector.configuration.width, 600);
@@ -550,8 +550,8 @@ test("mode switching preserves independent designs and routes material choices a
     assert.match(document.querySelector('[role="alert"]').textContent, /units/);
     assert.equal(button("Export protector sheets as SVG").disabled, true);
     const beforeInvalidExport = downloads.length;
-    await click("Export JSON");
-    assert.equal(downloads.length, beforeInvalidExport, "Header export also guards failed fits");
+    await click("Design JSON");
+    assert.equal(downloads.length, beforeInvalidExport, "The single design JSON action also guards failed fits");
     await selectValue(protectorUnits, "mm");
     await settleFit();
     await click("Synth stand");
@@ -560,14 +560,14 @@ test("mode switching preserves independent designs and routes material choices a
     assert.match(document.querySelector('.stand-object-name').textContent, /protector-synth.obj/);
     await click("Remove 3D model");
     assert.equal(document.querySelector('input[aria-label="Synth width in mm"]').value, "550");
-    await click("Export protector configuration as JSON");
+    await click("Export protector design JSON");
     assert.equal(JSON.parse(await downloads.at(-1).blob.text()).objectFit, null);
     await click("Synth stand");
     await click("Build notes");
     assert.match(document.querySelector("dialog:not(.project-dialog)").textContent, /Slot together\. Play at your angle/);
     assert.match(document.querySelector("dialog:not(.project-dialog)").textContent, /no load capacity or stability rating/);
     await click("Close notes");
-    await click("Project file");
+    await click("Download project");
     const projectBackup = await downloads.at(-1).blob.text();
     const projectData = JSON.parse(projectBackup);
     assert.equal(projectData.designs.case.hp, 104);
@@ -595,7 +595,7 @@ test("mode switching preserves independent designs and routes material choices a
     Object.defineProperty(projectUpload, "files", { configurable: true, value: [{ name: "bad.json", size: 2, text: async () => "{}" }] });
     await React.act(async () => projectUpload.dispatchEvent(new dom.window.Event("change", { bubbles: true })));
     assert.match(document.querySelector('.project-toolbar [role="alert"]').textContent, /Choose an Acryl508/);
-    await click("Project file");
+    await click("Download project");
     assert.deepEqual(JSON.parse(await downloads.at(-1).blob.text()).designs.panel, JSON.parse(beforeInvalidImport).panel);
     // Remount against the same database to exercise actual recovery.
     await React.act(async () => new Promise(resolve => setTimeout(resolve, 850)));
@@ -626,12 +626,12 @@ test("mode switching preserves independent designs and routes material choices a
       recoveredTextInput.dispatchEvent(new dom.window.Event("input", { bubbles: true }));
     });
     await click("Apply text");
-    await click("Export JSON");
+    await click("Design JSON");
     const editedText = JSON.parse(await downloads.at(-1).blob.text()).configuration.cutouts[0];
     assert.equal(editedText.source.text, "AAA");
     assert.equal(editedText.source.fontId, "case-font");
     await click("Panel designer");
-    await click("Project file");
+    await click("Download project");
     assert.equal(JSON.parse(await downloads.at(-1).blob.text()).fonts[0].data, fontProject.fonts[0].data);
 
 

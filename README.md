@@ -56,7 +56,7 @@ snapshot; **Open** lists those copies. These saves belong to this browser and
 origin, not an account: clearing site data removes them, and another device or
 deployment URL has separate storage. Storage errors are shown explicitly.
 
-**Project file** downloads a version 1 `.acryl508.json` file containing all four
+**Project → Download project** downloads a version 1 `.acryl508.json` file containing all four
 editable configurations, source meshes and font bytes. **Import JSON** opens
 these files or existing single-designer exports. Single-designer imports replace
 only their corresponding design. Legacy exports with custom text retain their
@@ -75,6 +75,11 @@ not persisted. **Save current & start new** first saves a named copy.
 Imported fonts are shared between case and panel modes. Appearance-only changes
 reuse geometry, and color/transparency edits do not restart uploaded-model
 fitting. Panel artwork and component geometry still recalculate when edited.
+
+Each designer has one **Design JSON** and one **SVG sheets / SVG layers** action
+in its summary below the preview. Design JSON contains that designer only;
+**Project → Download project** backs up the entire workspace, including models
+and fonts. The header and build notes do not repeat these export actions.
 
 ## Fabrication workspace
 

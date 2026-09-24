@@ -60,7 +60,10 @@ is hidden while the editable name, history and project actions remain available.
 The top bar offers Case designer, Synth stand and Synth protector modes. All share the theme,
 material palette and visual controls while retaining independent in-session
 configurations. On narrow screens, the mode switch occupies a full second row.
-The active mode owns material-library selections, build notes and both exports.
+The active mode owns material-library selections and build notes. Its summary
+below the preview is the only location for Design JSON and SVG exports.
+Project → Download project backs up all four designs, models and fonts; the
+header, build notes and sidebar do not duplicate the design export buttons.
 
 Standard synth stands use solid support ribs with front stops and three slotted cross
 braces, all cut from a single thickness of acrylic. The 220 mm maximum rib
