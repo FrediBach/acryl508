@@ -1,7 +1,9 @@
+import { objectContactCut, positionStandObject, type StandObject } from "./stand-object";
 import polygonClipping, { type MultiPolygon, type Pair } from "polygon-clipping";
 import { defaultTint, defaultTransparency, type AcrylicTint, type AcrylicTransparency } from "./acrylic-material";
 
 export type StandConfiguration = {
+  object?: StandObject;
   width: number; depth: number; height: number; angle: number;
   advancedMode: boolean;
   thickness: number; clearance: number; tint: AcrylicTint; transparency?: AcrylicTransparency;
@@ -92,8 +94,8 @@ function slot(center: number, width: number, root: number, open: number, radius:
     circle(center - width / 2, root, radius), circle(center + width / 2, root, radius));
 }
 
-function createStandardStand(input: StandConfiguration) {
-  const config = normalizeStandConfiguration(input);
+function createStandardStand(input: StandConfiguration, fitted?: { width: number; depth: number; height: number }) {
+  const config = { ...normalizeStandConfiguration(input), ...fitted };
   const { width, depth, height, thickness: t, clearance } = config;
   const angle = config.angle * Math.PI / 180, sin = Math.sin(angle), cos = Math.cos(angle);
   const braceHeight = 8 * t;
@@ -104,9 +106,9 @@ function createStandardStand(input: StandConfiguration) {
   // extends horizontally from there, independently of the instrument height.
   const stopOuterX = -stopHeight * sin - stopDepth * cos;
   const frontExtensionLength = config.frontExtension ? config.frontExtensionLength : 0;
-  const front = stopOuterX - frontExtensionLength;
-  const rear = depth * cos + 30;
-  const inset = Math.max(25, 4 * t);
+  const front = (fitted ? -t : stopOuterX) - frontExtensionLength;
+  const rear = depth * cos + (fitted ? t : 30);
+  const inset = fitted ? Math.min(width * 0.2, Math.max(25, 4 * t)) : Math.max(25, 4 * t);
   const supportSpan = width - 2 * inset;
   // A layout heuristic, not an acrylic load or deflection calculation.
   const ribCount = Math.max(2, Math.ceil(supportSpan / 220) + 1);
@@ -140,7 +142,7 @@ function createStandardStand(input: StandConfiguration) {
     ...ribPositions.map((position, i): StandPart => ({ id: `rib-${i + 1}`, label: `Support rib ${i + 1}`, kind: "rib", position, polygons: ribPolygons, width: rear - front, height: ribHeight, minX: front, family: "a", placement: { width: position, depth: 0, yaw: Math.PI / 2 }, cableHoleCenters: [], slots: bracePositions.map((center, j) => ({ center, root: jointCenter + 0.1, opens: "down", mate: `brace-${j + 1}` })) })),
     ...bracePositions.map((position, i): StandPart => ({ id: `brace-${i + 1}`, label: `${["Front", "Middle", "Rear"][i]} cross brace`, kind: "brace", position, polygons: bracePolygons, width: braceWidth, height: braceHeight, minX: -braceWidth / 2, family: "b", placement: { width: 0, depth: position, yaw: 0 }, cableHoleCenters, slots: ribPositions.map((center, j) => ({ center, root: jointCenter - 0.1, opens: "up", mate: `rib-${j + 1}` })) })),
   ];
-  return { config, parts, ribCount, braceCount: 3, ribPositions, bracePositions, braceWidth, braceHeight, frontHeight, stopHeight, front, rear,
+  return { objectFit: null as null | { name: string; triangleCount: number; method: string }, config, parts, ribCount, braceCount: 3, ribPositions, bracePositions, braceWidth, braceHeight, frontHeight, stopHeight, front, rear,
     slotWidth, reliefRadius, jointCenter, supportSpacing,
     diagonal: { enabled: false, angle: 0, intersectionAngle: 90 },
     frontExtension: { enabled: config.frontExtension, length: frontExtensionLength, stopOuterX, floorFrontX: front },
@@ -257,7 +259,56 @@ function createCrossStand(base: SynthStand): SynthStand {
       depth: Math.max(...footprint.map(p => p.z)) - Math.min(...footprint.map(p => p.z)), height: Math.max(...parts.map(p => p.height)) },
   };
 }
+function createObjectStand(input: StandConfiguration): SynthStand {
+  const normalized = normalizeStandConfiguration(input);
+  const object = normalized.object!;
+  const floor = 11 * normalized.thickness;
+  const posed = positionStandObject(object, normalized.angle, floor);
+  const template = createStandardStand({ ...normalized, angle: 0 }, { ...posed.dimensions, depth: posed.depth });
+  const base = normalized.advancedMode ? createCrossStand(template) : template;
+  const ceiling = posed.top + 1;
+  const parts = base.parts.map(part => {
+    if (part.kind === "brace") return part;
+    const { cut, intervals } = objectContactCut(posed.points, part.placement, normalized.thickness, ceiling);
+    if (!intervals.length) throw new Error("The model misses a support. Change its orientation or use a more complete mesh.");
+    // Empty regions remain low ties; never fill an absent object surface up to
+    // the object's top. All contact profiles remain untouched by edge rounding.
+    const gaps: MultiPolygon[] = [];
+    let left = part.minX;
+    for (const [start, end] of [...intervals, [part.minX + part.width, part.minX + part.width]]) {
+      if (start > left) gaps.push(rectangle(left, floor, start, ceiling));
+      left = Math.max(left, end);
+    }
+    const blank = polygonClipping.union(
+      polygonClipping.intersection(part.polygons, rectangle(part.minX - 1, -1, part.minX + part.width + 1, floor)),
+      rectangle(part.minX, floor - 0.000001, part.minX + part.width, ceiling));
+    const polygons = polygonClipping.difference(blank, cut, ...gaps,
+      ...part.slots.map(s => {
+        const open = s.opens === "down" ? -1 : ceiling + 1;
+        const cut = slot(s.center, base.slotWidth, s.root, open, base.reliefRadius);
+        if (!normalized.advancedMode) return cut;
+        const left = s.center - base.slotWidth / 2, right = s.center + base.slotWidth / 2;
+        const endRoot = s.root + (s.opens === "down" ? base.reliefRadius : -base.reliefRadius);
+        const bottom = Math.min(open, endRoot), top = Math.max(open, endRoot);
+        if (left - base.reliefRadius - part.minX < normalized.thickness) return polygonClipping.union(cut, rectangle(part.minX - 1, bottom, right, top));
+        if (part.minX + part.width - right - base.reliefRadius < normalized.thickness) return polygonClipping.union(cut, rectangle(left, bottom, part.minX + part.width + 1, top));
+        return cut;
+      }));
+    if (polygons.length !== 1) throw new Error("This model produces a disconnected support. Change its orientation or sheet thickness.");
+    const points = polygons.flat(2);
+    const height = Math.max(...points.map(p => p[1]));
+    const minX = Math.min(...points.map(p => p[0]));
+    return { ...part, polygons, height, minX, width: Math.max(...points.map(p => p[0])) - minX };
+  });
+  return { ...base, config: { ...normalized, ...posed.dimensions }, parts,
+    objectFit: { name: object.name, triangleCount: object.vertices.length / 9, method: "Exact lower envelope of mesh triangles projected across each sheet's full thickness; upright insertion" },
+    stopHeight: 0, synthTop: posed.top,
+    frontExtension: { ...base.frontExtension, stopOuterX: -normalized.thickness },
+    dimensions: { ...base.dimensions, height: Math.max(...parts.map(p => p.height)) },
+  };
+}
 export function createSynthStand(input: StandConfiguration) {
+  if (input.object) return createObjectStand(input);
   const standard = createStandardStand(input);
   return standard.config.advancedMode ? createCrossStand(standard) : standard;
 }
@@ -290,8 +341,8 @@ export function standSvg(stand: SynthStand) {
   const layout = standSheetLayout(stand);
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${number(layout.width)}mm" height="${number(layout.height)}mm" viewBox="0 0 ${number(layout.width)} ${number(layout.height)}" fill="none" stroke="#000000" stroke-width="0.2" data-units="mm">
-  <title>Acryl508 synth stand / ${stand.config.angle} degrees / ${stand.diagonal.enabled ? "orthogonal diagonal cross" : "standard"} / ${stand.parts.length} parts</title>
-  <desc>Prototype design. GS acrylic ${stand.config.thickness} mm; slot width ${number(stand.slotWidth)} mm. Front extension: ${number(stand.frontExtension.length)} mm beyond the front stops. Outer corners: ${stand.config.roundedEdges ? `up to ${number(stand.config.cornerRadius)} mm radius, locally limited on short edges` : "square"}. Cable holes: ${stand.cableHoles.totalCount}${stand.cableHoles.enabled ? ` at ${number(stand.cableHoles.diameter)} mm diameter, ${stand.cableHoles.aligned ? "aligned across all three braces" : "in diagonal brace bays"}` : ""}. Finished-edge outlines; kerf compensation must be applied in CAM. No validated load rating. Test fit, strength and stability before use. Layout is not nested to a stock sheet size.</desc>
+  <title>Acryl508 synth stand / ${stand.config.angle} degrees / ${stand.objectFit ? "model contour / " : ""}${stand.diagonal.enabled ? "orthogonal diagonal cross" : "standard"} / ${stand.parts.length} parts</title>
+  <desc>Prototype design. GS acrylic ${stand.config.thickness} mm; slot width ${number(stand.slotWidth)} mm. Front extension: ${number(stand.frontExtension.length)} mm ${stand.objectFit ? "beyond the model footprint" : "beyond the front stops"}. ${stand.objectFit ? "Model contour fit; no integral front stops; contact edges stay sharp. " : ""}Outer corners: ${stand.config.roundedEdges ? `up to ${number(stand.config.cornerRadius)} mm radius, locally limited on short edges` : "square"}. Cable holes: ${stand.cableHoles.totalCount}${stand.cableHoles.enabled ? ` at ${number(stand.cableHoles.diameter)} mm diameter, ${stand.cableHoles.aligned ? "aligned across all three braces" : "in diagonal brace bays"}` : ""}. Finished-edge outlines; kerf compensation must be applied in CAM. No validated load rating. Test fit, strength and stability before use. Layout is not nested to a stock sheet size.</desc>
 ${layout.parts.map(({ part, x, y }) => `  <g id="${part.id}" transform="translate(${number(x)} ${number(y)})"><title>${part.label}</title><path d="${standPathData(part.polygons)}" /></g>`).join("\n")}
 </svg>\n`;
 }
@@ -299,12 +350,13 @@ export function standExport(stand: SynthStand) {
   return { product: "Acryl508", mode: "synth-stand", version: 6, units: "mm", status: "unvalidated-prototype",
     configuration: stand.config, material: "GS cast acrylic", dimensions: stand.dimensions,
     construction: { method: "Open half-lap slots", ribCount: stand.ribCount, braceCount: stand.braceCount, totalParts: stand.parts.length, hardware: 0, adhesive: false, supportSpacing: stand.supportSpacing, slotWidth: stand.slotWidth, slotRootReliefRadius: stand.reliefRadius, kerfCompensated: false, loadRating: null },
+    objectFit: stand.objectFit,
     diagonal: stand.diagonal,
     assembly: stand.config.advancedMode ? "Place family B with slots up; lower family A with slots down. Both families contain main supports and low braces." : "Place braces slots up; lower support ribs slots down.",
-    coordinates: "placement is the sheet centre-plane origin in assembled width/depth millimetres; yaw is in radians. For local outline coordinate u and thickness coordinate v in [-t/2,t/2], width = placement.width + u*cos(yaw) + v*sin(yaw), depth = placement.depth + u*sin(yaw) - v*cos(yaw). Part outlines: X runs along the sheet and Y points up. In advanced mode position is the diagonal family offset and placement fully specifies the assembly. In standard mode rib X is front-to-rear depth and position is width-axis centre; brace X is width and position is front-to-rear depth. All part bottoms sit at Y=0. Instrument front underside is at depth=0 and Y=frontHeight.",
+    coordinates: "placement is the sheet centre-plane origin in assembled width/depth millimetres; yaw is in radians. For local outline coordinate u and thickness coordinate v in [-t/2,t/2], width = placement.width + u*cos(yaw) + v*sin(yaw), depth = placement.depth + u*sin(yaw) - v*cos(yaw). Part outlines: X runs along the sheet and Y points up. In advanced mode position is the diagonal family offset and placement fully specifies the assembly. In standard mode rib X is front-to-rear depth and position is width-axis centre; brace X is width and position is front-to-rear depth. All part bottoms sit at Y=0. Manual instrument front underside is at depth=0 and Y=frontHeight. Uploaded models are oriented using the configured up axis and turn, tilted, then translated so their minimum depth is zero and minimum Y is frontHeight.",
     cableManagement: { ...stand.cableHoles, requestedDiameter: stand.config.cableHoleDiameter, method: stand.cableHoles.aligned ? "Round closed holes between ribs, aligned across all three braces" : "Round closed holes in clear bays of both diagonal brace families; route cables between them", coordinates: "Brace-local X right and Y up, in millimetres" },
     edgeRounding: { enabled: stand.config.roundedEdges, requestedRadius: stand.config.cornerRadius, method: "Convex outer corners of flat cutting outlines; tangent circular fillets limited to 45% of each adjacent edge", preserves: "Joint slots, slot-root relief, concave synth-contact corners and cable holes", throughThicknessBevel: false, maximumArcStepDegrees: 5 },
-    frontExtension: { ...stand.frontExtension, requestedLength: stand.config.frontExtensionLength, measurement: "Horizontal distance beyond the outside of the integral front stop; zero when disabled" },
-    frontHeight: stand.frontHeight, parts: stand.parts, notes: [...standBuildNotes, ...(stand.cableHoles.enabled ? ["Cable holes retain at least two sheet thicknesses to brace edges and joint relief. Diameter is reduced automatically to preserve this web. Check the widest connector fits the resolved hole diameter; holes are closed and require threading the cable through. These geometry limits do not establish strength."] : [])],
+    frontExtension: { ...stand.frontExtension, requestedLength: stand.config.frontExtensionLength, measurement: stand.objectFit ? "Horizontal distance beyond the compact model footprint; zero when disabled" : "Horizontal distance beyond the outside of the integral front stop; zero when disabled" },
+    frontHeight: stand.frontHeight, parts: stand.parts, notes: [...(stand.objectFit ? ["Model fit uses the mesh lower envelope across the full sheet thickness. Dimensions and contours depend on mesh accuracy and chosen units. Empty regions stay at tie height. No integral front stops are added in model mode; check restraint against sliding. Contact edges are not rounded. Verify vents, feet, balance and load capacity with a prototype."] : standBuildNotes), ...(stand.cableHoles.enabled ? ["Cable holes retain at least two sheet thicknesses to brace edges and joint relief. Diameter is reduced automatically to preserve this web. Check the widest connector fits the resolved hole diameter; holes are closed and require threading the cable through. These geometry limits do not establish strength."] : [])],
   };
 }

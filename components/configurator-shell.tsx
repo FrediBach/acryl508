@@ -8,8 +8,9 @@ import { ProtectorDesigner } from "@/components/protector-designer";
 import { createSynthProtector, defaultProtectorConfiguration, protectorBuildNotes, protectorExport, protectorSvg } from "@/lib/synth-protector";
 import { PanelDesigner } from "@/components/panel-designer";
 import { createPanel, defaultPanelConfiguration, normalizePanelConfiguration, panelBuildNotes, panelExport, panelSvg } from "@/lib/panel-designer";
+import { useSynthStand } from "@/components/use-synth-stand";
 import { StandDesigner } from "@/components/stand-designer";
-import { createSynthStand, defaultStandConfiguration, standBuildNotes, standExport, standSvg } from "@/lib/synth-stand";
+import { defaultStandConfiguration, standBuildNotes, standExport, standSvg } from "@/lib/synth-stand";
 import { PreviewStage } from "@/components/preview-stage";
 import { configurationExport, defaultConfiguration, panelTintsFrom, panelTransparenciesFrom, rackRows, type CaseConfiguration } from "@/lib/configurator";
 
@@ -26,7 +27,7 @@ export function ConfiguratorShell() {
   const panel = useMemo(() => createPanel(panelConfig), [panelConfig]);
   const [protectorConfig, setProtectorConfig] = useState(defaultProtectorConfiguration);
   const protector = useMemo(() => createSynthProtector(protectorConfig), [protectorConfig]);
-  const stand = useMemo(() => createSynthStand(standConfig), [standConfig]);
+  const { stand, standError, standBusy } = useSynthStand(standConfig);
   const panels = useMemo(() => createCasePanels(config), [config]);
   const [dark, setDark] = useState(false);
   const [info, setInfo] = useState<"materials" | "guide" | null>(null);
@@ -78,6 +79,7 @@ export function ConfiguratorShell() {
       return;
     }
     if (mode === "stand") {
+      if (standError || standBusy) return;
       download(JSON.stringify(standExport(stand), null, 2), "application/json", `acryl508-stand-${stand.config.width}mm-${stand.config.angle}deg.json`);
       showExported("JSON");
       return;
@@ -99,6 +101,7 @@ export function ConfiguratorShell() {
       return;
     }
     if (mode === "stand") {
+      if (standError || standBusy) return;
       download(standSvg(stand), "image/svg+xml", `acryl508-stand-${stand.config.width}mm-${stand.config.angle}deg-sheets.svg`);
       showExported("SVG");
       return;
@@ -117,7 +120,7 @@ export function ConfiguratorShell() {
     <ConfiguratorHeader mode={mode} onModeChange={setMode} dark={dark} onThemeChange={toggleTheme} onInfo={openInfo} onExport={exportDesign} />
     <main id="configure" className="workspace">
       <h1 className="sr-only">{mode === "panel" ? "Acrylic Eurorack panel designer" : mode === "case" ? "Acrylic Eurorack case configurator" : mode === "protector" ? "Slotted acrylic synth protector designer" : "Slotted acrylic synth stand designer"}</h1>
-      {mode === "panel" ? <PanelDesigner panel={panel} dark={dark} onChange={patch => setPanelConfig(current => normalizePanelConfiguration({ ...current, ...patch }))} onExportJson={exportDesign} onExportSvg={exportSheets} /> : mode === "protector" ? <ProtectorDesigner protector={protector} dark={dark} onChange={patch => setProtectorConfig(current => ({ ...current, ...patch }))} onExportJson={exportDesign} onExportSvg={exportSheets} /> : mode === "stand" ? <StandDesigner stand={stand} dark={dark} onChange={patch => setStandConfig(current => ({ ...current, ...patch }))} onExportJson={exportDesign} onExportSvg={exportSheets} /> : <div className="configurator-grid"><div className="preview-column"><PreviewStage panels={panels} config={config} dark={dark} /><BuildSummary config={config} onExportJson={exportDesign} onExportSvg={exportSheets} /></div><ConfigurationPanel panels={panels} onCutoutAction={cutoutAction} config={config} onChange={updateConfig} /></div>}
+      {mode === "panel" ? <PanelDesigner panel={panel} dark={dark} onChange={patch => setPanelConfig(current => normalizePanelConfiguration({ ...current, ...patch }))} onExportJson={exportDesign} onExportSvg={exportSheets} /> : mode === "protector" ? <ProtectorDesigner protector={protector} dark={dark} onChange={patch => setProtectorConfig(current => ({ ...current, ...patch }))} onExportJson={exportDesign} onExportSvg={exportSheets} /> : mode === "stand" ? <StandDesigner stand={stand} object={standConfig.object} objectError={standError} busy={standBusy} dark={dark} onChange={patch => setStandConfig(current => ({ ...current, ...patch }))} onExportJson={exportDesign} onExportSvg={exportSheets} /> : <div className="configurator-grid"><div className="preview-column"><PreviewStage panels={panels} config={config} dark={dark} /><BuildSummary config={config} onExportJson={exportDesign} onExportSvg={exportSheets} /></div><ConfigurationPanel panels={panels} onCutoutAction={cutoutAction} config={config} onChange={updateConfig} /></div>}
     </main>
     <div className={`export-toast ${exported ? "toast-visible" : ""}`} role="status">{exported && <><Check size={15} />{exported === "SVG" ? mode === "panel" ? "Panel cut and engrave layers downloaded as SVG." : "All sheets downloaded as SVG." : "Configuration downloaded as JSON."}</>}</div>
     <dialog ref={dialog} className="info-dialog" aria-labelledby="dialog-title" onClose={() => setInfo(null)} onClick={event => { if (event.target === event.currentTarget) dialog.current?.close(); }}>

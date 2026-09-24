@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync, existsSync } from "node:fs";
 import { createRequire } from "node:module";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import path from "node:path";
 import vm from "node:vm";
 import ts from "typescript";
@@ -28,7 +28,7 @@ test("mode switching preserves independent designs and routes material choices a
     if (file.endsWith("/protector-preview.tsx")) return { ProtectorPreview: () => React.createElement("div", null, "Protector preview") };
     if (file.endsWith("/stand-preview.tsx")) return { StandPreview: () => React.createElement("div", null, "Stand preview") };
     const mod = { exports: {} }; cache.set(file, mod);
-    const code = ts.transpileModule(readFileSync(file, "utf8"), { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, esModuleInterop: true } }).outputText;
+    const code = ts.transpileModule(readFileSync(file, "utf8").replaceAll("import.meta.url", JSON.stringify(pathToFileURL(file).href)), { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, esModuleInterop: true } }).outputText;
     const localRequire = specifier => {
       if (!specifier.startsWith(".") && !specifier.startsWith("@/")) return require(specifier);
       const base = specifier.startsWith("@/") ? path.join(project, specifier.slice(2)) : path.resolve(path.dirname(file), specifier);
@@ -441,6 +441,58 @@ test("mode switching preserves independent designs and routes material choices a
     assert.equal(document.querySelector('input[aria-label="Diagonal sweep in °"]'), null);
     await click("Export stand configuration as JSON");
     assert.deepEqual(JSON.parse(await downloads.at(-1).blob.text()).parts, standardStand.parts);
+    // Keep real parsing, fitting and controls; emulate only the worker transport.
+    previous.set("Worker", Object.getOwnPropertyDescriptor(globalThis, "Worker"));
+    const { createSynthStand } = load(path.join(project, "lib/synth-stand.ts"));
+    globalThis.Worker = class {
+      terminated = false;
+      postMessage(configuration) {
+        setTimeout(() => {
+          if (this.terminated) return;
+          try { this.onmessage({ data: { stand: createSynthStand(configuration) } }); }
+          catch (error) { this.onmessage({ data: { error: error.message } }); }
+        }, 0);
+      }
+      terminate() { this.terminated = true; }
+    };
+    const objText = "v -300 -40 -150\nv 300 -40 -150\nv 300 40 -150\nv -300 40 -150\nv -300 -40 150\nv 300 -40 150\nv 300 40 150\nv -300 40 150\nf 1 2 3 4\nf 5 8 7 6\nf 1 5 6 2\nf 4 3 7 8\nf 1 4 8 5\nf 2 6 7 3\n";
+    const modelUpload = document.querySelector('.stand-object-file');
+    Object.defineProperty(modelUpload, "files", { configurable: true, value: [{ name: "my-synth.obj", size: objText.length, text: async () => objText }] });
+    await React.act(async () => modelUpload.dispatchEvent(new dom.window.Event("change", { bubbles: true })));
+    assert.equal(button("Export stand sheets as SVG").disabled, true, "Export waits for the current fit");
+    const settleFit = async () => React.act(async () => new Promise(resolve => setTimeout(resolve, 180)));
+    await settleFit();
+    assert.equal(button("Export stand sheets as SVG").disabled, false);
+    assert.equal(document.querySelector('input[aria-label="Synth width in mm"]'), null);
+    await click("Export stand configuration as JSON");
+    let fitted = JSON.parse(await downloads.at(-1).blob.text());
+    assert.equal(fitted.configuration.width, 600);
+    assert.equal(fitted.objectFit.name, "my-synth.obj");
+    await click("15°");
+    await settleFit();
+    await click("Export stand configuration as JSON");
+    fitted = JSON.parse(await downloads.at(-1).blob.text());
+    assert.equal(fitted.configuration.angle, 15);
+    await click("Cutting layout");
+    const fittedPaths = [...document.querySelectorAll(".stand-cutting-layout path")].map(p => p.getAttribute("d"));
+    await click("Export stand sheets as SVG");
+    const fittedSvg = new dom.window.DOMParser().parseFromString(await downloads.at(-1).blob.text(), "image/svg+xml");
+    assert.deepEqual(fittedPaths, [...fittedSvg.querySelectorAll("path")].map(p => p.getAttribute("d")));
+    const modelUnits = document.querySelector('.stand-object-settings select');
+    await selectValue(modelUnits, "m");
+    await settleFit();
+    assert.match(document.querySelector('[role="alert"]').textContent, /units/);
+    assert.equal(button("Export stand sheets as SVG").disabled, true);
+    await selectValue(modelUnits, "mm");
+    await settleFit();
+    await click("Synth protector");
+    await click("Synth stand");
+    assert.match(document.querySelector('.stand-object-name').textContent, /my-synth.obj/);
+    await click("Remove 3D model");
+    assert.equal(document.querySelector('input[aria-label="Synth width in mm"]').value, "550");
+    assert.equal(button("Export stand sheets as SVG").disabled, false);
+    await click("Export stand configuration as JSON");
+    assert.equal(JSON.parse(await downloads.at(-1).blob.text()).objectFit, null);
     await click("Build notes");
     assert.match(document.querySelector("dialog").textContent, /Slot together\. Play at your angle/);
     assert.match(document.querySelector("dialog").textContent, /no load capacity or stability rating/);

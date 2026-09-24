@@ -449,3 +449,28 @@ SVG export is disabled for empty panels or failed geometry calculations.
 Curves are sampled, not exact analytic arcs. Prototype the mounting webs,
 material flex, hole fit, washers and component thread engagement before use.
 Acrylic panels do not provide metal-panel electrical shielding.
+
+### Fit a synth stand to a 3D model
+
+In **Synth stand → Your instrument**, optionally choose an STL (binary or ASCII)
+or OBJ file, up to 15 MB and 30,000 triangles. Files are parsed locally and kept
+only for this browser session. Set the source units (mm, cm, m or inches), up
+axis and quarter-turn orientation; confirm the resulting dimensions, then set
+the playing angle. Removing the model restores the manual dimensions.
+
+Both standard and diagonal layouts fit every main support to the model's lower
+surface across the full acrylic thickness, including narrow feet and changes
+across the object's width. Geometry is calculated in a cancellable background
+worker. The preview displays the actual mesh in the same pose used for fitting;
+SVG and JSON use the resolved cutting geometry. JSON also includes the source
+mesh and orientation. Exports are blocked while fitting or when fitting fails.
+
+The compact footprint adds one sheet thickness at the front and rear of the
+tilted mesh, plus the optional front extension. Model dimensions must be
+60–1400 mm wide, 40–1000 mm deep and 1–1000 mm tall. Triangle projections are
+resolved to 0.0000001 mm to stabilize shared edges. Contact edges stay sharp;
+rounding still applies to lower outside corners and braces. Regions without a
+model surface stay at tie height. No separate front stops are added in model
+mode: inspect how the contour locates the object and prevents sliding. Fit is
+only as accurate as the source mesh and its units. Check vents, balance, surface
+grip, joint fit and strength on a prototype; no load rating is calculated.

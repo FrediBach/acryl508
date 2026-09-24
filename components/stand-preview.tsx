@@ -2,10 +2,11 @@
 import { Component, Suspense, useEffect, useMemo, useRef, type ReactNode } from "react";
 import { Canvas, useThree } from "@react-three/fiber";
 import { ContactShadows, Environment, Lightformer, Line, OrbitControls } from "@react-three/drei";
-import { Path, Shape, Vector3 } from "three";
+import { BufferGeometry, Float32BufferAttribute, DoubleSide, Path, Shape, Vector3 } from "three";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import type { MultiPolygon } from "polygon-clipping";
 import { acrylicMaterial, acrylicEdgeOpacity, type AcrylicTint, type AcrylicTransparency } from "@/lib/acrylic-material";
+import { positionStandObject } from "@/lib/stand-object";
 import type { SynthStand } from "@/lib/synth-stand";
 import { panelEdgePoints } from "@/lib/panel-edges";
 
@@ -31,6 +32,17 @@ export function Sheet({ polygons, thickness, tint, transparency }: { polygons: M
   const edgeOpacity = acrylicEdgeOpacity(transparency);
   return <mesh><extrudeGeometry args={args} /><meshPhysicalMaterial {...acrylicMaterial(tint, thickness * unit, transparency)} />{edges.length > 0 && <Line points={edges} segments color={tint.color} transparent={edgeOpacity < 1} opacity={edgeOpacity} depthWrite={edgeOpacity === 1} raycast={() => null} />}</mesh>;
 }
+function UploadedObject({ stand, lift }: { stand: SynthStand; lift: number }) {
+  const geometry = useMemo(() => {
+    const posed = positionStandObject(stand.config.object!, stand.config.angle, stand.frontHeight);
+    const result = new BufferGeometry();
+    result.setAttribute("position", new Float32BufferAttribute(posed.points.flatMap(([x, y, z]) => [x * unit, y * unit, -z * unit]), 3));
+    result.computeVertexNormals();
+    return result;
+  }, [stand.config.object, stand.config.angle, stand.frontHeight]);
+  useEffect(() => () => geometry.dispose(), [geometry]);
+  return <mesh geometry={geometry} position={[0, lift, 0]}><meshStandardMaterial color="#535c58" roughness={0.7} side={DoubleSide} /></mesh>;
+}
 function StandModel({ stand, exploded, instrument }: Pick<Props, "stand" | "exploded" | "instrument">) {
   const { config, frontHeight } = stand;
   const t = config.thickness * unit;
@@ -43,7 +55,7 @@ function StandModel({ stand, exploded, instrument }: Pick<Props, "stand" | "expl
       rotation={[0, part.placement.yaw, 0]}>
       <Sheet polygons={part.polygons} thickness={config.thickness} tint={config.tint} transparency={config.transparency} />
     </group>)}
-    {instrument && <group position={[0, frontHeight * unit + lift + (exploded ? 0.7 : 0), 0]} rotation={[angle, 0, 0]}>
+    {instrument && config.object ? <UploadedObject stand={stand} lift={lift + (exploded ? 0.7 : 0)} /> : instrument && <group position={[0, frontHeight * unit + lift + (exploded ? 0.7 : 0), 0]} rotation={[angle, 0, 0]}>
       <mesh position={[0, config.height * unit / 2, -config.depth * unit / 2]}>
         <boxGeometry args={[config.width * unit, config.height * unit, config.depth * unit]} /><meshStandardMaterial color="#383c39" roughness={0.7} transparent opacity={0.72} />
       </mesh>
@@ -80,7 +92,7 @@ export class PreviewBoundary extends Component<{ children: ReactNode }, { failed
 export function StandPreview(props: Props) {
   return <PreviewBoundary><Canvas camera={{ position: [5, 4, 6], fov: 34, near: 0.01, far: 150 }} dpr={[1, 1.75]} frameloop="demand" gl={{ alpha: true, antialias: true }} fallback={<div className="preview-fallback">WebGL is unavailable. Select Cutting layout to inspect your parts.</div>}>
     <ambientLight intensity={props.dark ? 0.8 : 1.3} /><directionalLight position={[3, 7, 5]} intensity={2.5} /><directionalLight position={[-5, 3, -2]} intensity={1.5} color="#e6efff" />
-    <Suspense fallback={null}><Environment resolution={128} frames={1}><Lightformer position={[0, 5, -3]} rotation={[Math.PI / 2, 0, 0]} scale={[10, 8, 1]} intensity={3} /><Lightformer position={[-5, 2, 1]} rotation={[0, Math.PI / 2, 0]} scale={[6, 3, 1]} intensity={4} /></Environment><StandModel {...props} /><ContactShadows key={JSON.stringify([props.stand.config, props.exploded, props.instrument])} position={[0, -0.02, 0]} opacity={props.dark ? 0.45 : 0.25} scale={35} blur={2.4} far={10} resolution={512} frames={1} color="#24231e" /></Suspense>
+    <Suspense fallback={null}><Environment resolution={128} frames={1}><Lightformer position={[0, 5, -3]} rotation={[Math.PI / 2, 0, 0]} scale={[10, 8, 1]} intensity={3} /><Lightformer position={[-5, 2, 1]} rotation={[0, Math.PI / 2, 0]} scale={[6, 3, 1]} intensity={4} /></Environment><StandModel {...props} /><ContactShadows key={JSON.stringify([{ ...props.stand.config, object: props.stand.config.object ? { name: props.stand.config.object.name, units: props.stand.config.object.units, up: props.stand.config.object.up, turn: props.stand.config.object.turn } : null }, props.exploded, props.instrument])} position={[0, -0.02, 0]} opacity={props.dark ? 0.45 : 0.25} scale={35} blur={2.4} far={10} resolution={512} frames={1} color="#24231e" /></Suspense>
     <CameraRig {...props} />
   </Canvas></PreviewBoundary>;
 }

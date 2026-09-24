@@ -498,3 +498,15 @@
 .stand-mode-control > .view-control { display: flex; width: 100%; }
 .stand-mode-control > .view-control button { flex: 1; }
 .stand-mode-control > .range-field { margin-top: 16px; }
+
+.stand-object-controls { margin-bottom: 20px; }
+.stand-object-upload { display: flex; align-items: center; gap: 10px; padding: 14px; border: 1px dashed var(--border); border-radius: 4px; cursor: pointer; font-size: 12px; }
+.stand-object-upload:hover, .stand-object-controls:focus-within .stand-object-upload { border-color: var(--signal); }
+.stand-object-upload small { display: block; margin-top: 5px; font-size: 9px; color: var(--muted-foreground); }
+.stand-object-file { width: 100%; margin-top: 8px; font-size: 10px; }
+.stand-object-name { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 12px 0; font-size: 11px; }
+.stand-object-name strong { overflow-wrap: anywhere; min-width: 0; }
+.stand-object-settings { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.stand-object-settings label { display: grid; gap: 6px; font-size: 10px; color: var(--muted-foreground); }
+.stand-object-settings select { width: 100%; min-width: 0; padding: 7px 3px; border: 1px solid var(--border); border-radius: 3px; font-size: 10px; background: var(--background); color: var(--foreground); }
+.stand-object-error { font-size: 11px; line-height: 1.6; padding: 10px; border: 1px solid var(--signal); border-radius: 3px; }

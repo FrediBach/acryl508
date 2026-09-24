@@ -171,3 +171,12 @@ Family B stands slots-up and family A lowers slots-down, including their braces;
 the exploded view follows that sequence. Each labelled part lists its own cutting
 dimensions. Cable holes occupy clear brace bays in both directions. Standard
 remains the default for older configurations.
+
+The stand's Your instrument card also accepts an optional local STL/OBJ mesh.
+A compact upload area exposes units, six up-axis choices and four horizontal
+orientations after import. Model-derived dimensions replace the manual sliders
+until removal. The existing playing-angle control poses both object and fitted
+supports. Standard and diagonal layouts share contour fitting across the full
+sheet thickness; fitted ribs are listed individually. Pending and failed fits
+replace the preview with a status and disable exports. Geometry runs in a
+cancellable worker so changing angle does not block interaction.
