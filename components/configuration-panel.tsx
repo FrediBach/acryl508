@@ -1,6 +1,6 @@
 import { ArrowDown, ArrowUp, Check, ChevronDown, Minus, Plus, Trash2 } from "lucide-react";
 import { useId, useState, type CSSProperties, type ReactNode } from "react";
-import { acrylicTints, busboards, footShapes, handleCount, handleDimensions, handleSizeLimits, sledWebThickness, maxRackUnits, maxSideMarginRatio, minSideMarginRatio, panelSides, panelTint, panelTintsFrom, rackFormatLabel, rackRows, rackRowAngles, rackRowLayout, maxRowAngle, maxTotalRowAngle, sidePanelMargin, totalRackUnits, type CaseConfiguration, type PanelSide, type RackUnit } from "@/lib/configurator";
+import { acrylicTints, busboards, footShapes, handleCount, handleDimensions, handleSizeLimits, sledWebThickness, maxRackUnits, maxSideMarginRatio, minSideMarginRatio, panelSides, panelTint, panelTintsFrom, rackFormatLabel, rackRows, rackRowAngles, rackRowLayout, maxRowAngle, maxTotalRowAngle, ventStyles, sidePanelMargin, totalRackUnits, type CaseConfiguration, type PanelSide, type RackUnit } from "@/lib/configurator";
 
 import { CutoutControls } from "@/components/cutout-controls";
 import { VentControls } from "@/components/vent-controls";
@@ -9,8 +9,15 @@ import type { CasePanels } from "@/lib/case-panels";
 import type { CutoutAction } from "@/lib/custom-cutouts";
 
 type Props = { panels: CasePanels; onCutoutAction: (action: CutoutAction) => void; config: CaseConfiguration; onChange: (update: Partial<CaseConfiguration>) => void };
-function SectionTitle({ number, children, detail }: { number: string; children: ReactNode; detail?: string }) {
-  return <div className="section-heading"><span className="section-number">{number}</span><h3>{children}</h3>{detail && <span className="section-detail">{detail}</span>}</div>;
+function ConfigSection({ number, title, summary, children, defaultOpen = false, id }: { number: string; title: string; summary: string; children: ReactNode; defaultOpen?: boolean; id?: string }) {
+  return <details className="config-section" open={defaultOpen} id={id}>
+    <summary className="config-section-trigger">
+      <span className="section-number" aria-hidden="true">{number}</span>
+      <span className="config-section-label"><h3>{title}</h3><span className="config-section-summary">{summary}</span></span>
+      <ChevronDown className="config-section-chevron" size={14} aria-hidden="true" />
+    </summary>
+    <div className="config-section-body">{children}</div>
+  </details>;
 }
 function RangeField({ label, value, min, max, unit, onChange }: { label: string; value: number; min: number; max: number; unit: string; onChange: (value: number) => void }) {
   const id = useId();
@@ -59,9 +66,18 @@ export function ConfigurationPanel({ config, panels, onChange, onCutoutAction }:
     const tint = acrylicTints.find(option => option.id === tintId) ?? config.tint;
     onChange({ panelTints: { ...panelTintsFrom(config.tint), ...config.panelTints, [side]: tint } });
   }
-  return <aside className="control-panel" aria-label="Case controls">
-    <div className="panel-heading"><h2>Your configuration</h2><span className="micro-label">01—05</span></div>
-    <section className="control-section"><SectionTitle number="01">Dimensions</SectionTitle>
+  const accessoriesSummary = [config.handle && `${handleCount(config)} ${handleCount(config) === 1 ? "handle" : "handles"}`, config.cableHolder && "Cable holder"].filter(Boolean).join(" · ") || "No accessories";
+  const powerSummary = config.busboard !== "none" && !panels.powerBoard?.fits ? `${busboards[config.busboard]} · Does not fit` : `${busboards[config.busboard]}${panels.mountingConflicts > 0 ? " · Mount conflicts" : ""}`;
+  return <aside className="control-panel case-control-panel" aria-label="Case controls">
+    <div className="panel-heading"><h2>Your configuration</h2><span className="micro-label">01—07</span></div>
+    <p className="config-intro">Open a section to fine-tune your case.</p>
+    <ConfigSection number="01" title="Dimensions" summary={`${config.hp} HP · ${config.depth} mm deep`} defaultOpen>
+      <RangeField label="Width" value={config.hp} min={20} max={168} unit="HP" onChange={hp => onChange({ hp })} />
+      <div className="preset-row"><span>Quick set</span>{[42, 62, 84, 104, 126].map(hp => <button key={hp} onClick={() => onChange({ hp })} aria-pressed={config.hp === hp} className={config.hp === hp ? "preset-active" : ""}>{hp}</button>)}</div>
+      <RangeField label="Internal depth" value={config.depth} min={50} max={180} unit="mm" onChange={depth => onChange({ depth })} />
+    </ConfigSection>
+    <ConfigSection number="02" title="Rows & stance" summary={`${rackFormatLabel(config)} · ${config.angle === 0 ? "Flat stance" : `${config.angle}° stance`}${angledRows ? " · Angled rows" : ""}`}>
+      <div className="config-group">
       <div className="field-heading"><span>Rack rows</span><span className="field-note">{rackFormatLabel(config)} · {rackUnits}U total</span></div>
       <div className="rack-layout" aria-label="Rack row layout">
         <span className="rack-edge">REAR</span>
@@ -77,9 +93,23 @@ export function ConfigurationPanel({ config, panels, onChange, onCutoutAction }:
         <span className="rack-edge">FRONT</span>
       </div>
       <div className="rack-add"><span>Add row</span>{([1, 3] as const).map(units => <button key={units} disabled={rackUnits + units > maxRackUnits} onClick={() => updateRows([...rows, units])}><Plus size={11} />{units}U</button>)}</div>
-      {rows.length > 1 && <div className="row-angle-controls" aria-label="Additional row angles">
+      </div>
+      <div className="config-group">
+        <h4 className="config-group-title">Stance</h4>
+      <div className="segmented-control stance-control" role="group" aria-label="Stance angle">{[0, 10, 20, 30].map(angle => <button key={angle} className={`segment ${config.angle === angle ? "segment-active" : ""}`} aria-pressed={config.angle === angle} onClick={() => onChange({ angle, rowAngles: rackRowAngles({ ...config, angle }) })}>{angle === 0 ? "Flat" : `${angle}°`}</button>)}</div>
+      <fieldset className="foot-shape-field" disabled={config.angle === 0} aria-describedby="foot-shape-note">
+        <legend>Side profile <span className="field-note">One continuous sheet</span></legend>
+        <div className="segmented-control foot-shape-control">{footShapes.map(shape => <button key={shape.value} className={`segment ${config.footShape === shape.value ? "segment-active" : ""}`} aria-pressed={config.footShape === shape.value} title={shape.description} onClick={() => onChange({ footShape: shape.value })}>{shape.label}</button>)}</div>
+      </fieldset>
+      <p className="control-note" id="foot-shape-note">{config.angle === 0 ? angledRows ? "Four integral feet support the angled rows. Choose a stance angle to use wedge, arch or sled supports." : "Choose an angle to shape the side panels into the stance." : footShapes.find(shape => shape.value === config.footShape)?.description}</p>
+      {config.angle > 0 && config.footShape === "sled" && <p className="control-note">At least {sledWebThickness(config.thickness)} mm of material around the opening. Short, shallow stances stay solid where the opening would leave too little material.</p>}
+      {config.angle > 0 && <p className="control-note">The sides extend to the floor. Five panels, with no extra stance hardware.</p>}
+      </div>
+      {rows.length > 1 && <details className="config-disclosure" aria-label="Additional row angles">
+        <summary><span>Additional row angles</span><span>{angledRows ? "Custom tilt" : "All flat"}</span><ChevronDown size={12} aria-hidden="true" /></summary>
+        <div className="config-disclosure-body">
         <div className="field-heading"><span>Angle additional rows</span><span className="field-note">FRONT → REAR</span></div>
-        <p className="control-note">Each row adds tilt to the row in front of it. The front row follows the stance below. Set all to 0° for a flat layout.</p>
+        <p className="control-note">Each row adds tilt to the row in front of it. The front row follows the stance above. Set all to 0° for a flat layout.</p>
         {rowLayout.slice(0, -1).reverse().map(row => {
           const available = maxTotalRowAngle - config.angle - rowAngles.reduce((sum, angle, index) => sum + (index === row.index ? 0 : angle), 0);
           return <div key={row.index}>
@@ -88,13 +118,11 @@ export function ConfigurationPanel({ config, panels, onChange, onCutoutAction }:
           </div>;
         })}
         <p className="control-note">{angledRows ? "Rail spacing expands at each bend and support feet are included in the side panels." : "Angled rows automatically add rail clearance and support feet."} Total tilt is limited to {maxTotalRowAngle}°.</p>
-      </div>}
-      <RangeField label="Width" value={config.hp} min={20} max={168} unit="HP" onChange={hp => onChange({ hp })} />
-      <div className="preset-row"><span>Quick set</span>{[42, 62, 84, 104, 126].map(hp => <button key={hp} onClick={() => onChange({ hp })} aria-pressed={config.hp === hp} className={config.hp === hp ? "preset-active" : ""}>{hp}</button>)}</div>
-      <RangeField label="Internal depth" value={config.depth} min={50} max={180} unit="mm" onChange={depth => onChange({ depth })} />
-      <SideMarginField config={config} onChange={sideMarginRatio => onChange({ sideMarginRatio })} />
-    </section>
-    <section className="control-section" id="materials"><SectionTitle number="02" detail="GS CAST ACRYLIC">Material</SectionTitle>
+        </div>
+      </details>}
+    </ConfigSection>
+    <ConfigSection number="03" title="Material" summary={`${config.individualPanelTints ? "Individual tints" : config.tint.label} · ${config.thickness} mm acrylic`} id="materials">
+      <div className="config-group">
       <div className="field-heading"><span>{config.individualPanelTints ? "Apply tint to all sheets" : "Acrylic tint"}</span><span className="field-note">{config.tint.label}</span></div>
       <div className="swatch-list" aria-label="Acrylic tint">{acrylicTints.map(tint => <button key={tint.id} className={`tint-swatch ${config.tint.id === tint.id ? "tint-swatch-active" : ""}`} style={{ "--swatch": tint.color } as CSSProperties} aria-label={`Apply ${tint.label} acrylic to all sheets`} aria-pressed={config.tint.id === tint.id} title={tint.label} onClick={() => selectTint(tint)}><span className="swatch-surface">{config.tint.id === tint.id && <Check size={18} strokeWidth={1.7} />}</span><span className="swatch-caption">{tint.id === "orange" ? "Orange" : tint.id === "green" ? "Sea glass" : tint.label}</span></button>)}</div>
       <div className="inline-field"><label htmlFor="individual-panel-tints">Individual sheet tints</label><button id="individual-panel-tints" role="switch" aria-checked={Boolean(config.individualPanelTints)} aria-label="Use individual acrylic tints for each sheet" aria-describedby="individual-panel-tints-note" className={`toggle ${config.individualPanelTints ? "toggle-on" : ""}`} onClick={toggleIndividualTints}><span>{config.individualPanelTints ? <Plus size={10} /> : <Minus size={10} />}</span></button></div>
@@ -104,18 +132,13 @@ export function ConfigurationPanel({ config, panels, onChange, onCutoutAction }:
         return <label key={side.value} htmlFor={`panel-tint-${side.value}`}><span><i style={{ background: selected.color }} />{side.label}</span><span className="select-wrap"><select id={`panel-tint-${side.value}`} value={selected.id} onChange={event => selectPanelTint(side.value, event.target.value)}>{acrylicTints.map(tint => <option key={tint.id} value={tint.id}>{tint.label}</option>)}</select><ChevronDown size={12} /></span></label>;
       })}</div>}
       <div className="inline-field"><label htmlFor="thickness">Sheet thickness</label><div className="select-wrap"><select id="thickness" value={config.thickness} onChange={event => onChange({ thickness: Number(event.target.value) })}>{[3, 4, 5, 6].map(value => <option key={value} value={value}>{value} mm</option>)}</select><ChevronDown size={12} /></div></div>
-    </section>
-    <section className="control-section"><SectionTitle number="03">Stance</SectionTitle>
-      <div className="segmented-control stance-control" role="group" aria-label="Stance angle">{[0, 10, 20, 30].map(angle => <button key={angle} className={`segment ${config.angle === angle ? "segment-active" : ""}`} aria-pressed={config.angle === angle} onClick={() => onChange({ angle, rowAngles: rackRowAngles({ ...config, angle }) })}>{angle === 0 ? "Flat" : `${angle}°`}</button>)}</div>
-      <fieldset className="foot-shape-field" disabled={config.angle === 0} aria-describedby="foot-shape-note">
-        <legend>Side profile <span className="field-note">One continuous sheet</span></legend>
-        <div className="segmented-control foot-shape-control">{footShapes.map(shape => <button key={shape.value} className={`segment ${config.footShape === shape.value ? "segment-active" : ""}`} aria-pressed={config.footShape === shape.value} title={shape.description} onClick={() => onChange({ footShape: shape.value })}>{shape.label}</button>)}</div>
-      </fieldset>
-      <p className="control-note" id="foot-shape-note">{config.angle === 0 ? angledRows ? "Four integral feet support the angled rows. Choose a stance angle to use wedge, arch or sled supports." : "Choose an angle to shape the side panels into the stance." : footShapes.find(shape => shape.value === config.footShape)?.description}</p>
-      {config.angle > 0 && config.footShape === "sled" && <p className="control-note">At least {sledWebThickness(config.thickness)} mm of material around the opening. Short, shallow stances stay solid where the opening would leave too little material.</p>}
-      {config.angle > 0 && <p className="control-note">The sides extend to the floor. Five panels, with no extra stance hardware.</p>}
-    </section>
-    <section className="control-section hardware-section"><SectionTitle number="04">The details</SectionTitle>
+      </div>
+      <div className="config-group">
+      <SideMarginField config={config} onChange={sideMarginRatio => onChange({ sideMarginRatio })} />
+      </div>
+    </ConfigSection>
+    <ConfigSection number="04" title="Accessories" summary={accessoriesSummary}>
+      <div className="config-group">
       <div className="inline-field"><label htmlFor="handle">Integrated handles</label><button id="handle" role="switch" aria-checked={config.handle} aria-label="Integrated handles" aria-describedby="handle-note" className={`toggle ${config.handle ? "toggle-on" : ""}`} onClick={() => onChange({ handle: !config.handle })}><span>{config.handle ? <Plus size={10} /> : <Minus size={10} />}</span></button></div>
       {config.handle && <div className="segmented-control" role="group" aria-label="Handle layout">{([{ value: "auto", label: "Auto" }, { value: "single", label: "One side" }, { value: "pair", label: "Both sides" }] as const).map(option => <button key={option.value} className={`segment ${(config.handleMode ?? "auto") === option.value ? "segment-active" : ""}`} aria-pressed={(config.handleMode ?? "auto") === option.value} onClick={() => onChange({ handleMode: option.value })}>{option.label}</button>)}</div>}
       <p className="control-note handle-note" id="handle-note">{config.handle ? `${handleCount(config) === 2 ? "A grip in each side panel" : "One grip in the left side panel"}. ` : "Grips cut into extended side panels. "}Auto pairs the handles above 84 HP or from 6U.</p>
@@ -124,6 +147,8 @@ export function ConfigurationPanel({ config, panels, onChange, onCutoutAction }:
         <RangeField label="Handle height" value={handleSize.height} min={handleSizeLimits.height.min} max={handleSizeLimits.height.max} unit="mm" onChange={handleHeight => onChange({ handleHeight })} />
         <p className="control-note">Outer width and height above the rim. Both handles share the same size, with rounded roots.</p>
       </>}
+      </div>
+      <div className="config-group">
       <div className="inline-field"><label htmlFor="cable-holder">Patch cable holder</label><button id="cable-holder" role="switch" aria-checked={Boolean(config.cableHolder)} aria-label="Patch cable holder" aria-describedby="cable-holder-note" className={`toggle ${config.cableHolder ? "toggle-on" : ""}`} onClick={() => onChange({ cableHolder: !config.cableHolder })}><span>{config.cableHolder ? <Plus size={10} /> : <Minus size={10} />}</span></button></div>
       <p className="control-note" id="cable-holder-note">{config.cableHolder ? `${holder.slitCount} evenly spaced slits between rounded fingers on the back plate. Slits stay open at the top for dropping cables in.` : "Extend the back plate with evenly spaced fingers to hold patch cables."}</p>
       {config.cableHolder && <>
@@ -131,7 +156,12 @@ export function ConfigurationPanel({ config, panels, onChange, onCutoutAction }:
         <RangeField label="Slit width" value={holder.slitWidth} min={cableHolderLimits.slitWidth.min} max={cableHolderLimits.slitWidth.max} unit="mm" onChange={cableHolderSlitWidth => onChange({ cableHolderSlitWidth })} />
         <p className="control-note">Height above the rim. Choose a slit wider than the cable and narrower than its plug. Spacing adapts evenly to the case width.</p>
       </>}
+      </div>
+    </ConfigSection>
+    <ConfigSection number="05" title="Ventilation" summary={config.vents ? `${ventStyles.find(style => style.value === config.ventStyle)?.label} · ${panels.ventilation.openings.length} openings` : "Off · Solid bottom panel"}>
       <VentControls config={config} panels={panels} onChange={onChange} />
+    </ConfigSection>
+    <ConfigSection number="06" title="Power & assembly" summary={powerSummary}>
       <div className="inline-field"><label htmlFor="busboard">Busboard</label><div className="select-wrap board-select"><select id="busboard" value={config.busboard} onChange={event => onChange({ busboard: event.target.value as CaseConfiguration["busboard"] })}>{Object.entries(busboards).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select><ChevronDown size={12} /></div></div>
       {config.busboard === "sinusoda" && <>
         <p className="control-note board-note">Juice · 226 × 86 × 19 mm · 23 headers. Centred on the base. All 28 mounting holes are estimated from the data-sheet photo (Ø3.2 mm assumed); verify against your board before drilling. Use at least 14 evenly spaced screws with nylon washers.</p>
@@ -151,7 +181,9 @@ export function ConfigurationPanel({ config, panels, onChange, onCutoutAction }:
       </>}
       <div className="hardware-note"><span className="hardware-dot" />Black hardware <span>Mechanical assembly · no glue</span></div>
       <p className="control-note">Case panels interlock in closed slots. Rail-end screws retain the sides; removing one side releases the panels.</p>
-    </section>
-    <section className="control-section"><SectionTitle number="05" detail={`${config.cutouts.length} ADDED`}>Custom cutouts</SectionTitle><CutoutControls config={config} panels={panels} onAction={onCutoutAction} /></section>
+    </ConfigSection>
+    <ConfigSection number="07" title="Custom cutouts" summary={config.cutouts.length ? `${config.cutouts.length} ${config.cutouts.length === 1 ? "cutout" : "cutouts"} added` : "No cutouts · Import SVG or add text"}>
+      <CutoutControls config={config} panels={panels} onAction={onCutoutAction} />
+    </ConfigSection>
   </aside>;
 }

@@ -117,7 +117,7 @@ checks configuration retention, material targeting and active-mode downloads.
 
 ## Bottom ventilation
 
-Bottom ventilation in **The details** offers long slits, short slits, round
+Bottom ventilation in **Ventilation** offers long slits, short slits, round
 holes, hexagonal holes or mixed dots and slits at low, medium or high density.
 Choose aligned or staggered rows, and two bands or a full field across the
 usable base. Both retain a solid centre strip and perimeter. Switching ventilation off keeps
@@ -177,7 +177,7 @@ loaded stability and fabrication tolerances still require prototype validation.
 
 ## Patch cable holder
 
-Enable **Patch cable holder** in **The details** to extend the rear plate into
+Enable **Patch cable holder** in **Accessories** to extend the rear plate into
 an evenly spaced row of fingers. The fingers and slits have rounded tips and
 roots; each slit is open at the top. Finger height above the rim is adjustable
 from 20–70 mm (35 mm by default), and slit width from 3–8 mm (5 mm by default).

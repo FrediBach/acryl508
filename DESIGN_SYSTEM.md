@@ -31,6 +31,15 @@ clear hierarchy, restrained colour, and controls that show what they change.
   reducing text size. Below 700 px width, the model, controls, and export summary use
   normal page scrolling in one vertical flow.
 
+The case sidebar uses seven independently collapsible cards: Dimensions, Rows &
+stance, Material, Accessories, Ventilation, Power & assembly, and Custom cutouts.
+Only Dimensions starts open. Each header keeps a live configuration summary
+visible while closed. Native disclosure controls support keyboard interaction;
+collapsing a card preserves its controls and edits. Internal groups use spacing
+and rules, with additional row angles and ventilation effects behind secondary
+disclosures. Disabled ventilation hides its editor while preserving the pattern.
+Side-panel edge margin is grouped with sheet thickness under Material.
+
 ## Product constraints
 
 The top bar offers Case designer and Synth stand modes. Both share the theme,
@@ -103,7 +112,7 @@ The canvas fills the preview stage so contact shadows are not cropped by an
 inset rectangle. Material details remain in the controls and top label; no
 material annotation is drawn over the model.
 
-Custom cutouts live in section 05. Each SVG or text item selects one of the five
+Custom cutouts live in section 07. Each SVG or text item selects one of the five
 enclosure panels and has independent width, rotation and X/Y placement. The
 flat layout is an outside view: X goes right, Y goes up, and the origin is the
 panel centre. Bottom is viewed from below with the rear at the top. Left, rear,

@@ -18,8 +18,10 @@ export function VentControls({ config, panels, onChange }: { config: CaseConfigu
   const selectedPreset = ventPresets.find(preset => JSON.stringify(normalizeVentDesign(preset.design)) === JSON.stringify(design));
   return <div className="vent-controls">
     <div className="inline-field"><label htmlFor="vents">Bottom ventilation</label><button id="vents" role="switch" aria-checked={config.vents} aria-label="Bottom ventilation" className={`toggle ${config.vents ? "toggle-on" : ""}`} onClick={() => onChange({ vents: !config.vents })}><span>{config.vents ? <Plus size={10} /> : <Minus size={10} />}</span></button></div>
-    <fieldset className="vent-options" disabled={!config.vents} aria-describedby="vent-note">
+    <fieldset className="vent-options" hidden={!config.vents} disabled={!config.vents} aria-describedby="vent-note">
       <legend className="sr-only">Bottom vent options</legend>
+      <div className="config-group">
+      <h4 className="config-group-title">Openings & layout</h4>
       <div className="inline-field"><label htmlFor="vent-style">Opening shape</label><div className="select-wrap"><select id="vent-style" value={config.ventStyle} onChange={event => onChange({ ventStyle: event.target.value as CaseConfiguration["ventStyle"] })}>{ventStyles.map(style => <option key={style.value} value={style.value}>{style.label}</option>)}</select><ChevronDown size={12} /></div></div>
       {config.ventStyle === "mixed" && <div className="inline-field"><label htmlFor="vent-mix">Alternate</label><div className="select-wrap"><select id="vent-mix" value={config.ventMix ?? "checkerboard"} onChange={event => onChange({ ventMix: event.target.value as CaseConfiguration["ventMix"] })}>{ventMixes.map(mix => <option key={mix.value} value={mix.value}>{mix.label}</option>)}</select><ChevronDown size={12} /></div></div>}
       <div className="field-heading"><span id="vent-layout-label">Row layout</span></div>
@@ -30,11 +32,13 @@ export function VentControls({ config, panels, onChange }: { config: CaseConfigu
       <div className="field-heading"><span id="vent-density-label">Vent density</span></div>
       <div className="segmented-control" role="group" aria-labelledby="vent-density-label">{ventDensities.map(density => <button key={density.value} className={`segment ${config.ventDensity === density.value ? "segment-active" : ""}`} aria-pressed={config.ventDensity === density.value} onClick={() => onChange({ ventDensity: density.value })}>{density.label}</button>)}</div>
       <div className="vent-presets" role="group" aria-label="Perforation starting points"><button onClick={() => onChange({ ventStyle: "round", ventLayout: "staggered", ventCoverage: "field", ventDensity: "low", ventDesign: normalizeVentDesign() })}>Spaced dots</button><button onClick={() => onChange({ ventStyle: "mixed", ventLayout: "staggered", ventCoverage: "field", ventMix: "checkerboard", ventDensity: "low", ventDesign: normalizeVentDesign() })}>Dots & slits</button></div>
+      </div>
+      <details className="config-disclosure vent-pattern-editor">
+        <summary><span>Pattern & effects</span><span>{selectedPreset?.label ?? "Custom"} · {design.layers.length}/{maxVentLayers}</span><ChevronDown size={12} aria-hidden="true" /></summary>
+        <div className="config-disclosure-body">
       <div className="field-heading"><span id="vent-presets-label">Pattern starting points</span><span className="field-note">{selectedPreset?.label ?? "Custom"}</span></div>
       <div className="vent-presets" role="group" aria-labelledby="vent-presets-label">{ventPresets.map(preset => <button key={preset.id} aria-pressed={selectedPreset?.id === preset.id} onClick={() => onChange({ ventDesign: normalizeVentDesign(preset.design) })}>{preset.label}</button>)}</div>
       <EffectRange label="Base length / size" value={design.size} min={0} max={100} unit="%" onChange={size => update({ size })} />
-      <div className="vent-preview-heading"><span>BOTTOM · OUTSIDE VIEW</span><span>{config.vents ? layout.openings.length : 0} OPENINGS</span></div>
-      <svg className="vent-preview" role="img" aria-label="Bottom panel with the current vent effects and custom cutouts" viewBox={`${bounds.left - 4} ${-bounds.top - 4} ${bounds.width + 8} ${bounds.height + 8}`}><path d={outlinePath(face.polygons)} fillRule="evenodd" vectorEffect="non-scaling-stroke" /></svg>
       <div className="vent-effects-heading"><span>Effect layers · {design.layers.length}/{maxVentLayers}</span><button className="cutout-button" disabled={design.layers.length >= maxVentLayers} onClick={() => update({ layers: [...design.layers, { ...defaultVentLayer }] })}><Plus size={12} />Add effect</button></div>
       {design.layers.length === 0 && <p className="control-note">Choose a starting point or add an effect. Layers combine to vary each opening.</p>}
       {design.layers.map((layer, index) => <details className="vent-layer" key={index} open>
@@ -50,6 +54,10 @@ export function VentControls({ config, panels, onChange }: { config: CaseConfigu
       </details>)}
       {design.layers.some(layer => layer.waveform === "noise") && <div className="vent-seed"><span>Variation {design.seed}</span><button className="cutout-button" onClick={() => update({ seed: design.seed % 9999 + 1 })}>New variation</button></div>}
       {design.layers.length > 0 && <p className="control-note">Position effects use the spare room around each opening. Reduce base size or density for more movement. Openings never close completely.</p>}
+        </div>
+      </details>
+      <div className="vent-preview-heading"><span>BOTTOM · OUTSIDE VIEW</span><span>{config.vents ? layout.openings.length : 0} OPENINGS</span></div>
+      <svg className="vent-preview" role="img" aria-label="Bottom panel with the current vent effects and custom cutouts" viewBox={`${bounds.left - 4} ${-bounds.top - 4} ${bounds.width + 8} ${bounds.height + 8}`}><path d={outlinePath(face.polygons)} fillRule="evenodd" vectorEffect="non-scaling-stroke" /></svg>
     </fieldset>
     <p className="control-note" id="vent-note">{config.vents ? `At least ${(layout.minimumWeb * 100).toFixed(1)} mm between vents and ${(layout.edgeMargin * 100).toFixed(1)} mm at the border. Length and movement stay within these limits.` : "Enable ventilation to use the selected pattern and effects."}</p>
     {config.vents && <p className="control-note vent-limit-note" role="status">{layout.pitchAdjusted && "Density reduced for this sheet thickness. "}{layout.limited > 0 && `${layout.limited} openings reached an effect limit. `}{layout.omitted > 0 && `${layout.omitted} openings omitted near custom cutouts or board mounts. `}Geometry limits only; strength, heat and laser tolerances still need prototype validation.</p>}

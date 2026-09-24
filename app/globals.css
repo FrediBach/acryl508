@@ -169,6 +169,34 @@
 .section-number { font-size: 9px; color: var(--signal); }
 .section-heading h3 { margin: 0; font-size: 11px; font-weight: 550; }
 .section-detail { margin-left: auto; font-size: 6.7px; letter-spacing: .5px; color: var(--muted-foreground); }
+.control-panel.case-control-panel { padding: 0 16px 16px; }
+.config-intro { margin: 12px 0; font-size: 9px; line-height: 1.5; color: var(--muted-foreground); }
+.config-section { margin-bottom: 8px; border: 1px solid var(--border); border-radius: 4px; }
+.config-section[open] { border-color: var(--strong-border); }
+.config-section-trigger { display: flex; align-items: center; gap: 10px; min-height: 60px; padding: 12px; cursor: pointer; list-style: none; border-radius: 3px; }
+.config-section-trigger::-webkit-details-marker, .config-disclosure > summary::-webkit-details-marker { display: none; }
+.config-section-trigger:hover { background: var(--surface); }
+.config-section-trigger:focus-visible, .config-disclosure > summary:focus-visible { outline: 2px solid var(--signal); outline-offset: 2px; }
+.config-section-label { flex: 1; min-width: 0; }
+.config-section-label h3 { margin: 0; font-size: 11px; font-weight: 550; }
+.config-section-summary { display: block; margin-top: 4px; font-size: 8px; line-height: 1.5; color: var(--muted-foreground); overflow-wrap: anywhere; }
+.config-section-chevron { flex-shrink: 0; color: var(--muted-foreground); }
+.config-section[open] > .config-section-trigger { background: var(--surface); border-bottom: 1px solid var(--border); border-radius: 3px 3px 0 0; }
+.config-section[open] > .config-section-trigger .config-section-chevron { transform: rotate(180deg); }
+.config-section-body { padding: 14px 12px; }
+.config-section-body > .range-field:first-child, .config-group > .range-field:first-child { margin-top: 0; }
+.config-group + .config-group { margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--border); }
+.config-group-title { margin: 0 0 12px; font-size: 9px; font-weight: 550; color: var(--muted-foreground); }
+.config-disclosure { margin-top: 16px; border-top: 1px solid var(--border); }
+.config-disclosure > summary { display: flex; align-items: center; gap: 8px; min-height: 42px; padding: 10px 0; list-style: none; cursor: pointer; font-size: 9px; }
+.config-disclosure > summary > span:nth-child(2) { margin-left: auto; color: var(--muted-foreground); font-size: 8px; text-align: right; }
+.config-disclosure > summary > svg { flex-shrink: 0; color: var(--muted-foreground); }
+.config-disclosure[open] > summary > svg { transform: rotate(180deg); }
+.config-disclosure-body { padding: 4px 0; }
+.config-section-body .vent-controls { margin-bottom: 0; }
+.case-control-panel .preset-row { flex-wrap: wrap; gap: 6px; }
+.case-control-panel .rack-row { grid-template-columns: 23px minmax(60px, 1fr) repeat(3, 26px); }
+.case-control-panel .field-note { text-align: right; }
 .field-heading, .inline-field { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 10px; }
 .field-note { color: var(--muted-foreground); font-size: 9px; }
 .segmented-control { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--border); border-radius: 3px; padding: 3px; margin-top: 9px; background: var(--surface); gap: 3px; }
@@ -407,6 +435,11 @@
   .panel-heading h2 { font-size: 14px; }
   .control-section { padding: 18px 0; }
   .section-heading h3 { font-size: 12px; }
+  .config-section-label h3 { font-size: 12px; }
+  .config-section-summary, .config-intro { font-size: 9px; }
+  .config-group-title, .config-disclosure > summary { font-size: 10px; }
+  .case-control-panel .rack-row { grid-template-columns: 20px minmax(56px, 1fr) repeat(3, 32px); gap: 4px; }
+  .case-control-panel .swatch-list { gap: 10px; }
   .field-heading, .inline-field, .foot-shape-field legend { font-size: 12px; }
   .segment { height: 35px; font-size: 12px; }
   .rack-row { grid-template-columns: 27px minmax(100px, 1fr) repeat(3, 32px); gap: 5px; }
