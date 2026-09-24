@@ -22,7 +22,7 @@ function Dimension({ label, field, config, onChange, unit = "mm", step = 1 }: { 
 function CuttingLayout({ stand }: { stand: SynthStand }) {
   const layout = standSheetLayout(stand);
   return <div className="stand-cutting-layout"><svg viewBox={`0 0 ${layout.width} ${layout.height}`} role="img" aria-label={`Cutting layout: ${stand.ribCount} support ribs and ${stand.braceCount} cross braces`}>
-    {layout.parts.map(({ part, x, y }) => <g key={part.id} transform={`translate(${x} ${y})`}><title>{part.label}: {part.width.toFixed(1)} × {part.height.toFixed(1)} mm</title><path d={standPathData(part.polygons)} fill={stand.config.tint.color} fillOpacity={0.4} stroke="currentColor" strokeWidth={1} vectorEffect="non-scaling-stroke" fillRule="evenodd" /></g>)}
+    {layout.parts.map(({ part, x, y }) => <g key={part.id} transform={`translate(${x} ${y})`}><title>{`${part.label}: ${part.width.toFixed(1)} × ${part.height.toFixed(1)} mm`}</title><path d={standPathData(part.polygons)} fill={stand.config.tint.color} fillOpacity={0.4} stroke="currentColor" strokeWidth={1} vectorEffect="non-scaling-stroke" fillRule="evenodd" /></g>)}
   </svg><p>All {stand.parts.length} parts · {layout.width.toFixed(0)} × {layout.height.toFixed(0)} mm layout · arrange to fit your stock sheet</p></div>;
 }
 type Props = { busy?: boolean; object?: StandObject; objectError?: string; stand: SynthStand; dark: boolean; onChange: (patch: Partial<StandConfiguration>) => void; onExportJson: () => void; onExportSvg: () => void };

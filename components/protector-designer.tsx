@@ -25,7 +25,7 @@ function Dimension({ label, field, config, onChange, unit = "mm", step = 1 }: { 
 function CuttingLayout({ protector }: { protector: SynthProtector }) {
   const layout = protectorSheetLayout(protector);
   return <div className="stand-cutting-layout"><svg viewBox={`0 0 ${layout.width} ${layout.height}`} role="img" aria-label={`Cutting layout: one top sheet, ${protector.footCount} locating feet and ${protector.stripCount} retaining strips`}>
-    {layout.parts.map(({ part, x, y }) => <g key={part.id} transform={`translate(${x} ${y})`}><title>{part.label}: {part.width.toFixed(1)} × {part.height.toFixed(1)} mm</title><path d={standPathData(part.polygons)} fill={protector.config.tint.color} fillOpacity={0.4} stroke="currentColor" strokeWidth={1} vectorEffect="non-scaling-stroke" fillRule="evenodd" /></g>)}
+    {layout.parts.map(({ part, x, y }) => <g key={part.id} transform={`translate(${x} ${y})`}><title>{`${part.label}: ${part.width.toFixed(1)} × ${part.height.toFixed(1)} mm`}</title><path d={standPathData(part.polygons)} fill={protector.config.tint.color} fillOpacity={0.4} stroke="currentColor" strokeWidth={1} vectorEffect="non-scaling-stroke" fillRule="evenodd" /></g>)}
   </svg><p>All {protector.parts.length} parts · {layout.width.toFixed(0)} × {layout.height.toFixed(0)} mm layout · arrange to fit your stock sheet</p></div>;
 }
 type Props = { object?: StandObject; objectError?: string; busy?: boolean; protector: SynthProtector; dark: boolean; onChange: (patch: Partial<ProtectorConfiguration>) => void; onExportJson: () => void; onExportSvg: () => void };

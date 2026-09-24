@@ -14,7 +14,7 @@ function CuttingLayout({ panels, config }: { panels: CasePanels; config: CaseCon
   const removed = layout.parts.filter(({ item }) => !item.polygons.length).length;
   return <div className="stand-cutting-layout"><svg viewBox={`0 0 ${layout.width} ${layout.height}`} role="img" aria-label="Case cutting layout: all five enclosure sheets">
     {layout.parts.map(({ item, x, y }) => <g key={item.id} data-part={item.id} transform={`translate(${x} ${y})`}>
-      <title>{item.label}: {item.bounds.width.toFixed(1)} × {item.bounds.height.toFixed(1)} mm{item.polygons.length ? "" : " — fully removed"}</title>
+      <title>{`${item.label}: ${item.bounds.width.toFixed(1)} × ${item.bounds.height.toFixed(1)} mm${item.polygons.length ? "" : " — fully removed"}`}</title>
       {item.polygons.length > 0 && <path d={casePathData(item.polygons)} fill={panelTint(config, item.id).color} fillOpacity={0.4} stroke="currentColor" strokeWidth={1} vectorEffect="non-scaling-stroke" fillRule="evenodd" />}
     </g>)}
   </svg><p>{5 - removed} sheets{removed > 0 ? ` · ${removed} fully removed by cutouts` : ""} · {layout.width.toFixed(0)} × {layout.height.toFixed(0)} mm layout · arrange to fit your stock sheet</p></div>;
