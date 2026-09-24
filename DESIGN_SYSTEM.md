@@ -62,6 +62,12 @@ material palette and visual controls while retaining independent in-session
 configurations. On narrow screens, the mode switch occupies a full second row.
 The active mode owns material-library selections and build notes. Its summary
 below the preview is the only location for Design JSON and SVG exports.
+The case summary keeps its identity and exports together above a compact grid of
+footprint, material and construction. A native Full specifications disclosure
+starts closed and groups enclosure/stance, accessories, and ventilation/cutouts.
+Expanded details scroll within a bounded area on desktop to preserve preview
+space and use normal page flow on mobile. SVG validation warnings stay visible
+outside the disclosure. Summary grids wrap to the available column width.
 Project → Download project backs up all four designs, models and fonts; the
 header, build notes and sidebar do not duplicate the design export buttons.
 

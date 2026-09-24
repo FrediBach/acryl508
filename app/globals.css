@@ -353,6 +353,34 @@
 .summary-actions { display: flex; gap: 7px; }
 .spec-colors { display: inline-flex; gap: 2px; }
 .spec-color { width: 8px; height: 8px; border-radius: 1px; }
+/* Case specifications grow independently of the compact preview footer. */
+.summary-panel.case-summary { display: block; padding: 14px 20px 0; }
+.case-summary-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 20px; }
+.case-summary .summary-title { min-width: 0; }
+.case-summary .summary-title h2 { white-space: normal; overflow-wrap: anywhere; }
+.case-summary .summary-actions { flex-wrap: wrap; }
+.case-summary-overview { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr)); gap: 12px 24px; margin: 16px 0 12px; }
+.case-summary dt { color: var(--muted-foreground); font-size: 10px; }
+.case-summary dd { margin: 4px 0 0; font: 11px/1.5 var(--font-geist-mono), monospace; overflow-wrap: anywhere; }
+.case-summary dd small { font: inherit; color: var(--muted-foreground); }
+.case-summary-overview dd { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.case-summary .spec-colors { flex-shrink: 0; }
+.case-summary-details { border-top: 1px solid var(--border); }
+.case-summary-details > summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 36px; list-style: none; cursor: pointer; color: var(--muted-foreground); font-size: 11px; }
+.case-summary-details > summary::-webkit-details-marker { display: none; }
+.case-summary-details > summary:hover { color: var(--foreground); }
+.case-summary-details[open] > summary { color: var(--foreground); }
+.case-summary-details[open] > summary svg { transform: rotate(180deg); }
+.case-summary-groups { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); gap: 20px 24px; max-height: 24dvh; overflow-y: auto; overscroll-behavior: contain; padding: 8px 4px 16px; margin-inline: -4px; }
+.case-summary-group { min-width: 0; }
+.case-summary-group h3 { margin: 0 0 12px; font-size: 11px; font-weight: 550; }
+.case-summary-group dl { display: grid; gap: 10px; margin: 0; }
+@media (max-width: 700px) {
+  .summary-panel.case-summary { padding: 18px 20px 0; }
+  .case-summary .summary-export { min-height: 40px; }
+  .case-summary-details > summary { min-height: 44px; }
+  .case-summary-groups { max-height: none; overflow: visible; }
+}
 .export-toast { position: fixed; bottom: 28px; left: 50%; z-index: 100; transform: translate(-50%, 10px); opacity: 0; pointer-events: none; border-radius: 4px; padding: 13px 19px; background: var(--selection); color: var(--selection-text); display: flex; gap: 9px; align-items: center; font-size: 12px; transition: opacity 200ms, transform 200ms; white-space: nowrap; }
 .toast-visible { opacity: 1; transform: translate(-50%, 0); }
 .info-dialog { background: var(--card); color: var(--foreground); border: 1px solid var(--strong-border); border-radius: 5px; padding: 28px 32px 32px; width: min(550px, calc(100vw - 32px)); max-height: calc(100dvh - 48px); margin: auto; overflow-y: auto; box-shadow: 0 30px 100px #0003; }
