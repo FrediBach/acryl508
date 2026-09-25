@@ -55,7 +55,7 @@ function gripOpening(width: number, height: number, rise: number) {
   return path;
 }
 
-export function createSideProfile(panel: Shape, length: number, height: number, thickness: number, angle: number, style: FootShape, handle: boolean, handleSize: HandleSize = { width: 1.6, height: handleRise }, rim?: { x: number; y: number }[], automaticFeet = false, patchBoard?: ReturnType<typeof patchBoardLayout>, flatFeet?: ReturnType<typeof flatFeetLayout>) {
+export function createSideProfile(panel: Shape, length: number, height: number, thickness: number, angle: number, style: FootShape, handle: boolean, handleSize: HandleSize = { width: 1.6, height: handleRise }, rim?: { x: number; y: number }[], automaticFeet = false, patchBoard?: ReturnType<typeof patchBoardLayout>, flatFeet?: ReturnType<typeof flatFeetLayout>, bendSpace = { board: 0, handle: 0 }) {
   const shape = new Shape();
   shape.holes = panel.holes.map(hole => hole.clone());
   const half = length / 2;
@@ -95,10 +95,10 @@ export function createSideProfile(panel: Shape, length: number, height: number, 
   shape.lineTo(half, rimHeight(half));
   if (handle || patchBoard) {
     const width = Math.max(handle ? handleSize.width : 0, (patchBoard?.width ?? 0) / 100);
-    const boardRise = (patchBoard?.height ?? 0) / 100;
-    const rise = boardRise + (handle ? handleSize.height : 0);
+    const boardRise = (patchBoard?.height ?? 0) / 100 + bendSpace.board;
+    const rise = boardRise + (handle ? handleSize.height + bendSpace.handle : 0);
     // Seat the level grip above the highest rim point under its roots.
-    if (rim) height = rimHeight(Math.min(half, width / 2 + 0.14));
+    if (rim && !bendSpace.board && !bendSpace.handle) height = rimHeight(Math.min(half, width / 2 + 0.14));
     const outer = width / 2, top = height + rise, radius = 0.1, root = 0.14;
     const widePanel = half > outer + root;
     if (widePanel) {
@@ -124,10 +124,10 @@ export function createSideProfile(panel: Shape, length: number, height: number, 
     } else {
       shape.bezierCurveTo(-outer, height + 0.08, -half, rimHeight(-half) + 0.06, -half, rimHeight(-half));
     }
-    if (handle) shape.holes.push(gripOpening(handleSize.width, height + boardRise, handleSize.height));
+    if (handle) shape.holes.push(gripOpening(handleSize.width, height + boardRise + bendSpace.handle, handleSize.height));
     for (const center of patchBoard?.centers ?? []) {
       const hole = new Path();
-      hole.absarc(center.x / 100, height + center.y / 100, patchBoard!.holeDiameter / 200, 0, Math.PI * 2, true);
+      hole.absarc(center.x / 100, height + bendSpace.board + center.y / 100, patchBoard!.holeDiameter / 200, 0, Math.PI * 2, true);
       shape.holes.push(hole);
     }
   } else traceRim(half, -half);

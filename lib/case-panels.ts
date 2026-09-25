@@ -1,5 +1,7 @@
 import { Path, type Shape } from "three";
-import { caseDimensions, caseThicknesses, handleSides, handleDimensions, rackEnvelope, rackRowLayout, rackRowPoint, sidePanelMargin, type CaseConfiguration } from "./configurator";
+import clipping, { type MultiPolygon } from "polygon-clipping";
+import { accessoryBendAngles, caseDimensions, caseThicknesses, handleSides, handleDimensions, rackEnvelope, rackRowLayout, rackRowPoint, sidePanelMargin, type CaseConfiguration } from "./configurator";
+import { bendAllowance, type AccessoryBend } from "./accessory-bends";
 import { flatFeetLayout } from "./flat-feet";
 import { patchBoardLayout, patchBoardSides } from "./patch-board";
 import { createSideProfile } from "./acrylic-profiles";
@@ -24,7 +26,11 @@ export function createCasePanels(config: CaseConfiguration) {
   const rack = rackEnvelope(config), rows = rackRowLayout(config);
   const frontHeight = (config.depth + mm.bottom) / 100 + edgeMargin;
   const holder = cableHolderLayout(config);
-  const panels = createPanelProfiles(w, l, frontHeight, t, edgeMargin, config.cableHolder ? shape => cableHolderTopEdge(shape, h, holder) : undefined, h, thicknesses);
+  const angles = accessoryBendAngles(config);
+  const rearBend = bendAllowance(angles.holder, thicknesses.rear);
+  const bends: Record<CutoutSide, AccessoryBend[]> = { front: [], rear: [], left: [], right: [], bottom: [] };
+  if (rearBend.angle) bends.rear.push({ start: h + rearBend.clearance, length: rearBend.length, angle: rearBend.angle });
+  const panels = createPanelProfiles(w, l, frontHeight, t, edgeMargin, config.cableHolder ? shape => cableHolderTopEdge(shape, h, holder, rearBend.extra) : undefined, h, thicknesses);
   const { innerLength } = panels.layout;
   const base = panels.base;
   const boardDefinitions = {
@@ -64,8 +70,19 @@ export function createCasePanels(config: CaseConfiguration) {
   const size = handleDimensions(config);
   const handleSize = { width: size.width / 100, height: size.height / 100 };
   const board = patchBoardLayout(config), boardSides = patchBoardSides(config);
-  const left = createSideProfile(side, l, h, thicknesses.left, config.angle, config.footShape, grips.includes("left"), handleSize, rim, rack.angled, boardSides.includes("left") ? board : undefined, feet);
-  const right = createSideProfile(side, l, h, thicknesses.right, config.angle, config.footShape, grips.includes("right"), handleSize, rim, rack.angled, boardSides.includes("right") ? board : undefined, feet);
+  const sideProfile = (name: "left" | "right") => {
+    const hasBoard = boardSides.includes(name), hasHandle = grips.includes(name);
+    const boardBend = bendAllowance(hasBoard ? angles.board : 0, thicknesses[name]);
+    const handleBend = bendAllowance(hasHandle ? angles.handle : 0, thicknesses[name]);
+    const shape = createSideProfile(side, l, h, thicknesses[name], config.angle, config.footShape, hasHandle, handleSize, rim, rack.angled, hasBoard ? board : undefined, feet, { board: boardBend.extra, handle: handleBend.extra });
+    // Derive the same level root used by the profile, including angled racks.
+    const rise = (hasBoard ? board.height / 100 : 0) + boardBend.extra + (hasHandle ? handleSize.height : 0) + handleBend.extra;
+    const root = Math.max(...shape.getPoints().map(point => point.y)) - rise;
+    if (boardBend.angle) bends[name].push({ start: root + boardBend.clearance, length: boardBend.length, angle: boardBend.angle });
+    if (handleBend.angle) bends[name].push({ start: root + (hasBoard ? board.height / 100 : 0) + boardBend.extra + handleBend.clearance, length: handleBend.length, angle: handleBend.angle });
+    return shape;
+  };
+  const left = sideProfile("left"), right = sideProfile("right");
   const originals = { front: panels.end, rear: panels.rear, left, right, bottom: base };
   const faces = Object.fromEntries(cutoutSides.map(({ value }) => {
     // Each editor face is viewed from outside, centred in millimetres, Y up.
@@ -78,9 +95,23 @@ export function createCasePanels(config: CaseConfiguration) {
     const shapes = cuts.length && !result.report.error
       ? polygonsToShapes(mapPolygons(result.polygons, (x, y) => [direction * x / 100, y / 100 + centerY]))
       : [originals[value]];
+    // User artwork must also leave the heating strip intact. Keep displaying
+    // the requested cut, but block fabrication until the conflict is resolved.
+    if (!result.report.error && cuts.length && bends[value].length) {
+      try {
+        const conflicts = cuts.filter(cut => bends[value].some(bend => {
+          const bottom = (bend.start - 0.14 - centerY) * 100, top = (bend.start + bend.length - centerY) * 100;
+          const strip: MultiPolygon = [[[[-10000, bottom], [10000, bottom], [10000, top], [-10000, top], [-10000, bottom]]]];
+          return clipping.intersection(original, placedCutout(cut), strip).length > 0;
+        }));
+        if (conflicts.length) result.report.error = "Move custom cutouts out of the accessory bend and clearance strips before exporting.";
+      } catch {
+        result.report.error = "Unable to verify accessory bend clearance. Move or remove custom cutouts before exporting.";
+      }
+    }
     return [value, { ...result, original, shapes }];
   })) as Record<CutoutSide, ReturnType<typeof subtractCutouts> & { original: ReturnType<typeof shapesToPolygons>; shapes: Shape[] }>;
-  return { faces, layout: panels.layout, ventilation, powerBoard, mountingHoles, mountingConflicts, reports: cutoutSides.map(({ value }) => faces[value].report) };
+  return { faces, bends, layout: panels.layout, ventilation, powerBoard, mountingHoles, mountingConflicts, reports: cutoutSides.map(({ value }) => faces[value].report) };
 }
 export type CasePanels = ReturnType<typeof createCasePanels>;
 

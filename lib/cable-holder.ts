@@ -23,11 +23,11 @@ export function cableHolderLayout(config: Pick<CaseConfiguration, "hp" | "cableH
 
 // Walk the rear panel's top edge from right to left. Dimensions above are mm;
 // the shared panel profiles use 1 scene unit = 100 mm.
-export function cableHolderTopEdge(shape: Shape, top: number, layout: ReturnType<typeof cableHolderLayout>) {
-  const half = layout.width / 200, rise = layout.height / 100;
+export function cableHolderTopEdge(shape: Shape, top: number, layout: ReturnType<typeof cableHolderLayout>, bendSpace = 0) {
+  const half = layout.width / 200, rise = layout.height / 100 + bendSpace;
   const finger = layout.fingerWidth / 100, gap = layout.slitWidth / 100;
   const tipRadius = 0.02, rootRadius = 0.03;
-  const slotY = top + layout.rootHeight / 100 + gap / 2;
+  const slotY = top + bendSpace + layout.rootHeight / 100 + gap / 2;
   shape.lineTo(half + rootRadius, top);
   shape.quadraticCurveTo(half, top, half, top + rootRadius);
   for (let index = 0; index < layout.fingerCount; index++) {

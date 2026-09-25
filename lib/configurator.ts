@@ -5,6 +5,7 @@ import type { MultiPolygon } from "polygon-clipping";
 import { defaultVentDesign, normalizeVentDesign, type VentDesign } from "./vent-design";
 import { flatFeetLayout, type FlatFootStyle } from "./flat-feet";
 import { patchBoardLayout, patchBoardSides } from "./patch-board";
+import { bendAngle, bendAllowance } from "./accessory-bends";
 import { cableHolderLayout } from "./cable-holder";
 import { sinusodaHoles, sinusodaJuice, sinusodaPlacement } from "./sinusoda";
 import { trolleyBus, trolleyHoles, trolleyMountingHoles, trolleyPlacement } from "./trolley";
@@ -29,10 +30,10 @@ export type CaseConfiguration = {
   ventStyle: VentStyle; ventDensity: VentDensity;
   ventLayout: VentLayout; ventCoverage: VentCoverage; ventMix: VentMix;
   ventDesign: VentDesign;
-  handle: boolean; handleMode?: "auto" | "single" | "left" | "right" | "pair"; handleWidth?: number; handleHeight?: number; footShape: FootShape;
+  handle: boolean; handleMode?: "auto" | "single" | "left" | "right" | "pair"; handleWidth?: number; handleHeight?: number; handleBendAngle?: number; footShape: FootShape;
   flatFeet?: boolean; flatFootStyle?: FlatFootStyle; flatFootHeight?: number;
-  patchBoard?: boolean; patchBoardSide?: "left" | "right" | "both"; patchBoardWidth?: number; patchBoardHeight?: number; patchBoardSpacing?: number;
-  cableHolder?: boolean; cableHolderHeight?: number; cableHolderSlitWidth?: number;
+  patchBoard?: boolean; patchBoardSide?: "left" | "right" | "both"; patchBoardWidth?: number; patchBoardHeight?: number; patchBoardSpacing?: number; patchBoardBendAngle?: number;
+  cableHolder?: boolean; cableHolderHeight?: number; cableHolderSlitWidth?: number; cableHolderBendAngle?: number;
   cutouts: CustomCutout[];
 };
 export function panelTintsFrom(tint: AcrylicTint): Record<PanelSide, AcrylicTint> {
@@ -78,12 +79,12 @@ export const ventDensities: { value: VentDensity; label: string }[] = [
 ];
 export const defaultConfiguration: CaseConfiguration = {
   hp: 84, rows: 1, rowUnits: [3], depth: 75, thickness: 5, sideMarginRatio: 2, tint: defaultTint, transparency: defaultTransparency, angle: 0, vents: true, busboard: "none",
-  handle: false, handleMode: "auto", handleWidth: 160, handleHeight: 70, footShape: "wedge", cutouts: [], ventStyle: "long-slits", ventDensity: "medium",
+  handle: false, handleMode: "auto", handleWidth: 160, handleHeight: 70, handleBendAngle: 0, footShape: "wedge", cutouts: [], ventStyle: "long-slits", ventDensity: "medium",
   ventDesign: defaultVentDesign,
   ventLayout: "aligned", ventCoverage: "bands", ventMix: "checkerboard",
   flatFeet: false, flatFootStyle: "pads", flatFootHeight: 15,
-  patchBoard: false, patchBoardSide: "left", patchBoardWidth: 160, patchBoardHeight: 70, patchBoardSpacing: 15,
-  cableHolder: false, cableHolderHeight: 35, cableHolderSlitWidth: 5,
+  patchBoard: false, patchBoardSide: "left", patchBoardWidth: 160, patchBoardHeight: 70, patchBoardSpacing: 15, patchBoardBendAngle: 0,
+  cableHolder: false, cableHolderHeight: 35, cableHolderSlitWidth: 5, cableHolderBendAngle: 0,
 };
 // `rows` remains in the exported format for backwards compatibility. A mismatched
 // legacy `rows` value is interpreted as that many 3U rows.
@@ -163,6 +164,27 @@ export function handleCount(config: CaseConfiguration): 0 | 1 | 2 {
 export function handleSides(config: CaseConfiguration): ("left" | "right")[] {
   const count = handleCount(config);
   return count === 2 ? ["left", "right"] : count === 1 ? [config.handleMode === "right" ? "right" : "left"] : [];
+}
+export function accessoryBendAngles(config: CaseConfiguration) {
+  const board = config.patchBoard ? bendAngle(config.patchBoardBendAngle) : 0;
+  const stacked = handleSides(config).some(side => patchBoardSides(config).includes(side));
+  const handleMax = 90 - (stacked ? board : 0);
+  return { board, handle: config.handle ? Math.min(handleMax, bendAngle(config.handleBendAngle)) : 0,
+    holder: config.cableHolder ? bendAngle(config.cableHolderBendAngle) : 0, handleMax, stacked };
+}
+export function accessoryBendSpecification(config: CaseConfiguration) {
+  const angles = accessoryBendAngles(config);
+  return (["left", "right", "rear"] as const).flatMap(side => {
+    const entries = side === "rear" ? [["cableHolder", angles.holder] as const] : [
+      ["patchBoard", patchBoardSides(config).includes(side) ? angles.board : 0] as const,
+      ["handle", handleSides(config).includes(side) ? angles.handle : 0] as const,
+    ];
+    return entries.filter(([, angle]) => angle > 0).map(([accessory, angle]) => {
+      const bend = bendAllowance(angle, panelThickness(config, side) / 100);
+      return { side, accessory, angleDegrees: angle, direction: "outward", innerRadiusMm: bend.innerRadius * 100,
+        allowanceMm: bend.length * 100, clearanceMm: bend.clearance * 100, addedFlatLengthMm: bend.extra * 100 };
+    });
+  });
 }
 export const handleSizeLimits = { width: { min: 130, max: 240 }, height: { min: 50, max: 110 } };
 export function handleDimensions(config: Pick<CaseConfiguration, "handleWidth" | "handleHeight">) {
@@ -248,7 +270,8 @@ export function configurationExport(config: CaseConfiguration, cutoutReports: Cu
       status: "Concept; kerf, sheet tolerances, corner relief, rail threads, screw engagement and loaded retention require fabrication validation",
     },
     stance: { automaticFeet: rackEnvelope(config).angled, method: "Integral side-panel profile", angle: config.angle, shape: config.footShape, minimumWebMm: config.footShape === "sled" && config.angle > 0 ? sledWebThickness(Math.min(panelThickness(config, "left"), panelThickness(config, "right"))) : null, innerCorners: config.footShape === "sled" ? "Rounded" : null, additionalParts: 0 },
-    patchBoard: { enabled: Boolean(config.patchBoard), method: "Integral side-panel extension with round cable storage holes", sides: patchBoardSides(config), widthMm: board.width, riseMm: board.height, holeDiameterMm: board.holeDiameter, spacingMm: board.spacing, columns: board.columns, rows: board.rows, holesPerSide: config.patchBoard ? board.holeCount : 0, holeCentersMm: config.patchBoard ? board.centers : [], holeCoordinates: "Relative to the centre of the extension bottom, above the highest rim under its roots", additionalParts: 0 },
+    patchBoard: { enabled: Boolean(config.patchBoard), method: "Integral side-panel extension with round cable storage holes", sides: patchBoardSides(config), widthMm: board.width, riseMm: board.height, holeDiameterMm: board.holeDiameter, spacingMm: board.spacing, columns: board.columns, rows: board.rows, holesPerSide: config.patchBoard ? board.holeCount : 0, holeCentersMm: config.patchBoard ? board.centers : [], holeCoordinates: "Relative to the centre of the board bottom, above any bend clearance and allowance", additionalParts: 0 },
+    accessoryBends: { bends: accessoryBendSpecification(config), flatPattern: true, neutralAxis: "Mid-sheet", radiusPolicy: "Inside radius = 2 × sheet thickness", angles: "Relative to preceding section; stacked bends limited to 90 degrees total" },
     handles: { method: "Integral side-panel grips", mode: config.handleMode ?? "auto", count: handleCount(config), widthMm: handleDimensions(config).width, riseMm: handleDimensions(config).height, roundedRoots: true, sides: handleSides(config), additionalParts: 0 },
     flatFeet: { enabled: feet.enabled, style: feet.style, heightMm: feet.height, method: "Integral side-panel profiles", contactCount: feet.enabled ? feet.style === "runners" ? 2 : 4 : 0, additionalParts: 0 },
     footAttachment: null,

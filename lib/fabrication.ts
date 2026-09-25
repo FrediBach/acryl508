@@ -2,7 +2,7 @@ import type { MultiPolygon } from "polygon-clipping";
 import { polygonBounds, mapPolygons } from "./custom-cutouts";
 import { casePathData, caseSheetLayout } from "./svg-export";
 import { caseCanExport, type CasePanels } from "./case-panels";
-import { panelTint, panelThickness, panelTransparency, rackRows, type CaseConfiguration } from "./configurator";
+import { accessoryBendSpecification, panelTint, panelThickness, panelTransparency, rackRows, type CaseConfiguration } from "./configurator";
 import type { SynthStand } from "./synth-stand";
 import type { SynthProtector } from "./synth-protector";
 import type { DesignedPanel } from "./panel-designer";
@@ -18,6 +18,7 @@ export function caseFabrication(config: CaseConfiguration, panels: CasePanels): 
     ...(report.clipped.length ? [`${report.side}: ${report.clipped.length} cutout(s) extend beyond the sheet.`] : []),
     ...(report.outside.length ? [`${report.side}: ${report.outside.length} cutout(s) do not intersect acrylic.`] : []),
   ]);
+  for (const bend of accessoryBendSpecification(config)) warnings.push(`${bend.side} ${bend.accessory}: form ${bend.angleDegrees}° outward with ${bend.innerRadiusMm} mm inside radius. Flat sheet includes ${bend.addedFlatLengthMm.toFixed(1)} mm for clearance and bend allowance; validate on a sample.`);
   if (config.busboard !== "none") {
     warnings.push("Power-board mounting coordinates are estimates. Verify against your physical board.");
     if (!panels.powerBoard?.fits) warnings.push("The power board does not fit; its mounting holes are omitted.");

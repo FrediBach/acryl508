@@ -93,6 +93,7 @@ export function readCase(input: unknown): CaseConfiguration {
   });
   if (config.rowUnits.length !== config.rows || config.rowUnits.reduce<number>((a, b) => a + b, 0) > 9) throw new Error("The row layout must match the row count and fit within 9U.");
   config.rowAngles = data.rowAngles === undefined ? [] : list(data.rowAngles, "row angles", 9).map(value => number(value, "Row angle", 0, 60));
+  for (const key of ["handleBendAngle", "patchBoardBendAngle", "cableHolderBendAngle"] as const) config[key] = number(config[key] ?? 0, key, 0, 90);
   config.angle = number(config.angle, "Stance angle", 0, 30);
   config.sideMarginRatio = number(config.sideMarginRatio, "Side margin", 1, 2);
   config.busboard = choice(config.busboard, ["none", "sinusoda", "trolley", "compactpwr"], "busboard");

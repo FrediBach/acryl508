@@ -1,6 +1,6 @@
 import { ArrowDown, ArrowUp, ChevronDown, Minus, Plus, Trash2 } from "lucide-react";
 import { useId, useState, type CSSProperties } from "react";
-import { acrylicTints, busboards, footShapes, handleCount, handleSides, handleDimensions, handleSizeLimits, sledWebThickness, maxRackUnits, maxSideMarginRatio, minSideMarginRatio, panelSides, panelThickness, panelThicknessesFrom, caseThicknessLabel, jointThickness, panelTint, panelTintsFrom, panelTransparency, panelTransparenciesFrom, rackFormatLabel, rackRows, rackRowAngles, rackRowLayout, maxRowAngle, maxTotalRowAngle, ventStyles, sidePanelMargin, totalRackUnits, type CaseConfiguration, type PanelSide, type RackUnit } from "@/lib/configurator";
+import { accessoryBendAngles, acrylicTints, busboards, footShapes, handleCount, handleSides, handleDimensions, handleSizeLimits, sledWebThickness, maxRackUnits, maxSideMarginRatio, minSideMarginRatio, panelSides, panelThickness, panelThicknessesFrom, caseThicknessLabel, jointThickness, panelTint, panelTintsFrom, panelTransparency, panelTransparenciesFrom, rackFormatLabel, rackRows, rackRowAngles, rackRowLayout, maxRowAngle, maxTotalRowAngle, ventStyles, sidePanelMargin, totalRackUnits, type CaseConfiguration, type PanelSide, type RackUnit } from "@/lib/configurator";
 
 import { materialLabel, type AcrylicTransparency } from "@/lib/acrylic-material";
 import { ColorChooser, TransparencyChooser, MaterialPreviewNote } from "@/components/material-controls";
@@ -39,6 +39,7 @@ export function ConfigurationPanel({ config, panels, onChange, onCutoutAction }:
   const handleSize = handleDimensions(config);
   const board = patchBoardLayout(config);
   const holder = cableHolderLayout(config);
+  const bends = accessoryBendAngles(config);
   const feet = flatFeetLayout(config);
   const rackUnits = totalRackUnits(config);
   function updateRows(nextRows: RackUnit[], nextAngles = rowAngles) {
@@ -158,6 +159,8 @@ export function ConfigurationPanel({ config, panels, onChange, onCutoutAction }:
       {config.handle && <>
         <RangeField label="Handle width" value={handleSize.width} min={handleSizeLimits.width.min} max={handleSizeLimits.width.max} unit="mm" onChange={handleWidth => onChange({ handleWidth })} />
         <RangeField label="Handle height" value={handleSize.height} min={handleSizeLimits.height.min} max={handleSizeLimits.height.max} unit="mm" onChange={handleHeight => onChange({ handleHeight })} />
+        <RangeField label="Handle bend angle" value={bends.handle} min={0} max={bends.handleMax} unit="°" onChange={handleBendAngle => onChange({ handleBendAngle })} />
+        <p className="control-note">Bends outward. {bends.stacked ? `Added to the board bend; up to ${bends.handleMax}° here keeps the total within 90°. ` : ""}0° keeps the handle straight.</p>
         <p className="control-note">Outer width and height above the rim. Both handles share the same size, with rounded roots.</p>
       </>}
       </div>
@@ -168,6 +171,8 @@ export function ConfigurationPanel({ config, panels, onChange, onCutoutAction }:
         <div className="segmented-control" role="group" aria-label="Patch cable board placement">{([{ value: "left", label: "Left side" }, { value: "right", label: "Right side" }, { value: "both", label: "Both sides" }] as const).map(option => <button key={option.value} className={`segment ${(config.patchBoardSide ?? "left") === option.value ? "segment-active" : ""}`} aria-pressed={(config.patchBoardSide ?? "left") === option.value} onClick={() => onChange({ patchBoardSide: option.value })}>{option.label}</button>)}</div>
         <RangeField label="Board width" value={board.width} min={patchBoardLimits.width.min} max={patchBoardLimits.width.max} unit="mm" onChange={patchBoardWidth => onChange({ patchBoardWidth })} />
         <RangeField label="Board height" value={board.height} min={patchBoardLimits.height.min} max={patchBoardLimits.height.max} unit="mm" onChange={patchBoardHeight => onChange({ patchBoardHeight })} />
+        <RangeField label="Board bend angle" value={bends.board} min={0} max={90} unit="°" onChange={patchBoardBendAngle => onChange({ patchBoardBendAngle })} />
+        <p className="control-note">Bends outward from the case. A handle above this board follows its angle.</p>
         <RangeField label="Hole spacing" value={board.spacing} min={patchBoardLimits.spacing.min} max={patchBoardLimits.spacing.max} unit="mm" onChange={patchBoardSpacing => onChange({ patchBoardSpacing })} />
         <p className="control-note">{board.columns} × {board.rows} grid · {board.holeCount} holes per side · {board.holeCount * patchBoardSides(config).length} total. Ø{board.holeDiameter} mm holes, spaced centre to centre. Height above the rim; a handle on the same side sits above the grid. Check plug fit with a sample cut.</p>
       </>}
@@ -177,10 +182,13 @@ export function ConfigurationPanel({ config, panels, onChange, onCutoutAction }:
       <p className="control-note" id="cable-holder-note">{config.cableHolder ? `${holder.slitCount} evenly spaced slits between rounded fingers on the back plate. Slits stay open at the top for dropping cables in.` : "Extend the back plate with evenly spaced fingers to hold patch cables."}</p>
       {config.cableHolder && <>
         <RangeField label="Finger height" value={holder.height} min={cableHolderLimits.height.min} max={cableHolderLimits.height.max} unit="mm" onChange={cableHolderHeight => onChange({ cableHolderHeight })} />
+        <RangeField label="Holder bend angle" value={bends.holder} min={0} max={90} unit="°" onChange={cableHolderBendAngle => onChange({ cableHolderBendAngle })} />
+        <p className="control-note">Bends backward, away from the modules. 90° places the fingers horizontally.</p>
         <RangeField label="Slit width" value={holder.slitWidth} min={cableHolderLimits.slitWidth.min} max={cableHolderLimits.slitWidth.max} unit="mm" onChange={cableHolderSlitWidth => onChange({ cableHolderSlitWidth })} />
         <p className="control-note">Height above the rim. Choose a slit wider than the cable and narrower than its plug. Spacing adapts evenly to the case width.</p>
       </>}
       </div>
+      {(config.handle || config.patchBoard || config.cableHolder) && <p className="control-note">Bends add a solid 14 mm clearance strip plus the curve length, with an inside radius of twice the sheet thickness. Preview shows the formed sheet; SVG and stock sheets stay flat. Validate the bend allowance with a sample before cutting.</p>}
     </ConfigSection>
     <ConfigSection number="05" title="Ventilation" summary={config.vents ? `${ventStyles.find(style => style.value === config.ventStyle)?.label} · ${panels.ventilation.openings.length} openings` : "Off · Solid bottom panel"}>
       <VentControls config={config} panels={panels} onChange={onChange} />

@@ -6,11 +6,13 @@ import { Path, Shape, Vector3 } from "three";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { flatFeetLayout } from "@/lib/flat-feet";
 import { patchBoardLayout, patchBoardSides } from "@/lib/patch-board";
-import { caseDimensions, handleSides, handleDimensions, panelTint, panelThickness, panelTransparency, rackEnvelope, rackRowLayout, sidePanelMargin, type CaseConfiguration } from "@/lib/configurator";
+import { accessoryBendSpecification, caseDimensions, handleSides, handleDimensions, panelTint, panelThickness, panelTransparency, rackEnvelope, rackRowLayout, sidePanelMargin, type CaseConfiguration } from "@/lib/configurator";
 import { acrylicMaterial, acrylicEdgeOpacity } from "@/lib/acrylic-material";
 import { caseLift } from "@/lib/acrylic-profiles";
 import { cableHolderLayout } from "@/lib/cable-holder";
 import type { CasePanels } from "@/lib/case-panels";
+import { bentPanelGeometry, bentPanelEdges } from "@/lib/bent-panel-geometry";
+import type { AccessoryBend } from "@/lib/accessory-bends";
 import { panelEdgePoints } from "@/lib/panel-edges";
 import { TrolleyPreview } from "@/components/trolley-preview";
 import { SinusodaPreview } from "@/components/sinusoda-preview";
@@ -20,10 +22,13 @@ export type CameraView = "perspective" | "front" | "top";
 type Props = { panels: CasePanels; config: CaseConfiguration; dark: boolean; view: CameraView; resetKey: number; exploded: boolean; modules: boolean };
 const unit = 0.01;
 
-function PanelEdges({ args, color, opacity = 1, threshold = 15 }: { args: readonly [Shape | Shape[], { depth: number; curveSegments?: number }]; color: string; opacity?: number; threshold?: number }) {
+const noBends: AccessoryBend[] = [];
+function PanelSheet({ args, bends = noBends, direction = 1, color, opacity = 1, threshold = 15 }: { args: readonly [Shape[], { depth: number; curveSegments?: number }]; bends?: AccessoryBend[]; direction?: number; color: string; opacity?: number; threshold?: number }) {
   const [shapes, { depth, curveSegments = 12 }] = args;
-  const points = useMemo(() => panelEdgePoints(shapes, depth, curveSegments, threshold), [shapes, depth, curveSegments, threshold]);
-  return points.length ? <Line segments points={points} color={color} transparent={opacity < 1} opacity={opacity} depthWrite={opacity === 1} raycast={() => null} /> : null;
+  const geometry = useMemo(() => bentPanelGeometry(shapes, depth, bends, direction, curveSegments), [shapes, depth, bends, direction, curveSegments]);
+  useEffect(() => () => geometry.dispose(), [geometry]);
+  const points = useMemo(() => bentPanelEdges(panelEdgePoints(shapes, depth, curveSegments, threshold), depth, bends, direction), [shapes, depth, curveSegments, threshold, bends, direction]);
+  return <><primitive object={geometry} attach="geometry" />{points.length > 0 && <Line segments points={points} color={color} transparent={opacity < 1} opacity={opacity} depthWrite={opacity === 1} raycast={() => null} />}</>;
 }
 
 function hole(shape: Shape, x: number, y: number, radius: number) {
@@ -91,10 +96,10 @@ function AcrylicCase({ config, panels, exploded, modules }: Pick<Props, "config"
   const frontArgs = useMemo(() => [panels.faces.front.shapes, { depth: t.front, bevelEnabled: false }] as const, [panels, t.front]);
   return <group>
     <group rotation={[a, 0, 0]} position={[0, lift, 0]}>
-      <mesh position={[0, baseBottom - explode, 0]} rotation={[-Math.PI / 2, 0, 0]}><extrudeGeometry args={baseArgs} /><meshPhysicalMaterial {...acrylicMaterial(tints.bottom, t.bottom, panelTransparency(config, "bottom"))} /><PanelEdges args={baseArgs} color={tints.bottom.color} opacity={acrylicEdgeOpacity(panelTransparency(config, "bottom"))} threshold={35} /></mesh>
+      <mesh position={[0, baseBottom - explode, 0]} rotation={[-Math.PI / 2, 0, 0]}><meshPhysicalMaterial {...acrylicMaterial(tints.bottom, t.bottom, panelTransparency(config, "bottom"))} /><PanelSheet args={baseArgs} color={tints.bottom.color} opacity={acrylicEdgeOpacity(panelTransparency(config, "bottom"))} threshold={35} /></mesh>
       {[-1, 1].map(side => <group key={side}>
-        <mesh position={[side === -1 ? -innerWidth / 2 - t.left - explode : innerWidth / 2 + explode, 0, 0]} rotation={[0, Math.PI / 2, 0]}><extrudeGeometry args={side === -1 ? leftArgs : rightArgs} /><meshPhysicalMaterial {...acrylicMaterial(side === -1 ? tints.left : tints.right, side === -1 ? t.left : t.right, panelTransparency(config, side === -1 ? "left" : "right"))} /><PanelEdges args={side === -1 ? leftArgs : rightArgs} color={side === -1 ? tints.left.color : tints.right.color} opacity={acrylicEdgeOpacity(panelTransparency(config, side === -1 ? "left" : "right"))} threshold={35} /></mesh>
-        <mesh position={[0, 0, side === -1 ? -innerLength / 2 - t.rear - explode : innerLength / 2 + explode]}><extrudeGeometry args={side === -1 ? rearArgs : frontArgs} /><meshPhysicalMaterial {...acrylicMaterial(side === -1 ? tints.rear : tints.front, side === -1 ? t.rear : t.front, panelTransparency(config, side === -1 ? "rear" : "front"))} /><PanelEdges args={side === -1 ? rearArgs : frontArgs} color={side === -1 ? tints.rear.color : tints.front.color} opacity={acrylicEdgeOpacity(panelTransparency(config, side === -1 ? "rear" : "front"))} /></mesh>
+        <mesh position={[side === -1 ? -innerWidth / 2 - t.left - explode : innerWidth / 2 + explode, 0, 0]} rotation={[0, Math.PI / 2, 0]}><meshPhysicalMaterial {...acrylicMaterial(side === -1 ? tints.left : tints.right, side === -1 ? t.left : t.right, panelTransparency(config, side === -1 ? "left" : "right"))} /><PanelSheet args={side === -1 ? leftArgs : rightArgs} bends={side === -1 ? panels.bends.left : panels.bends.right} direction={side} color={side === -1 ? tints.left.color : tints.right.color} opacity={acrylicEdgeOpacity(panelTransparency(config, side === -1 ? "left" : "right"))} threshold={35} /></mesh>
+        <mesh position={[0, 0, side === -1 ? -innerLength / 2 - t.rear - explode : innerLength / 2 + explode]}><meshPhysicalMaterial {...acrylicMaterial(side === -1 ? tints.rear : tints.front, side === -1 ? t.rear : t.front, panelTransparency(config, side === -1 ? "rear" : "front"))} /><PanelSheet args={side === -1 ? rearArgs : frontArgs} bends={side === -1 ? panels.bends.rear : panels.bends.front} direction={side} color={side === -1 ? tints.rear.color : tints.front.color} opacity={acrylicEdgeOpacity(panelTransparency(config, side === -1 ? "rear" : "front"))} /></mesh>
       </group>)}
       {rackRowLayout(config).map(row => {
         const z = row.center * unit, railOffset = row.railOffset * unit, length = row.length * unit;
@@ -118,21 +123,25 @@ function CameraRig({ config, view, resetKey, exploded }: Pick<Props, "config" | 
   const board = patchBoardLayout(config);
   const gripWidth = Math.max(config.handle ? handleSize.width * unit : 0, config.patchBoard ? board.width * unit : 0);
   const grips = handleSides(config), boards = patchBoardSides(config);
-  const gripRise = Math.max(...(["left", "right"] as const).map(side =>
+  const bendSpecs = accessoryBendSpecification(config);
+  const bendExtra = Math.max(0, ...(["left", "right", "rear"] as const).map(side => bendSpecs.filter(bend => bend.side === side).reduce((sum, bend) => sum + bend.addedFlatLengthMm * unit, 0)));
+  const hasSideBend = bendSpecs.some(bend => bend.side !== "rear");
+  const hasRearBend = bendSpecs.some(bend => bend.side === "rear");
+  const gripRise = bendExtra + Math.max(...(["left", "right"] as const).map(side =>
     (grips.includes(side) ? handleSize.height * unit : 0) + (boards.includes(side) ? board.height * unit : 0)),
     config.cableHolder ? cableHolderLayout(config).height * unit : 0);
   useEffect(() => {
     const aspect = size.width / size.height;
     const radians = config.angle * Math.PI / 180;
     const totalHeight = caseLift(length, config.angle, automaticFeet, flatFeetRise) + Math.sin(radians) * Math.max(length, gripWidth) / 2 + Math.cos(radians) * (height + gripRise);
-    const fit = Math.max(width / aspect, Math.max(length, gripWidth) * 0.85, totalHeight * 1.3, 1.85) * (exploded ? 2.8 : 2.35);
+    const fit = Math.max((width + (hasSideBend ? gripRise * 2 : 0)) / aspect, (Math.max(length, gripWidth) + (hasRearBend ? gripRise : 0)) * 0.85, totalHeight * 1.3, 1.85) * (exploded ? 2.8 : 2.35);
     const target = new Vector3(0, totalHeight / 2, 0);
     const direction = view === "top" ? new Vector3(0, 1, 0.001) : view === "front" ? new Vector3(0, 0.1, 1) : new Vector3(0.65, 0.72, 1).normalize();
     camera.position.copy(target).addScaledVector(direction, fit);
     camera.lookAt(target);
     if (controls.current) { controls.current.target.copy(target); controls.current.update(); }
     invalidate();
-  }, [camera, size.width, size.height, width, length, height, config.angle, automaticFeet, flatFeetRise, gripWidth, gripRise, view, resetKey, exploded, invalidate]);
+  }, [camera, size.width, size.height, width, length, height, config.angle, automaticFeet, flatFeetRise, gripWidth, gripRise, hasSideBend, hasRearBend, view, resetKey, exploded, invalidate]);
   return <OrbitControls ref={controls} makeDefault enablePan={false} enableDamping minDistance={1.3} maxDistance={28} maxPolarAngle={Math.PI / 2 - 0.03} />;
 }
 class PreviewBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
