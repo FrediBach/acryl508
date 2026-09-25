@@ -9,6 +9,11 @@ clear hierarchy, restrained colour, and controls that show what they change.
 - Light: warm off-white `#f7f7f2`, graphite `#292b27`, signal orange `#ed6028`.
 - Dark: charcoal olive `#1a1c19`, warm white `#e1e4d9`, signal orange `#ff814a`.
 - Geist for interface copy; Geist Mono for dimensions, numbering, and technical labels.
+- Interface controls and helper copy use a 12 px minimum; compact metadata uses
+  11 px, including at mobile breakpoints. Compact line boxes keep controls within
+  the existing grid and toolbar dimensions. SVG dimension text uses model-space units.
+- Muted and accent text have dedicated contrast-safe colours; the brighter signal
+  remains available for artwork and fills. Focus outlines do not consume layout space.
 - Spacing: 4, 8, 12, 16, 24, 32, 48 px. Borders: 1 px. Corners: 2–4 px.
 - Orange denotes a selected parameter or a primary export action. Material swatches
   represent acrylic colour independently of the interface accent.
@@ -27,7 +32,7 @@ clear hierarchy, restrained colour, and controls that show what they change.
   mounting holes and custom cutouts. Each sheet uses its selected tint; fully
   removed sheets stay empty and are reported in the layout caption. Animation is limited to direct manipulation.
 - All actionable icons have accessible names; selected controls expose pressed state.
-  Native dialogs handle keyboard focus and Escape. Focus rings use the accent token.
+  Native dialogs handle keyboard focus and Escape. Focus rings use the theme-specific focus token, with a surface-colour halo on selected controls.
 - Desktop uses the available viewport height: a 64 px header and a flexible workspace.
   The preview resizes above a compact specification strip; controls scroll independently
   if the screen is too short. Below 850 px height, control spacing becomes denser without
