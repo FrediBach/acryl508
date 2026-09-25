@@ -2,6 +2,7 @@ import { Path, Shape, Vector2 } from "three";
 import { flatFeetBottomEdge, type flatFeetLayout } from "./flat-feet";
 import type { patchBoardLayout } from "./patch-board";
 import { sledWebThickness, type FootShape } from "./configurator";
+import { bentHandleTrim } from "./accessory-bends";
 
 // Preview units: 1 = 100 mm. Stance and grip are part of the side sheet.
 export const handleRise = 0.7;
@@ -38,9 +39,9 @@ function roundedWindow(points: Vector2[], radius: number) {
   return path;
 }
 
-function gripOpening(width: number, height: number, rise: number) {
+function gripOpening(width: number, height: number, rise: number, bottomWeb = 0.2) {
   const path = new Path();
-  const half = (width - 0.32) / 2, bottom = height + 0.2, top = height + rise - 0.16;
+  const half = (width - 0.32) / 2, bottom = height + bottomWeb, top = height + rise - 0.16;
   const radius = Math.min(0.08, (top - bottom) / 2);
   path.moveTo(-half + radius, bottom);
   path.lineTo(half - radius, bottom);
@@ -96,10 +97,12 @@ export function createSideProfile(panel: Shape, length: number, height: number, 
   if (handle || patchBoard) {
     const width = Math.max(handle ? handleSize.width : 0, (patchBoard?.width ?? 0) / 100);
     const boardRise = (patchBoard?.height ?? 0) / 100 + bendSpace.board;
-    const rise = boardRise + (handle ? handleSize.height + bendSpace.handle : 0);
+    const handleTrim = bendSpace.handle ? bentHandleTrim(thickness) : 0;
+    const rise = boardRise + (handle ? handleSize.height - handleTrim + bendSpace.handle : 0);
     // Seat the level grip above the highest rim point under its roots.
     if (rim && !bendSpace.board && !bendSpace.handle) height = rimHeight(Math.min(half, width / 2 + 0.14));
-    const outer = width / 2, top = height + rise, radius = 0.1, root = 0.14;
+    const root = bendSpace.board || (!patchBoard && bendSpace.handle) ? thickness : 0.14;
+    const outer = width / 2, top = height + rise, radius = 0.1;
     const widePanel = half > outer + root;
     if (widePanel) {
       if (rim) traceRim(half, outer + root);
@@ -108,7 +111,7 @@ export function createSideProfile(panel: Shape, length: number, height: number, 
     } else {
       // Narrow panels flow straight from the vertical side into the flared
       // grip, with vertical tangents at both ends and no sharp shoulder.
-      shape.bezierCurveTo(half, height + 0.06, outer, height + 0.08, outer, height + root);
+      shape.bezierCurveTo(half, height + root * 3 / 7, outer, height + root * 4 / 7, outer, height + root);
     }
     shape.lineTo(outer, top - radius);
     shape.quadraticCurveTo(outer, top, outer - radius, top);
@@ -122,9 +125,9 @@ export function createSideProfile(panel: Shape, length: number, height: number, 
         traceRim(-outer - root, -half);
       } else shape.lineTo(-half, height);
     } else {
-      shape.bezierCurveTo(-outer, height + 0.08, -half, rimHeight(-half) + 0.06, -half, rimHeight(-half));
+      shape.bezierCurveTo(-outer, height + root * 4 / 7, -half, rimHeight(-half) + root * 3 / 7, -half, rimHeight(-half));
     }
-    if (handle) shape.holes.push(gripOpening(handleSize.width, height + boardRise + bendSpace.handle, handleSize.height));
+    if (handle) shape.holes.push(gripOpening(handleSize.width, height + boardRise + bendSpace.handle, handleSize.height - handleTrim, 0.2 - handleTrim));
     for (const center of patchBoard?.centers ?? []) {
       const hole = new Path();
       hole.absarc(center.x / 100, height + bendSpace.board + center.y / 100, patchBoard!.holeDiameter / 200, 0, Math.PI * 2, true);

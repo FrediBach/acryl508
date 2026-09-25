@@ -188,7 +188,7 @@ export function ConfigurationPanel({ config, panels, onChange, onCutoutAction }:
         <p className="control-note">Height above the rim. Choose a slit wider than the cable and narrower than its plug. Spacing adapts evenly to the case width.</p>
       </>}
       </div>
-      {(config.handle || config.patchBoard || config.cableHolder) && <p className="control-note">Bends add a solid 14 mm clearance strip plus the curve length, with an inside radius of twice the sheet thickness. Preview shows the formed sheet; SVG and stock sheets stay flat. Validate the bend allowance with a sample before cutting.</p>}
+      {(config.handle || config.patchBoard || config.cableHolder) && <p className="control-note">Bends add one sheet thickness of clearance plus the curve length, with an inside radius of twice the sheet thickness. Bent handles use a shorter root while preserving the grip opening. Preview shows the formed sheet; SVG and stock sheets stay flat. Validate the bend allowance with a sample before cutting.</p>}
     </ConfigSection>
     <ConfigSection number="05" title="Ventilation" summary={config.vents ? `${ventStyles.find(style => style.value === config.ventStyle)?.label} · ${panels.ventilation.openings.length} openings` : "Off · Solid bottom panel"}>
       <VentControls config={config} panels={panels} onChange={onChange} />

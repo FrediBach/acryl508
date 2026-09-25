@@ -4,7 +4,7 @@ import { loadTypescript } from "./load-typescript.mjs";
 
 const { defaultConfiguration, accessoryBendAngles, accessoryBendSpecification, configurationExport, caseDimensions } = await loadTypescript("../lib/configurator.ts");
 const { createCasePanels, caseCanExport } = await loadTypescript("../lib/case-panels.ts");
-const { bendAllowance, bendPoint } = await loadTypescript("../lib/accessory-bends.ts");
+const { bendAllowance, bendPoint, bentHandleTrim } = await loadTypescript("../lib/accessory-bends.ts");
 const { bentPanelGeometry, bentPanelEdges } = await loadTypescript("../lib/bent-panel-geometry.ts");
 const { panelEdgePoints } = await loadTypescript("../lib/panel-edges.ts");
 const { configurationSvg, caseSheetLayout } = await loadTypescript("../lib/svg-export.ts");
@@ -37,13 +37,13 @@ test("developed profiles add full bend allowance, preserve joints, and keep hole
     assert.deepEqual(panels.layout, createCasePanels({ ...current, handleBendAngle: 0, patchBoardBendAngle: 0, cableHolderBendAngle: 0 }).layout);
     for (const side of ["left", "right", "rear"]) {
       const bends = panels.bends[side], shape = panels.faces[side].shapes[0];
-      assert.ok(bends[0].start >= rim + 0.14 - 1e-6, "bend clears even the highest angled rim");
+      assert.ok(bends[0].start >= rim + thickness / 100 - 1e-6, "bend clears even the highest angled rim");
       for (const bend of bends) for (const hole of shape.holes) {
         const ys = hole.getPoints().map(p => p.y);
-        assert.ok(Math.max(...ys) <= bend.start - 0.14 + 1e-6 || Math.min(...ys) >= bend.start + bend.length - 1e-6);
+        assert.ok(Math.max(...ys) <= bend.start - bend.clearance + 1e-6 || Math.min(...ys) >= bend.start + bend.length - 1e-6);
       }
       const extra = accessoryBendSpecification(current).filter(b => b.side === side).reduce((sum, b) => sum + b.addedFlatLengthMm / 100, 0);
-      near(top(shape), rim + (side === "rear" ? 0.35 : 1.4) + extra);
+      near(top(shape), rim + (side === "rear" ? 0.35 : 1.4 - bentHandleTrim(thickness / 100)) + extra);
     }
     assert.ok(caseCanExport(panels));
   }
@@ -64,6 +64,24 @@ test("quarter-circle forming preserves thickness and neutral-axis arc length and
   const first = bends[0], second = { start: first.start + first.length + 0.7, length: first.length, angle: first.angle };
   const gap = bendPoint(0, first.start + first.length + 0.35, depth / 2, depth, [first, second], 1);
   near(gap.y, 1 + radius); near(gap.z, depth / 2 + radius + 0.35);
+});
+
+test("lower handle bends retain the grip opening and top rail with a compact two-thickness root", () => {
+  for (const thickness of [3, 5, 6]) for (const handleHeight of [50, 70, 110]) for (const rowUnits of [[1], [3], [3, 3]]) {
+    const current = { ...config, thickness, handleHeight, rowUnits, rows: rowUnits.length, patchBoard: false, handleBendAngle: 60 };
+    const panels = createCasePanels(current), flat = createCasePanels({ ...current, handleBendAngle: 0 });
+    const shape = panels.faces.left.shapes[0], straight = flat.faces.left.shapes[0];
+    const bend = panels.bends.left[0], rim = caseDimensions(current).height / 100;
+    near(bend.start - rim, thickness / 100);
+    const opening = shape.holes.at(-1).getPoints(), originalOpening = straight.holes.at(-1).getPoints();
+    const lower = Math.min(...opening.map(p => p.y)), upper = Math.max(...opening.map(p => p.y));
+    near(lower - bend.start - bend.length, 2 * thickness / 100);
+    near(top(shape) - upper, 0.16);
+    const shift = opening[0].y - originalOpening[0].y;
+    opening.forEach((p, i) => { near(p.x, originalOpening[i].x); near(p.y - shift, originalOpening[i].y); });
+    near(top(shape) - top(straight), thickness / 100 + bend.length - (0.2 - 2 * thickness / 100));
+    assert.ok(caseCanExport(panels));
+  }
 });
 
 test("preview tessellates curves and matching edges without mutating the flat exports", () => {
@@ -108,5 +126,6 @@ test("custom artwork cannot cut through a bend's solid clearance strip", () => {
   assert.equal(caseCanExport(panels), false);
   assert.throws(() => configurationSvg(current, panels));
   assert.equal(caseCanExport(createCasePanels({ ...current, cutouts: [{ ...cut, y: 0 }] })), true);
+  assert.equal(caseCanExport(createCasePanels({ ...current, cutouts: [{ ...cut, width: 2, y: rim * 50 - 4 }] })), true, "shorter clearance does not reserve the old margin below the rim");
   assert.equal(caseCanExport(base), true);
 });

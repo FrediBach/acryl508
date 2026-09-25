@@ -5,7 +5,7 @@ import type { MultiPolygon } from "polygon-clipping";
 import { defaultVentDesign, normalizeVentDesign, type VentDesign } from "./vent-design";
 import { flatFeetLayout, type FlatFootStyle } from "./flat-feet";
 import { patchBoardLayout, patchBoardSides } from "./patch-board";
-import { bendAngle, bendAllowance } from "./accessory-bends";
+import { bendAngle, bendAllowance, bentHandleTrim } from "./accessory-bends";
 import { cableHolderLayout } from "./cable-holder";
 import { sinusodaHoles, sinusodaJuice, sinusodaPlacement } from "./sinusoda";
 import { trolleyBus, trolleyHoles, trolleyMountingHoles, trolleyPlacement } from "./trolley";
@@ -182,7 +182,8 @@ export function accessoryBendSpecification(config: CaseConfiguration) {
     return entries.filter(([, angle]) => angle > 0).map(([accessory, angle]) => {
       const bend = bendAllowance(angle, panelThickness(config, side) / 100);
       return { side, accessory, angleDegrees: angle, direction: "outward", innerRadiusMm: bend.innerRadius * 100,
-        allowanceMm: bend.length * 100, clearanceMm: bend.clearance * 100, addedFlatLengthMm: bend.extra * 100 };
+        allowanceMm: bend.length * 100, clearanceMm: bend.clearance * 100, addedFlatLengthMm: bend.extra * 100,
+        handleRootReductionMm: accessory === "handle" ? bentHandleTrim(panelThickness(config, side) / 100) * 100 : 0 };
     });
   });
 }

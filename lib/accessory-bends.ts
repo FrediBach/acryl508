@@ -1,14 +1,20 @@
 // All lengths here use preview units (100 mm). The neutral axis is modelled
 // halfway through the sheet; flat patterns include its developed arc length.
-export type AccessoryBend = { start: number; length: number; angle: number };
+export type AccessoryBend = { start: number; length: number; angle: number; clearance?: number };
 export function bendAngle(value: number | undefined) {
   return Number.isFinite(value) ? Math.min(90, Math.max(0, value!)) : 0;
 }
-export function bendAllowance(angle: number, thickness: number, clearance = 0.14) {
+export function bendAllowance(angle: number, thickness: number, clearance = thickness) {
   const radians = bendAngle(angle) * Math.PI / 180;
   const innerRadius = thickness * 2;
   const length = (innerRadius + thickness / 2) * radians;
   return { angle: radians, innerRadius, length, clearance: radians ? clearance : 0, extra: radians ? clearance + length : 0 };
+}
+
+// Remove excess straight material above a handle bend without changing the
+// grip opening or its top rail. Unbent handles retain their original outline.
+export function bentHandleTrim(thickness: number) {
+  return Math.max(0, 0.2 - Math.max(0.06, 2 * thickness));
 }
 
 export function bendPoint(x: number, y: number, z: number, depth: number, bends: AccessoryBend[], direction: number) {

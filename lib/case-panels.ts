@@ -29,7 +29,7 @@ export function createCasePanels(config: CaseConfiguration) {
   const angles = accessoryBendAngles(config);
   const rearBend = bendAllowance(angles.holder, thicknesses.rear);
   const bends: Record<CutoutSide, AccessoryBend[]> = { front: [], rear: [], left: [], right: [], bottom: [] };
-  if (rearBend.angle) bends.rear.push({ start: h + rearBend.clearance, length: rearBend.length, angle: rearBend.angle });
+  if (rearBend.angle) bends.rear.push({ start: h + rearBend.clearance, length: rearBend.length, angle: rearBend.angle, clearance: rearBend.clearance });
   const panels = createPanelProfiles(w, l, frontHeight, t, edgeMargin, config.cableHolder ? shape => cableHolderTopEdge(shape, h, holder, rearBend.extra) : undefined, h, thicknesses);
   const { innerLength } = panels.layout;
   const base = panels.base;
@@ -75,11 +75,10 @@ export function createCasePanels(config: CaseConfiguration) {
     const boardBend = bendAllowance(hasBoard ? angles.board : 0, thicknesses[name]);
     const handleBend = bendAllowance(hasHandle ? angles.handle : 0, thicknesses[name]);
     const shape = createSideProfile(side, l, h, thicknesses[name], config.angle, config.footShape, hasHandle, handleSize, rim, rack.angled, hasBoard ? board : undefined, feet, { board: boardBend.extra, handle: handleBend.extra });
-    // Derive the same level root used by the profile, including angled racks.
-    const rise = (hasBoard ? board.height / 100 : 0) + boardBend.extra + (hasHandle ? handleSize.height : 0) + handleBend.extra;
-    const root = Math.max(...shape.getPoints().map(point => point.y)) - rise;
-    if (boardBend.angle) bends[name].push({ start: root + boardBend.clearance, length: boardBend.length, angle: boardBend.angle });
-    if (handleBend.angle) bends[name].push({ start: root + (hasBoard ? board.height / 100 : 0) + boardBend.extra + handleBend.clearance, length: handleBend.length, angle: handleBend.angle });
+    // Bent profiles seat at the highest rim; shortening the handle must not
+    // shift this datum or move the heating strip into the grip opening.
+    if (boardBend.angle) bends[name].push({ start: h + boardBend.clearance, length: boardBend.length, angle: boardBend.angle, clearance: boardBend.clearance });
+    if (handleBend.angle) bends[name].push({ start: h + (hasBoard ? board.height / 100 : 0) + boardBend.extra + handleBend.clearance, length: handleBend.length, angle: handleBend.angle, clearance: handleBend.clearance });
     return shape;
   };
   const left = sideProfile("left"), right = sideProfile("right");
@@ -100,7 +99,7 @@ export function createCasePanels(config: CaseConfiguration) {
     if (!result.report.error && cuts.length && bends[value].length) {
       try {
         const conflicts = cuts.filter(cut => bends[value].some(bend => {
-          const bottom = (bend.start - 0.14 - centerY) * 100, top = (bend.start + bend.length - centerY) * 100;
+          const bottom = (bend.start - (bend.clearance ?? 0) - centerY) * 100, top = (bend.start + bend.length - centerY) * 100;
           const strip: MultiPolygon = [[[[-10000, bottom], [10000, bottom], [10000, top], [-10000, top], [-10000, bottom]]]];
           return clipping.intersection(original, placedCutout(cut), strip).length > 0;
         }));
