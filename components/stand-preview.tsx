@@ -7,6 +7,7 @@ import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import type { MultiPolygon } from "polygon-clipping";
 import { acrylicMaterial, acrylicEdgeOpacity, type AcrylicTint, type AcrylicTransparency } from "@/lib/acrylic-material";
 import { UploadedObject } from "@/components/uploaded-object";
+import { sheetMaterial } from "@/lib/sheet-materials";
 import type { SynthStand } from "@/lib/synth-stand";
 import { panelEdgePoints } from "@/lib/panel-edges";
 
@@ -34,15 +35,14 @@ export function Sheet({ polygons, thickness, tint, transparency }: { polygons: M
 }
 function StandModel({ stand, exploded, instrument }: Pick<Props, "stand" | "exploded" | "instrument">) {
   const { config, frontHeight } = stand;
-  const t = config.thickness * unit;
   const center = (stand.front + stand.rear) / 2 * unit;
   const lift = exploded ? (config.advancedMode ? stand.dimensions.height : stand.braceHeight) * unit + 0.4 : 0;
   const angle = config.angle * Math.PI / 180;
   return <group position={[0, 0, center]}>
     {stand.parts.map(part => <group key={part.id}
-      position={[part.placement.width * unit - Math.sin(part.placement.yaw) * t / 2, part.family === "a" ? lift : 0, -part.placement.depth * unit - Math.cos(part.placement.yaw) * t / 2]}
+      position={[part.placement.width * unit - Math.sin(part.placement.yaw) * part.thickness * unit / 2, part.family === "a" ? lift : 0, -part.placement.depth * unit - Math.cos(part.placement.yaw) * part.thickness * unit / 2]}
       rotation={[0, part.placement.yaw, 0]}>
-      <Sheet polygons={part.polygons} thickness={config.thickness} tint={config.tint} transparency={config.transparency} />
+      <Sheet polygons={part.polygons} {...sheetMaterial(config, part.id)} />
     </group>)}
     {instrument && config.object ? <UploadedObject object={config.object} angle={config.angle} floor={frontHeight} lift={lift + (exploded ? 0.7 : 0)} /> : instrument && <group position={[0, frontHeight * unit + lift + (exploded ? 0.7 : 0), 0]} rotation={[angle, 0, 0]}>
       <mesh position={[0, config.height * unit / 2, -config.depth * unit / 2]}>

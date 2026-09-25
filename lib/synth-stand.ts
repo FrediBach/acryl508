@@ -1,8 +1,9 @@
+import { defaultSheetMaterials, maxSheetThickness, normalizeSheetThicknesses, sheetThickness, sheetMaterialExport, sheetMaterialAttributes, sheetThicknessLabel, type SheetMaterialConfiguration } from "./sheet-materials";
 import { objectContactCut, positionStandObject, trimContactSpikes, type StandObject } from "./stand-object";
 import polygonClipping, { type MultiPolygon, type Pair } from "polygon-clipping";
 import { defaultTint, defaultTransparency, type AcrylicTint, type AcrylicTransparency } from "./acrylic-material";
 
-export type StandConfiguration = {
+export type StandConfiguration = SheetMaterialConfiguration & {
   object?: StandObject;
   width: number; depth: number; height: number; angle: number;
   advancedMode: boolean;
@@ -20,6 +21,7 @@ export const standLimits = {
   frontExtensionLength: { min: 5, max: 100 },
 };
 export const defaultStandConfiguration: StandConfiguration = {
+  ...defaultSheetMaterials,
   width: 550, depth: 280, height: 70, angle: 25, thickness: 6, clearance: 0.15, tint: defaultTint, transparency: defaultTransparency,
   advancedMode: false,
   cableHoles: false, cableHoleDiameter: 20,
@@ -27,11 +29,11 @@ export const defaultStandConfiguration: StandConfiguration = {
   frontExtension: false, frontExtensionLength: 15,
 };
 export type StandPart = {
-  id: string; label: string; kind: "rib" | "brace"; position: number;
+  id: string; label: string; thickness: number; kind: "rib" | "brace"; position: number;
   polygons: MultiPolygon; width: number; height: number; minX: number;
   family: "a" | "b";
   placement: { width: number; depth: number; yaw: number };
-  slots: { center: number; root: number; opens: "up" | "down"; mate: string }[];
+  slots: { width: number; center: number; root: number; opens: "up" | "down"; mate: string }[];
   cableHoleCenters: { x: number; y: number }[];
 };
 export function normalizeStandConfiguration(input: StandConfiguration): StandConfiguration {
@@ -40,7 +42,7 @@ export function normalizeStandConfiguration(input: StandConfiguration): StandCon
     const { min, max } = standLimits[key];
     config[key] = Math.max(min, Math.min(max, Number.isFinite(input[key]) ? input[key] : defaultStandConfiguration[key]));
   }
-  return config;
+  return normalizeSheetThicknesses(config, 5, 10);
 }
 const rectangle = (left: number, bottom: number, right: number, top: number): MultiPolygon => [[[[left, bottom], [right, bottom], [right, top], [left, top], [left, bottom]]]];
 // Fillet only convex corners of the CCW outer profile, before cutting joints.
@@ -96,7 +98,8 @@ function slot(center: number, width: number, root: number, open: number, radius:
 
 function createStandardStand(input: StandConfiguration, fitted?: { width: number; depth: number; height: number }, fittedFrontMargin?: number) {
   const config = { ...normalizeStandConfiguration(input), ...fitted };
-  const { width, depth, height, thickness: t, clearance } = config;
+  const { width, depth, height, clearance } = config;
+  const t = maxSheetThickness(config);
   const angle = config.angle * Math.PI / 180, sin = Math.sin(angle), cos = Math.cos(angle);
   const braceHeight = 8 * t;
   const frontHeight = braceHeight + 3 * t;
@@ -133,14 +136,14 @@ function createStandardStand(input: StandConfiguration, fitted?: { width: number
     [front, frontHeight - stopDepth * sin], [front, 0],
   ];
   const cornerRadius = config.roundedEdges ? config.cornerRadius : 0;
-  const ribPolygons = polygonClipping.difference(roundedOutline(profile, cornerRadius), ...bracePositions.map(center => slot(center, slotWidth, jointCenter + 0.1, -1, reliefRadius)));
+  const ribPolygons = polygonClipping.difference(roundedOutline(profile, cornerRadius), ...bracePositions.map((center, i) => slot(center, sheetThickness(config, `brace-${i + 1}`) + clearance, jointCenter + 0.1, -1, reliefRadius)));
   const bracePolygons = polygonClipping.difference(roundedOutline(rectangle(-braceWidth / 2, 0, braceWidth / 2, braceHeight)[0][0], cornerRadius),
-    ...ribPositions.map(center => slot(center, slotWidth, jointCenter - 0.1, braceHeight + 1, reliefRadius)),
+    ...ribPositions.map((center, i) => slot(center, sheetThickness(config, `rib-${i + 1}`) + clearance, jointCenter - 0.1, braceHeight + 1, reliefRadius)),
     ...cableHoleCenters.map(({ x, y }) => circle(x, y, cableHoleDiameter / 2, 64)));
   const ribHeight = Math.max(...ribPolygons.flat(2).map(point => point[1]));
   const parts: StandPart[] = [
-    ...ribPositions.map((position, i): StandPart => ({ id: `rib-${i + 1}`, label: `Support rib ${i + 1}`, kind: "rib", position, polygons: ribPolygons, width: rear - front, height: ribHeight, minX: front, family: "a", placement: { width: position, depth: 0, yaw: Math.PI / 2 }, cableHoleCenters: [], slots: bracePositions.map((center, j) => ({ center, root: jointCenter + 0.1, opens: "down", mate: `brace-${j + 1}` })) })),
-    ...bracePositions.map((position, i): StandPart => ({ id: `brace-${i + 1}`, label: `${["Front", "Middle", "Rear"][i]} cross brace`, kind: "brace", position, polygons: bracePolygons, width: braceWidth, height: braceHeight, minX: -braceWidth / 2, family: "b", placement: { width: 0, depth: position, yaw: 0 }, cableHoleCenters, slots: ribPositions.map((center, j) => ({ center, root: jointCenter - 0.1, opens: "up", mate: `rib-${j + 1}` })) })),
+    ...ribPositions.map((position, i): StandPart => ({ id: `rib-${i + 1}`, thickness: sheetThickness(config, `rib-${i + 1}`), label: `Support rib ${i + 1}`, kind: "rib", position, polygons: ribPolygons, width: rear - front, height: ribHeight, minX: front, family: "a", placement: { width: position, depth: 0, yaw: Math.PI / 2 }, cableHoleCenters: [], slots: bracePositions.map((center, j) => ({ center, root: jointCenter + 0.1, opens: "down", mate: `brace-${j + 1}`, width: sheetThickness(config, `brace-${j + 1}`) + clearance })) })),
+    ...bracePositions.map((position, i): StandPart => ({ id: `brace-${i + 1}`, thickness: sheetThickness(config, `brace-${i + 1}`), label: `${["Front", "Middle", "Rear"][i]} cross brace`, kind: "brace", position, polygons: bracePolygons, width: braceWidth, height: braceHeight, minX: -braceWidth / 2, family: "b", placement: { width: 0, depth: position, yaw: 0 }, cableHoleCenters, slots: ribPositions.map((center, j) => ({ center, root: jointCenter - 0.1, opens: "up", mate: `rib-${j + 1}`, width: sheetThickness(config, `rib-${j + 1}`) + clearance })) })),
   ];
   return { objectFit: null as null | { name: string; triangleCount: number; method: string; minimumTipWidth: number; frontStops: { partId: string; baseHeight: number; topHeight: number; contactX: number; outerX: number }[] }, config, parts, ribCount, braceCount: 3, ribPositions, bracePositions, braceWidth, braceHeight, frontHeight, stopHeight, front, rear,
     slotWidth, reliefRadius, jointCenter, supportSpacing,
@@ -155,7 +158,7 @@ function createStandardStand(input: StandConfiguration, fitted?: { width: number
 // synth; the four shorter-height braces only tie the structure together.
 function createCrossStand(base: SynthStand): SynthStand {
   const { config, front, rear, frontHeight, braceHeight, stopHeight, slotWidth, reliefRadius } = base;
-  const t = config.thickness, r = Math.SQRT1_2, middle = (front + rear) / 2;
+  const t = maxSheetThickness(config), r = Math.SQRT1_2, middle = (front + rear) / 2;
   const width = config.width - 2 * Math.max(25, 4 * t), depth = rear - front;
   const shortSide = Math.min(width, depth), offsetSpan = Math.abs(width - depth) * r;
   // Repeated X supports cover long rectangles while maintaining a connected
@@ -165,22 +168,13 @@ function createCrossStand(base: SynthStand): SynthStand {
   const offsets = Array.from({ length: count }, (_, i) => count === 1 ? 0 : -offsetSpan / 2 + i * offsetSpan / (count - 1));
   const outerOffset = Math.abs(offsets[0]) + shortSide * r / 4;
   const a = config.angle * Math.PI / 180, sin = Math.sin(a), cos = Math.cos(a);
-  const h = t * r / 2, backX = config.depth * cos, backY = frontHeight + config.depth * sin;
+  const backX = config.depth * cos, backY = frontHeight + config.depth * sin;
   const stopOuterX = base.frontExtension.stopOuterX;
   const profile: Pair[] = [[front, 0], [rear, 0], [rear, backY], [backX, backY], [0, frontHeight],
     [-stopHeight * sin, frontHeight + stopHeight * cos],
     [stopOuterX, frontHeight + stopHeight * cos - 2 * t * sin],
     [front, frontHeight - 2 * t * sin], [front, 0]];
   const shifted = (d: number): MultiPolygon => [[profile.map(([x, y]): Pair => [x + d, y])]];
-  const sweptInstrument: MultiPolygon = [[[
-    [-h, frontHeight], [h, frontHeight], [backX + h, backY],
-    [backX - config.height * sin + h, backY + config.height * cos],
-    [backX - config.height * sin - h, backY + config.height * cos],
-    [-config.height * sin - h, frontHeight + config.height * cos], [-h, frontHeight],
-  ]]];
-  // Account for the entire depth swept by the sheet thickness, including the
-  // concave front-stop corner, before cutting the perpendicular half-laps.
-  const depthProfile = polygonClipping.difference(polygonClipping.intersection(shifted(-h), shifted(h)), sweptInstrument);
   const parts: StandPart[] = [];
   for (const family of ["a", "b"] as const) {
     const yaw = family === "a" ? Math.PI / 4 : 3 * Math.PI / 4;
@@ -188,6 +182,16 @@ function createCrossStand(base: SynthStand): SynthStand {
     for (const kind of ["rib", "brace"] as const) {
       const positions = kind === "rib" ? offsets : [-outerOffset, outerOffset];
       positions.forEach((position, index) => {
+        const id = `${kind}-${family}-${index + 1}`, thickness = sheetThickness(config, id), h = thickness * r / 2;
+        const sweptInstrument: MultiPolygon = [[[
+          [-h, frontHeight], [h, frontHeight], [backX + h, backY],
+          [backX - config.height * sin + h, backY + config.height * cos],
+          [backX - config.height * sin - h, backY + config.height * cos],
+          [-config.height * sin - h, frontHeight + config.height * cos], [-h, frontHeight],
+        ]]];
+        // Account for the entire depth swept by the sheet thickness, including the
+        // concave front-stop corner, before cutting the perpendicular half-laps.
+        const depthProfile = polygonClipping.difference(polygonClipping.intersection(shifted(-h), shifted(h)), sweptInstrument);
         const placement = { width: position * Math.sin(yaw), depth: middle - position * Math.cos(yaw), yaw };
         const widthEnds = [(-width / 2 + h - placement.width) / dx, (width / 2 - h - placement.width) / dx].sort((a, b) => a - b);
         const minU = Math.max(widthEnds[0], (front + h - placement.depth) / dz);
@@ -195,7 +199,7 @@ function createCrossStand(base: SynthStand): SynthStand {
         const source: MultiPolygon = kind === "rib" ? depthProfile.map(poly => poly.map(ring => ring.map(([x, y]): Pair => [(x - placement.depth) / dz, y]))) : rectangle(minU, 0, maxU, braceHeight);
         const clipped = polygonClipping.intersection(source, rectangle(minU, 0, maxU, base.synthTop + 1));
         const polygons = roundedOutline(clipped[0][0], config.roundedEdges ? config.cornerRadius : 0);
-        parts.push({ id: `${kind}-${family}-${index + 1}`, label: `${family.toUpperCase()} ${kind === "rib" ? "main support" : "stability brace"} ${index + 1}`,
+        parts.push({ id, thickness, label: `${family.toUpperCase()} ${kind === "rib" ? "main support" : "stability brace"} ${index + 1}`,
           kind, family, position, placement, polygons, minX: minU, width: maxU - minU,
           height: Math.max(...polygons.flat(2).map(p => p[1])), slots: [], cableHoleCenters: [] });
       });
@@ -207,12 +211,12 @@ function createCrossStand(base: SynthStand): SynthStand {
     const u = deltaX * r + deltaZ * r, v = deltaX * r - deltaZ * r;
     // Include partial end intersections: the thickness can overlap even if the
     // centre-line crossing lies just past a sheet's end.
-    if (u < first.minX - t / 2 || u > first.minX + first.width + t / 2 || v < second.minX - t / 2 || v > second.minX + second.width + t / 2) continue;
+    if (u < first.minX - second.thickness / 2 || u > first.minX + first.width + second.thickness / 2 || v < second.minX - first.thickness / 2 || v > second.minX + second.width + first.thickness / 2) continue;
     const jointDepth = first.placement.depth + u * r;
-    const sharedHeight = first.kind === "brace" || second.kind === "brace" ? braceHeight : frontHeight + Math.max(0, Math.min(backX, jointDepth - h)) * Math.tan(a);
+    const sharedHeight = first.kind === "brace" || second.kind === "brace" ? braceHeight : frontHeight + Math.max(0, Math.min(backX, jointDepth - Math.max(first.thickness, second.thickness) * r / 2)) * Math.tan(a);
     const root = sharedHeight / 2;
-    first.slots.push({ center: u, root: root + 0.1, opens: "down", mate: second.id });
-    second.slots.push({ center: v, root: root - 0.1, opens: "up", mate: first.id });
+    first.slots.push({ center: u, root: root + 0.1, opens: "down", mate: second.id, width: second.thickness + config.clearance });
+    second.slots.push({ center: v, root: root - 0.1, opens: "up", mate: first.id, width: first.thickness + config.clearance });
   }
   const holeDiameter = Math.min(config.cableHoleDiameter, braceHeight - 4 * t);
   for (const part of parts) {
@@ -228,10 +232,10 @@ function createCrossStand(base: SynthStand): SynthStand {
     part.polygons = polygonClipping.difference(part.polygons,
       ...part.slots.map(s => {
         const open = s.opens === "down" ? -1 : part.height + 1;
-        const cut = slot(s.center, slotWidth, s.root, open, reliefRadius);
+        const cut = slot(s.center, s.width, s.root, open, reliefRadius);
         // Open end-adjacent notches through the edge instead of leaving a
         // fragile tab or a loose sliver between the relief and the perimeter.
-        const left = s.center - slotWidth / 2, right = s.center + slotWidth / 2;
+        const left = s.center - s.width / 2, right = s.center + s.width / 2;
         const endRoot = s.root + (s.opens === "down" ? reliefRadius : -reliefRadius);
         const bottom = Math.min(open, endRoot), top = Math.max(open, endRoot);
         if (left - reliefRadius - part.minX < t) return polygonClipping.union(cut, rectangle(part.minX - 1, bottom, right, top));
@@ -245,7 +249,7 @@ function createCrossStand(base: SynthStand): SynthStand {
     part.height = Math.max(...points.map(p => p[1]));
   }
   const braces = parts.filter(p => p.kind === "brace");
-  const footprint = parts.flatMap(part => part.polygons.flat(2).flatMap(([u]) => [-t / 2, t / 2].map(v => ({
+  const footprint = parts.flatMap(part => part.polygons.flat(2).flatMap(([u]) => [-part.thickness / 2, part.thickness / 2].map(v => ({
     x: part.placement.width + u * Math.cos(part.placement.yaw) + v * Math.sin(part.placement.yaw),
     z: part.placement.depth + u * Math.sin(part.placement.yaw) - v * Math.cos(part.placement.yaw),
   }))));
@@ -262,20 +266,20 @@ function createCrossStand(base: SynthStand): SynthStand {
 function createObjectStand(input: StandConfiguration): SynthStand {
   const normalized = normalizeStandConfiguration(input);
   const object = normalized.object!;
-  const floor = 11 * normalized.thickness;
+  const floor = 11 * maxSheetThickness(normalized);
   const posed = positionStandObject(object, normalized.angle, floor);
   // Reserve room outside the mesh for a broad front lip. Diagonal sheets need
   // more depth to retain the same local width across their full thickness.
-  const frontMargin = (normalized.advancedMode ? 3 : 2) * normalized.thickness;
+  const frontMargin = (normalized.advancedMode ? 3 : 2) * maxSheetThickness(normalized);
   const stopHeight = Math.min(18, posed.dimensions.height * 0.6);
-  const minimumTipWidth = 2 * normalized.thickness;
+  const minimumTipWidth = 2 * maxSheetThickness(normalized);
   const frontStops: NonNullable<SynthStand["objectFit"]>["frontStops"] = [];
   const template = createStandardStand({ ...normalized, angle: 0 }, { ...posed.dimensions, depth: posed.depth }, frontMargin);
   const base = normalized.advancedMode ? createCrossStand(template) : template;
   const ceiling = posed.top + 1;
   const parts = base.parts.map(part => {
     if (part.kind === "brace") return part;
-    const { cut, intervals } = objectContactCut(posed.points, part.placement, normalized.thickness, ceiling);
+    const { cut, intervals } = objectContactCut(posed.points, part.placement, part.thickness, ceiling);
     if (!intervals.length) throw new Error("The model misses a support. Change its orientation or use a more complete mesh.");
     // Empty regions remain low ties; never fill an absent object surface up to
     // the object's top. Trim thin fins before cutting the mating slots.
@@ -316,9 +320,9 @@ function createObjectStand(input: StandConfiguration): SynthStand {
     const polygons = polygonClipping.difference(contact,
       ...part.slots.map(s => {
         const open = s.opens === "down" ? -1 : ceiling + 1;
-        const cut = slot(s.center, base.slotWidth, s.root, open, base.reliefRadius);
+        const cut = slot(s.center, s.width, s.root, open, base.reliefRadius);
         if (!normalized.advancedMode) return cut;
-        const left = s.center - base.slotWidth / 2, right = s.center + base.slotWidth / 2;
+        const left = s.center - s.width / 2, right = s.center + s.width / 2;
         const endRoot = s.root + (s.opens === "down" ? base.reliefRadius : -base.reliefRadius);
         const bottom = Math.min(open, endRoot), top = Math.max(open, endRoot);
         if (left - base.reliefRadius - part.minX < normalized.thickness) return polygonClipping.union(cut, rectangle(part.minX - 1, bottom, right, top));
@@ -348,7 +352,7 @@ export type SynthStand = ReturnType<typeof createStandardStand>;
 
 export const standBuildNotes = [
   "In advanced mode, stand family B (main supports and low braces) slots-up, then lower family A slots-down. Both diagonal directions cross at 90 degrees. In standard mode, stand the three cross braces on a level surface with their slots facing up. Align the support ribs, slots facing down, and lower them together until every foot is level. The joint shoulders have 0.2 mm total vertical clearance.",
-  "The integral front stops locate the synth. All stand parts are flat GS cast acrylic of one thickness; no screws, glue, bending or separate hardware. Lift the instrument off before moving the stand: open half-lap joints are not captive.",
+  "The integral front stops locate the synth. Stand sheets can use individual colors, transparencies and thicknesses. All parts are flat GS cast acrylic; no screws, glue, bending or separate hardware. Lift the instrument off before moving the stand: open half-lap joints are not captive.",
   "Automatic support spacing is at most 220 mm, a layout heuristic only. Advanced main supports form a perpendicular X in plan, repeated across longer instruments; four lower braces reinforce both directions. Compact feet end beneath the front stops; an optional front extension adds a toe beyond them. The rear margin is 30 mm; no load capacity or stability rating is calculated. Check actual feet, underside vents, controls and cable clearance.",
   "Slot width is measured sheet thickness plus fit clearance. Cut a fit sample first; never force an interference fit in acrylic. SVG outlines describe finished edges: apply kerf compensation once in the laser software. Rounded slot-root relief is included.",
   "Prototype before loading valuable equipment. Validate joint fit, acrylic flex, racking, surface grip and tipping under playing forces. Dimensions alone do not establish strength; mass and centre of gravity are not modelled.",
@@ -374,13 +378,13 @@ export function standSvg(stand: SynthStand) {
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${number(layout.width)}mm" height="${number(layout.height)}mm" viewBox="0 0 ${number(layout.width)} ${number(layout.height)}" fill="none" stroke="#000000" stroke-width="0.2" data-units="mm">
   <title>Acryl508 synth stand / ${stand.config.angle} degrees / ${stand.objectFit ? "model contour / " : ""}${stand.diagonal.enabled ? "orthogonal diagonal cross" : "standard"} / ${stand.parts.length} parts</title>
-  <desc>Prototype design. GS acrylic ${stand.config.thickness} mm; slot width ${number(stand.slotWidth)} mm. Front extension: ${number(stand.frontExtension.length)} mm ${stand.objectFit ? "beyond the model footprint" : "beyond the front stops"}. ${stand.objectFit ? `Model contour fit; ${stand.objectFit.frontStops.length} broad front retaining lips; thin tips trimmed to a minimum span of ${number(stand.objectFit.minimumTipWidth)} mm before optional rounding. ` : ""}Outer corners: ${stand.config.roundedEdges ? `up to ${number(stand.config.cornerRadius)} mm radius, locally limited on short edges` : "square"}. Cable holes: ${stand.cableHoles.totalCount}${stand.cableHoles.enabled ? ` at ${number(stand.cableHoles.diameter)} mm diameter, ${stand.cableHoles.aligned ? "aligned across all three braces" : "in diagonal brace bays"}` : ""}. Finished-edge outlines; kerf compensation must be applied in CAM. No validated load rating. Test fit, strength and stability before use. Layout is not nested to a stock sheet size.</desc>
-${layout.parts.map(({ part, x, y }) => `  <g id="${part.id}" transform="translate(${number(x)} ${number(y)})"><title>${part.label}</title><path d="${standPathData(part.polygons)}" /></g>`).join("\n")}
+  <desc>Prototype design. GS acrylic ${sheetThicknessLabel(stand.config, stand.parts)} mm; slots fit adjoining sheet thickness plus ${number(stand.config.clearance)} mm clearance. Front extension: ${number(stand.frontExtension.length)} mm ${stand.objectFit ? "beyond the model footprint" : "beyond the front stops"}. ${stand.objectFit ? `Model contour fit; ${stand.objectFit.frontStops.length} broad front retaining lips; thin tips trimmed to a minimum span of ${number(stand.objectFit.minimumTipWidth)} mm before optional rounding. ` : ""}Outer corners: ${stand.config.roundedEdges ? `up to ${number(stand.config.cornerRadius)} mm radius, locally limited on short edges` : "square"}. Cable holes: ${stand.cableHoles.totalCount}${stand.cableHoles.enabled ? ` at ${number(stand.cableHoles.diameter)} mm diameter, ${stand.cableHoles.aligned ? "aligned across all three braces" : "in diagonal brace bays"}` : ""}. Finished-edge outlines; kerf compensation must be applied in CAM. No validated load rating. Test fit, strength and stability before use. Layout is not nested to a stock sheet size.</desc>
+${layout.parts.map(({ part, x, y }) => `  <g id="${part.id}" ${sheetMaterialAttributes(stand.config, part.id)} transform="translate(${number(x)} ${number(y)})"><title>${part.label}</title><path d="${standPathData(part.polygons)}" /></g>`).join("\n")}
 </svg>\n`;
 }
 export function standExport(stand: SynthStand) {
   return { product: "Acryl508", mode: "synth-stand", version: 6, units: "mm", status: "unvalidated-prototype",
-    configuration: stand.config, material: "GS cast acrylic", dimensions: stand.dimensions,
+    configuration: stand.config, sheetMaterials: sheetMaterialExport(stand.config, stand.parts), material: "GS cast acrylic", dimensions: stand.dimensions,
     construction: { method: "Open half-lap slots", ribCount: stand.ribCount, braceCount: stand.braceCount, totalParts: stand.parts.length, hardware: 0, adhesive: false, supportSpacing: stand.supportSpacing, slotWidth: stand.slotWidth, slotRootReliefRadius: stand.reliefRadius, kerfCompensated: false, loadRating: null },
     objectFit: stand.objectFit,
     diagonal: stand.diagonal,

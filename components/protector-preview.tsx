@@ -6,20 +6,21 @@ import { Vector3 } from "three";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { UploadedObject } from "@/components/uploaded-object";
 import { Sheet, PreviewBoundary, type StandView } from "./stand-preview";
+import { sheetMaterial } from "@/lib/sheet-materials";
 import type { SynthProtector } from "@/lib/synth-protector";
 const unit = 0.01;
 type Props = { protector: SynthProtector; dark: boolean; exploded: boolean; instrument: boolean; view: StandView; resetKey: number };
 function ProtectorModel({ protector, exploded, instrument }: Props) {
-  const { config } = protector, t = config.thickness * unit;
+  const { config } = protector;
   return <group>
     {protector.parts.map(part => {
-      const angle = part.rotationY;
+      const angle = part.rotationY, t = part.thickness * unit;
       const position: [number, number, number] = part.kind === "cover" ? [0, protector.coverUnderside * unit + (exploded ? 0.7 : 0), 0]
         : part.kind === "strip" ? [part.center[0] * unit, (config.height + protector.retention.stripBottom) * unit + (exploded ? 1.3 : 0), -part.center[1] * unit]
         : [part.center[0] * unit - Math.sin(angle) * t / 2, config.height * unit, -part.center[1] * unit - Math.cos(angle) * t / 2];
       return <group key={part.id} position={position} rotation={[0, angle, 0]}>
         <group rotation={part.kind === "foot" ? [0, 0, 0] : [-Math.PI / 2, 0, 0]}>
-          <Sheet polygons={part.polygons} thickness={config.thickness} tint={config.tint} transparency={config.transparency} />
+          <Sheet polygons={part.polygons} {...sheetMaterial(config, part.id)} />
         </group>
       </group>;
     })}

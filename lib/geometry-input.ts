@@ -1,6 +1,6 @@
 import { defaultTint, defaultTransparency } from "./acrylic-material";
 
-const appearanceKeys = new Set(["tint", "transparency", "panelTints", "panelTransparencies"]);
+const appearanceKeys = new Set(["tint", "transparency", "panelTints", "panelTransparencies", "sheetTints", "sheetTransparencies"]);
 // One-entry cache retains geometry inputs through appearance-only edits. Nested
 // geometry and meshes are immutable and compared by identity, never serialized.
 export function geometryInputCache<T extends object>() {

@@ -1,3 +1,4 @@
+import { defaultSheetMaterials, maxSheetThickness, normalizeSheetThicknesses, sheetThickness, sheetMaterialExport, sheetMaterialAttributes, sheetThicknessLabel, type SheetMaterialConfiguration } from "./sheet-materials";
 import polygonClipping, { type MultiPolygon, type Pair } from "polygon-clipping";
 import { defaultTint, defaultTransparency, type AcrylicTint, type AcrylicTransparency } from "./acrylic-material";
 import { objectContactCut, positionStandObject, trimContactSpikes, type StandObject, type ObjectPoint } from "./stand-object";
@@ -11,19 +12,21 @@ export const protectorLimits = {
   sideExtraFeet: { min: 0, max: 6 }, endExtraFeet: { min: 0, max: 8 },
   thickness: { min: 5, max: 10 }, clearance: { min: 0, max: 0.4 },
 };
-export type ProtectorConfiguration = Record<keyof typeof protectorLimits, number> & { object?: StandObject; tint: AcrylicTint; transparency?: AcrylicTransparency; allSides: boolean; lockingStrips: boolean };
+export type ProtectorConfiguration = Record<keyof typeof protectorLimits, number> & SheetMaterialConfiguration & { object?: StandObject; tint: AcrylicTint; transparency?: AcrylicTransparency; allSides: boolean; lockingStrips: boolean };
 export const defaultProtectorConfiguration: ProtectorConfiguration = {
+  ...defaultSheetMaterials,
   width: 550, depth: 280, height: 70, angle: 0, headroom: 35, overhang: 20, footInset: 30, edgeGap: 0.5,
   allSides: false, lockingStrips: false, sideExtraFeet: 0, endExtraFeet: 0,
   thickness: 6, clearance: 0.15, tint: defaultTint, transparency: defaultTransparency,
 };
 export type ProtectorEdge = "left" | "right" | "front" | "rear";
-export type ProtectorPart = { id: string; label: string; kind: "cover" | "foot" | "strip"; polygons: MultiPolygon; width: number; height: number; minX: number; minY: number; side: number; depthPosition: number; edge?: ProtectorEdge; center: [number, number]; rotationY: number };
+export type ProtectorPart = { id: string; label: string; thickness: number; tabTop?: number; holeHeight?: number; kind: "cover" | "foot" | "strip"; polygons: MultiPolygon; width: number; height: number; minX: number; minY: number; side: number; depthPosition: number; edge?: ProtectorEdge; center: [number, number]; rotationY: number };
 const rect = (x1: number, y1: number, x2: number, y2: number): MultiPolygon => [[[[x1, y1], [x2, y1], [x2, y2], [x1, y2], [x1, y1]]]];
 export function protectorSupportLimits(config: ProtectorConfiguration) {
+  const thickness = maxSheetThickness(config);
   // Keep perpendicular feet and the wider strip stop heads apart at corners.
-  const minimumSpacing = 2 * config.thickness + config.clearance + 4;
-  const insetMin = config.allSides ? Math.max(15, config.thickness / 2 + (config.lockingStrips ? 20 : 14)) : config.object ? config.thickness / 2 + 2 : 15;
+  const minimumSpacing = 2 * thickness + config.clearance + 4;
+  const insetMin = config.allSides ? Math.max(15, thickness / 2 + (config.lockingStrips ? 20 : 14)) : config.object ? thickness / 2 + 2 : 15;
   const insetMax = config.object ? Math.min(100, (config.depth - minimumSpacing) / 2, config.allSides ? (config.width - minimumSpacing) / 2 : Infinity)
     : Math.min(100, config.depth / 3, config.allSides ? config.width / 3 : Infinity);
   const inset = Math.max(insetMin, Math.min(insetMax, config.footInset));
@@ -36,7 +39,7 @@ function normalizeProtectorConfiguration(input: ProtectorConfiguration) {
     const { min, max } = protectorLimits[key];
     config[key] = Math.max(key === "footInset" && input.object ? 0 : min, Math.min(max, Number.isFinite(input[key]) ? input[key] : defaultProtectorConfiguration[key]));
   }
-  return config;
+  return normalizeSheetThicknesses(config, 5, 10);
 }
 function createStandardProtector(input: ProtectorConfiguration, fitted?: { width: number; depth: number; height: number }) {
   const config = normalizeProtectorConfiguration(input);
@@ -46,17 +49,16 @@ function createStandardProtector(input: ProtectorConfiguration, fitted?: { width
   config.footInset = Math.max(supportLimits.insetMin, Math.min(supportLimits.insetMax, config.footInset));
   config.sideExtraFeet = Math.min(supportLimits.sideExtraMax, Math.round(config.sideExtraFeet));
   config.endExtraFeet = Math.min(supportLimits.endExtraMax, Math.round(config.endExtraFeet));
-  const { width, depth, height, headroom, overhang, thickness: t, clearance, edgeGap, lockingStrips } = config;
+  const { width, depth, height, headroom, overhang, clearance, edgeGap, lockingStrips } = config;
+  const t = sheetThickness(config, "top-sheet"), structuralThickness = maxSheetThickness(config);
   const coverWidth = width + 2 * overhang, coverDepth = depth + 2 * overhang;
-  const slotWidth = t + clearance, tabWidth = 16, slotLength = tabWidth + clearance;
+  const slotWidth = structuralThickness + clearance, tabWidth = 16, slotLength = tabWidth + clearance;
   const lipDepth = 12, contactWidth = 12 - edgeGap;
   const outerFoot = overhang - edgeGap - 3;
-  const stripWidth = 8, stripEnd = t / 2 + 12;
-  const holeBottom = headroom + t + 0.2, holeHeight = t + clearance;
+  const stripWidth = 8, stripEnd = structuralThickness / 2 + 12;
+  const holeBottom = headroom + t + 0.2, holeHeight = Math.max(...["left", "right", ...(config.allSides ? ["front", "rear"] : [])].map(edge => sheetThickness(config, `strip-${edge}`))) + clearance;
   const tabTop = lockingStrips ? holeBottom + holeHeight + 6 : headroom + t;
   const stripBottom = holeBottom + clearance / 2;
-  const outline: MultiPolygon = [[[[-12, 0], [0, 0], [0, -lipDepth], [outerFoot, -lipDepth], [outerFoot, headroom], [8, headroom], [8, tabTop], [-8, tabTop], [-8, headroom], [-12, headroom], [-12, 0]]]];
-  const footOutline = lockingStrips ? polygonClipping.difference(outline, rect(-(stripWidth + clearance) / 2, holeBottom, (stripWidth + clearance) / 2, holeBottom + holeHeight)) : outline;
   const edges: { edge: ProtectorEdge; normal: [number, number]; length: number; offset: number; extra: number }[] = [
     { edge: "left", normal: [-1, 0], length: depth, offset: width / 2 + edgeGap, extra: config.sideExtraFeet },
     { edge: "right", normal: [1, 0], length: depth, offset: width / 2 + edgeGap, extra: config.sideExtraFeet },
@@ -67,27 +69,32 @@ function createStandardProtector(input: ProtectorConfiguration, fitted?: { width
   ];
   const feet: ProtectorPart[] = [], strips: ProtectorPart[] = [];
   for (const { edge, normal: [nx, nd], length, offset, extra } of edges) {
+    const edgeHoleHeight = sheetThickness(config, `strip-${edge}`) + clearance;
+    const edgeTabTop = lockingStrips ? holeBottom + edgeHoleHeight + 6 : headroom + t;
+    const outline: MultiPolygon = [[[[-12, 0], [0, 0], [0, -lipDepth], [outerFoot, -lipDepth], [outerFoot, headroom], [8, headroom], [8, edgeTabTop], [-8, edgeTabTop], [-8, headroom], [-12, headroom], [-12, 0]]]];
+    const footOutline = lockingStrips ? polygonClipping.difference(outline, rect(-(stripWidth + clearance) / 2, holeBottom, (stripWidth + clearance) / 2, holeBottom + edgeHoleHeight)) : outline;
     const span = length - 2 * config.footInset, rotationY = Math.atan2(nd, nx);
     for (let i = 0; i < extra + 2; i++) {
       const along = -span / 2 + i * span / (extra + 1);
-      feet.push({ id: `foot-${edge}-${i + 1}`, label: `${edge[0].toUpperCase() + edge.slice(1)} foot ${i + 1}`, kind: "foot", polygons: footOutline,
-        width: outerFoot + 12, height: tabTop + lipDepth, minX: -12, minY: -lipDepth, side: nx,
+      feet.push({ id: `foot-${edge}-${i + 1}`, thickness: sheetThickness(config, `foot-${edge}-${i + 1}`), tabTop: edgeTabTop, holeHeight: edgeHoleHeight, label: `${edge[0].toUpperCase() + edge.slice(1)} foot ${i + 1}`, kind: "foot", polygons: footOutline,
+        width: outerFoot + 12, height: edgeTabTop + lipDepth, minX: -12, minY: -lipDepth, side: nx,
         depthPosition: nd * offset + nx * along, edge, center: [nx * offset - nd * along, nd * offset + nx * along], rotationY });
     }
     if (lockingStrips) {
       const halfLength = span / 2 + stripEnd;
       // The widened trailing head stops the strip at its insertion end.
       const stripOutline = polygonClipping.union(rect(-stripWidth / 2, -halfLength, stripWidth / 2, halfLength), rect(-6, -halfLength, 6, -halfLength + 12));
-      strips.push({ id: `strip-${edge}`, label: `${edge[0].toUpperCase() + edge.slice(1)} retaining strip`, kind: "strip", polygons: stripOutline,
+      strips.push({ id: `strip-${edge}`, thickness: sheetThickness(config, `strip-${edge}`), label: `${edge[0].toUpperCase() + edge.slice(1)} retaining strip`, kind: "strip", polygons: stripOutline,
         width: 12, height: 2 * halfLength, minX: -6, minY: -halfLength, side: nx, depthPosition: nd * offset, edge, center: [nx * offset, nd * offset], rotationY });
     }
   }
   const slots = feet.map(foot => {
     const [x, y] = foot.center, sideEdge = foot.edge === "left" || foot.edge === "right";
-    const sx = sideEdge ? slotLength : slotWidth, sy = sideEdge ? slotWidth : slotLength;
+    const footSlotWidth = foot.thickness + clearance;
+    const sx = sideEdge ? slotLength : footSlotWidth, sy = sideEdge ? footSlotWidth : slotLength;
     return rect(x - sx / 2, y - sy / 2, x + sx / 2, y + sy / 2);
   });
-  const cover: ProtectorPart = { id: "top-sheet", label: "Protective top sheet", kind: "cover", polygons: polygonClipping.difference(rect(-coverWidth / 2, -coverDepth / 2, coverWidth / 2, coverDepth / 2), ...slots), width: coverWidth, height: coverDepth, minX: -coverWidth / 2, minY: -coverDepth / 2, side: 0, depthPosition: 0, center: [0, 0], rotationY: 0 };
+  const cover: ProtectorPart = { id: "top-sheet", thickness: t, label: "Protective top sheet", kind: "cover", polygons: polygonClipping.difference(rect(-coverWidth / 2, -coverDepth / 2, coverWidth / 2, coverDepth / 2), ...slots), width: coverWidth, height: coverDepth, minX: -coverWidth / 2, minY: -coverDepth / 2, side: 0, depthPosition: 0, center: [0, 0], rotationY: 0 };
   return { objectFit: null as null | { name: string; triangleCount: number; sourceDimensions: { width: number; depth: number; height: number }; method: string; feet: { partId: string; contactStart: number; contactEnd: number; collarBottom: number; collarWidth: number }[] }, config, parts: [cover, ...feet, ...strips], footCount: feet.length, stripCount: strips.length, supportLimits, slotWidth, slotLength, tabWidth, lipDepth, contactWidth,
     retention: { enabled: lockingStrips, stripWidth, stripBottom, holeBottom, holeHeight, holeWidth: stripWidth + clearance, tabTop, protrusion: tabTop - headroom - t, stopHeadWidth: 12 },
     coverUnderside: height + headroom, dimensions: { width: coverWidth, depth: coverDepth, height: tabTop + lipDepth }, overallHeight: height + tabTop };
@@ -107,13 +114,14 @@ function createObjectProtector(input: ProtectorConfiguration): SynthProtector {
   const posed = positionStandObject(object, initial.angle, 0);
   // Leave two sheet thicknesses outside the mesh for broad locating collars,
   // with the same cover edge web used by the manual protector.
-  const overhang = Math.max(initial.overhang, 2 * initial.thickness + initial.edgeGap + 3);
+  const overhang = Math.max(initial.overhang, 2 * maxSheetThickness(initial) + initial.edgeGap + 3);
   const base = createStandardProtector({ ...initial, object, overhang }, { width: posed.dimensions.width, depth: posed.depth, height: posed.top });
-  const { config, retention } = base, t = config.thickness;
+  const { config, retention } = base;
   const reflected: ObjectPoint[] = posed.points.map(([x, y, z]) => [x, posed.top - y, z - posed.depth / 2]);
   const contacts: NonNullable<SynthProtector["objectFit"]>["feet"] = [];
   const parts = base.parts.map(part => {
     if (part.kind !== "foot") return part;
+    const t = part.thickness;
     const projected = objectContactCut(reflected, { width: part.center[0], depth: part.center[1], yaw: part.rotationY }, t, posed.top + base.lipDepth + 1);
     const edge = projected.intervals.at(-1);
     if (!edge || edge[1] - edge[0] < 12) throw new Error(`${part.label} misses a broad contact surface. Move the end feet inward or adjust the model orientation.`);
@@ -135,8 +143,8 @@ function createObjectProtector(input: ProtectorConfiguration): SynthProtector {
     // outside collar is retained, independently of the contour contact.
     body = mirrorY(trimContactSpikes(mirrorY(body), -config.headroom, t));
     if (area(polygonClipping.intersection(body, translateY(occupied, 0.01))) < 0.00001) throw new Error(`${part.label} has no usable contact after trimming. Adjust the corner inset or orientation.`);
-    let polygons = polygonClipping.union(body, rect(-8, config.headroom - 0.001, 8, retention.tabTop));
-    if (config.lockingStrips) polygons = polygonClipping.difference(polygons, rect(-retention.holeWidth / 2, retention.holeBottom, retention.holeWidth / 2, retention.holeBottom + retention.holeHeight));
+    let polygons = polygonClipping.union(body, rect(-8, config.headroom - 0.001, 8, part.tabTop!));
+    if (config.lockingStrips) polygons = polygonClipping.difference(polygons, rect(-retention.holeWidth / 2, retention.holeBottom, retention.holeWidth / 2, retention.holeBottom + part.holeHeight!));
     if (polygons.length !== 1) throw new Error(`${part.label} would be disconnected. Adjust the support layout.`);
     const points = polygons.flat(2), minX = Math.min(...points.map(p => p[0])), minY = Math.min(...points.map(p => p[1]));
     contacts.push({ partId: part.id, contactStart, contactEnd, collarBottom, collarWidth: outer - collarInner });
@@ -145,7 +153,7 @@ function createObjectProtector(input: ProtectorConfiguration): SynthProtector {
   const footprints: MultiPolygon[] = [];
   for (const part of parts.filter(p => p.kind === "foot")) {
     const nx = Math.round(Math.cos(part.rotationY)), nd = Math.round(Math.sin(part.rotationY));
-    const footprint = rect(part.minX, -t / 2, part.minX + part.width, t / 2).map(poly => poly.map(ring => ring.map(([u, v]): Pair => [part.center[0] + u * nx - v * nd, part.center[1] + u * nd + v * nx])));
+    const footprint = rect(part.minX, -part.thickness / 2, part.minX + part.width, part.thickness / 2).map(poly => poly.map(ring => ring.map(([u, v]): Pair => [part.center[0] + u * nx - v * nd, part.center[1] + u * nd + v * nx])));
     if (footprints.some(other => area(polygonClipping.intersection(footprint, other)) > 1e-7)) throw new Error("The fitted feet overlap. Move the end feet inward, reduce extra feet or use left/right support.");
     footprints.push(footprint);
   }
@@ -161,7 +169,7 @@ export const protectorBuildNotes = [
   "Place the feet on clear, level body edges. Choose left/right support or all four edges; additional feet are evenly spaced between the end feet. Foot count and corner inset are limited to keep slots, feet and strips apart. The 12 mm shoulders and outside lips locate against the synth with the selected edge gap.",
   "Lower the top sheet onto the foot tabs until it rests on their shoulders. Clearance is measured from body top to sheet underside. With locking strips disabled the tabs finish flush; with strips enabled they extend above the sheet and contain rectangular pass-through holes.",
   "For retention, slide the narrow end of each strip through every raised tab along its edge, until the wider stop head reaches the first foot. The strips block feet from dropping through the sheet. They remain removable and can slide back out; check fit before lifting the assembly. Never lift the synth by the cover.",
-  "All parts use one thickness of GS cast acrylic, with no glue or hardware. Slots and strip holes include fit clearance; cut a sample and apply kerf compensation once in CAM. Feet rest on the instrument, not the desk. Check controls, connectors and contact surfaces on every supported edge, especially keys at the front.",
+  "Each part can use its own color, transparency and thickness of GS cast acrylic, with no glue or hardware. Slots and strip holes include fit clearance; cut a sample and apply kerf compensation once in CAM. Feet rest on the instrument, not the desk. Check controls, connectors and contact surfaces on every supported edge, especially keys at the front.",
   "Prototype fit, retention and sheet flex before use. Extra supports reduce edge spans but do not establish an impact or load rating, or support the middle of the sheet. Do not stack equipment on the cover. Review internal corner relief and cutting settings with your fabricator.",
 ];
 export function protectorSheetLayout(protector: SynthProtector) {
@@ -182,13 +190,13 @@ export function protectorSvg(protector: SynthProtector) {
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${n(layout.width)}mm" height="${n(layout.height)}mm" viewBox="0 0 ${n(layout.width)} ${n(layout.height)}" fill="none" stroke="#000" stroke-width="0.2" data-units="mm">
 <title>Acryl508 synth protector / top sheet, ${protector.footCount} feet, ${protector.stripCount} retaining strips</title>
-<desc>Unvalidated prototype. GS acrylic ${n(protector.config.thickness)} mm. ${protector.objectFit ? "Highest model point-to-cover" : "Body-to-cover"} clearance ${n(protector.config.headroom)} mm; edge gap ${n(protector.config.edgeGap)} mm; slots ${n(protector.slotLength)} by ${n(protector.slotWidth)} mm. ${protector.objectFit ? `Model contour fit at ${n(protector.config.angle)} degrees; broad edge-locating collars and trimmed contact tips. ` : ""}Retention: ${protector.retention.enabled ? "raised tabs with closed holes and removable headed strips" : "flush tabs"}. Finished-edge outlines; apply kerf compensation in CAM. No load or impact rating. Test fit and review internal corner relief before fabrication.</desc>
-${layout.parts.map(({ part, x, y }) => `<g id="${part.id}" transform="translate(${n(x)} ${n(y)})"><title>${part.label}</title><path d="${standPathData(part.polygons)}" /></g>`).join("\n")}
+<desc>Unvalidated prototype. GS acrylic ${sheetThicknessLabel(protector.config, protector.parts)} mm. ${protector.objectFit ? "Highest model point-to-cover" : "Body-to-cover"} clearance ${n(protector.config.headroom)} mm; edge gap ${n(protector.config.edgeGap)} mm; slots ${n(protector.slotLength)} mm long by each foot thickness plus ${n(protector.config.clearance)} mm clearance. ${protector.objectFit ? `Model contour fit at ${n(protector.config.angle)} degrees; broad edge-locating collars and trimmed contact tips. ` : ""}Retention: ${protector.retention.enabled ? "raised tabs with closed holes and removable headed strips" : "flush tabs"}. Finished-edge outlines; apply kerf compensation in CAM. No load or impact rating. Test fit and review internal corner relief before fabrication.</desc>
+${layout.parts.map(({ part, x, y }) => `<g id="${part.id}" ${sheetMaterialAttributes(protector.config, part.id)} transform="translate(${n(x)} ${n(y)})"><title>${part.label}</title><path d="${standPathData(part.polygons)}" /></g>`).join("\n")}
 </svg>\n`;
 }
 export function protectorExport(protector: SynthProtector) {
   return { product: "Acryl508", mode: "synth-protector", version: 2, units: "mm", status: "unvalidated-prototype",
-    configuration: protector.config, objectFit: protector.objectFit, material: "GS cast acrylic", dimensions: protector.dimensions, overallHeight: protector.overallHeight,
+    configuration: protector.config, sheetMaterials: sheetMaterialExport(protector.config, protector.parts), objectFit: protector.objectFit, material: "GS cast acrylic", dimensions: protector.dimensions, overallHeight: protector.overallHeight,
     construction: { method: protector.retention.enabled ? "Raised foot tabs with pass-through retaining strips" : "Edge-locating feet with flush tabs into closed cover slots", totalParts: protector.parts.length, footCount: protector.footCount, stripCount: protector.stripCount, minimumFootSpacing: protector.supportLimits.minimumSpacing, slotWidth: protector.slotWidth, slotLength: protector.slotLength, tabWidth: protector.tabWidth, lipDepth: protector.lipDepth, contactWidth: protector.contactWidth, coverUnderside: protector.coverUnderside, hardware: 0, adhesive: false, kerfCompensated: false, loadRating: null },
     retention: { ...protector.retention, removal: "Slide each strip out by its widened stop head before separating cover and feet", captiveStrips: false },
     coordinates: "Outlines in mm, Y up. Cover: X across synth, Y front-to-rear. Feet: X outward from synth side plus edge gap, Y relative to synth body top. Each part center is [width-axis X, front-to-rear depth]; rotationY is the Three.js Y rotation in radians. Feet use local X outward and Y up with thickness centered tangentially. Strips use local X outward and local Y along the edge, laid horizontal at body height + stripBottom. Cover underside is height + headroom above the desk. For model fits, height is the posed mesh maximum Y; the mesh minimum Y is zero and its projected depth is centered on zero. Object source dimensions and resolved contacts are in objectFit.",

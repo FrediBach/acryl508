@@ -7,6 +7,7 @@ globalThis.indexedDB = indexedDB;
 const { readSavedProject, writeSavedProject, listSavedProjects } = await loadTypescript("../lib/project-storage.ts");
 const { makeProject, initialDesigns } = await loadTypescript("../lib/project.ts");
 const { addProjectFont, getFontAssets, getFonts, prepareFonts, replaceFonts } = await loadTypescript("../lib/project-fonts.ts");
+const { builtinFonts } = await loadTypescript("../lib/cutout-sources.ts");
 
 test("autosaves and named copies persist independently and reads cannot mutate saved data", async () => {
   const project = makeProject("Version one", "case", initialDesigns, []);
@@ -33,7 +34,7 @@ test("project font bytes restore editable outlines and malformed fonts leave the
   assert.equal(records[0].id, id);
   const shapes = getFonts().find(font => font.id === id).font.shapes("AA");
   assert.equal(shapes.length, 2);
-  replaceFonts([], []); assert.equal(getFonts().length, 2);
+  replaceFonts([], []); assert.deepEqual(getFonts().map(font => font.id), builtinFonts.map(font => font.id));
   replaceFonts(records, await prepareFonts(records));
   assert.equal(getFonts().find(font => font.id === id).font.shapes("AAA").length, 3);
   const before = getFonts();

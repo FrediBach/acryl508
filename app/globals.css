@@ -358,6 +358,7 @@
 .summary-panel:not(.case-summary) .summary-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .summary-panel:not(.case-summary) .summary-fabrication { grid-column: 1 / -1; }
 .spec-colors { display: inline-flex; gap: 2px; }
+.sheet-material-swatches { max-width: 160px; flex-wrap: wrap; justify-content: flex-end; vertical-align: middle; }
 .spec-color { width: 8px; height: 8px; border-radius: 1px; }
 /* Case specifications grow independently of the compact preview footer. */
 .summary-panel.case-summary { display: block; padding: 14px 20px 0; }

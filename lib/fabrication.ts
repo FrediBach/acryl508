@@ -1,3 +1,4 @@
+import { sheetMaterial } from "./sheet-materials";
 import type { Art } from "./art";
 import type { MultiPolygon } from "polygon-clipping";
 import { polygonBounds, mapPolygons } from "./custom-cutouts";
@@ -33,16 +34,16 @@ export function caseFabrication(config: CaseConfiguration, panels: CasePanels): 
   };
 }
 export function standFabrication(stand: SynthStand, error?: string, busy?: boolean): Fabrication {
-  return { parts: stand.parts.map(part => ({ id: part.id, label: part.label, polygons: down(part.polygons), material: materialLabel(stand.config.tint, stand.config.transparency) })),
+  return { parts: stand.parts.map(part => ({ id: part.id, label: part.label, polygons: down(part.polygons), thickness: part.thickness, material: materialLabel(sheetMaterial(stand.config, part.id).tint, sheetMaterial(stand.config, part.id).transparency) })),
     warnings: ["Validate joint fit, grip, flex and loaded stability on a prototype.", ...(error ? [error] : []), ...(busy ? ["Model fitting is in progress."] : [])], hardware: ["No screws or adhesive; complementary slots join the parts."], thickness: stand.config.thickness, clearance: stand.config.clearance, blocked: !!error || !!busy };
 }
 export function protectorFabrication(protector: SynthProtector, error?: string, busy?: boolean): Fabrication {
-  return { parts: protector.parts.map(part => ({ id: part.id, label: part.label, polygons: down(part.polygons), material: materialLabel(protector.config.tint, protector.config.transparency) })),
+  return { parts: protector.parts.map(part => ({ id: part.id, label: part.label, polygons: down(part.polygons), thickness: part.thickness, material: materialLabel(sheetMaterial(protector.config, part.id).tint, sheetMaterial(protector.config, part.id).transparency) })),
     warnings: ["Verify foot contacts, controls clearance, joint retention and cover flex on a prototype.", ...(error ? [error] : []), ...(busy ? ["Model fitting is in progress."] : [])], hardware: ["No screws or adhesive; feet slot into the cover."], thickness: protector.config.thickness, clearance: protector.config.clearance, blocked: !!error || !!busy };
 }
 export function artFabrication(art: Art): Fabrication {
-  return { parts: art.parts.map(part => ({ id: part.id, label: part.label, polygons: down(part.polygons), material: materialLabel(art.config.tint, art.config.transparency) })),
-    warnings: ["Decorative prototype: validate slot fit, forming sequence, leaf clearance and tipping stability.", ...art.parts.filter(part => part.bend).map(part => `${part.label}: form ${part.settings.bendAngle.toFixed(1)}° outward, starting ${(part.bend!.start * 100).toFixed(1)} mm above the bottom edge, inside radius ${2 * art.config.thickness} mm. Flat pattern includes ${(part.bend!.length * 100).toFixed(1)} mm bend allowance. Stock SVG contains cut paths only; use the design SVG for bend guides.`)],
+  return { parts: art.parts.map(part => ({ id: part.id, label: part.label, polygons: down(part.polygons), thickness: part.thickness, material: materialLabel(sheetMaterial(art.config, part.id).tint, sheetMaterial(art.config, part.id).transparency) })),
+    warnings: ["Decorative prototype: validate slot fit, forming sequence, leaf clearance and tipping stability.", ...art.parts.filter(part => part.bend).map(part => `${part.label}: form ${part.settings.bendAngle.toFixed(1)}° outward, starting ${(part.bend!.start * 100).toFixed(1)} mm above the bottom edge, inside radius ${2 * part.thickness} mm. Flat pattern includes ${(part.bend!.length * 100).toFixed(1)} mm bend allowance. Stock SVG contains cut paths only; use the design SVG for bend guides.`)],
     hardware: ["No screws or adhesive. Assemble B slots-up and A slots-down, then form the leaves."], thickness: art.config.thickness, clearance: art.config.clearance, blocked: false };
 }
 export function panelFabrication(panel: DesignedPanel): Fabrication {

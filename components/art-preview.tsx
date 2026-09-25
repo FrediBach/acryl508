@@ -7,12 +7,13 @@ import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { acrylicMaterial, acrylicEdgeOpacity } from "@/lib/acrylic-material";
 import { bentPanelGeometry, bentPanelEdges } from "@/lib/bent-panel-geometry";
 import { panelEdgePoints } from "@/lib/panel-edges";
+import { sheetMaterial } from "@/lib/sheet-materials";
 import type { Art, ArtPart } from "@/lib/art";
 import { PreviewBoundary } from "./stand-preview";
 export type ArtView = "perspective" | "side" | "top";
 type Props = { art: Art; dark: boolean; exploded: boolean; view: ArtView; resetKey: number };
 function ArtSheet({ part, art }: { part: ArtPart; art: Art }) {
-  const { thickness, tint, transparency } = art.config;
+  const { thickness, tint, transparency } = sheetMaterial(art.config, part.id);
   const { geometry, edges } = useMemo(() => {
     const shapes = part.polygons.map(polygon => {
       const shape = new Shape();
@@ -47,11 +48,11 @@ function CameraRig({ art, view, exploded, resetKey }: Omit<Props, "dark">) {
   return <OrbitControls ref={controls} makeDefault enablePan={false} minDistance={1} maxDistance={80} maxPolarAngle={Math.PI / 2} />;
 }
 export function ArtPreview(props: Props) {
-  const { art, exploded, dark } = props, t = art.config.thickness / 100;
+  const { art, exploded, dark } = props;
   return <PreviewBoundary><Canvas camera={{ position: [5,4,6], fov: 34, near: 0.01, far: 150 }} dpr={[1,1.75]} frameloop="demand" gl={{ alpha: true, antialias: true }} fallback={<div className="preview-fallback">WebGL is unavailable. Select Cutting layout to inspect your sheets.</div>}>
     <ambientLight intensity={dark ? 0.8 : 1.3} /><directionalLight position={[3,7,5]} intensity={2.5} /><directionalLight position={[-5,3,-2]} intensity={1.5} color="#e6efff" />
     <Suspense fallback={null}><Environment resolution={128} frames={1}><Lightformer position={[0,5,-3]} rotation={[Math.PI/2,0,0]} scale={[10,8,1]} intensity={3} /><Lightformer position={[-5,2,1]} rotation={[0,Math.PI/2,0]} scale={[6,3,1]} intensity={4} /></Environment>
-      {art.parts.map(part => <group key={part.id} position={part.family === "a" ? [0, exploded ? art.baseHeight / 100 + 0.5 : 0, part.position / 100 - t / 2] : [part.position / 100 - t / 2,0,0]} rotation={[0,part.family === "a" ? 0 : Math.PI / 2,0]}><ArtSheet part={part} art={art} /></group>)}
+      {art.parts.map(part => <group key={part.id} position={part.family === "a" ? [0, exploded ? art.baseHeight / 100 + 0.5 : 0, part.position / 100 - part.thickness / 200] : [part.position / 100 - part.thickness / 200,0,0]} rotation={[0,part.family === "a" ? 0 : Math.PI / 2,0]}><ArtSheet part={part} art={art} /></group>)}
       <ContactShadows key={JSON.stringify([art.config,exploded])} position={[0,-0.02,0]} opacity={dark ? 0.45 : 0.25} scale={35} blur={2.4} far={10} resolution={512} frames={1} color="#24231e" />
     </Suspense><CameraRig {...props} />
   </Canvas></PreviewBoundary>;

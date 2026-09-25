@@ -7,6 +7,7 @@ import { type CustomCutout } from "./custom-cutouts";
 import { validateObjectVertices, type StandObject } from "./stand-object";
 import { normalizeVentDesign } from "./vent-design";
 import { type FontAsset } from "./project-fonts";
+import type { SheetMaterialConfiguration } from "./sheet-materials";
 
 export type DesignerMode = "case" | "stand" | "protector" | "panel" | "art";
 export type Designs = { case: CaseConfiguration; stand: StandConfiguration; protector: ProtectorConfiguration; panel: PanelConfiguration; art: ArtConfiguration };
@@ -50,6 +51,18 @@ function material<T extends { tint: CaseConfiguration["tint"]; transparency?: Ca
   const tint = record(config.tint, "Color");
   if (typeof tint.color !== "string" || !/^#[0-9a-f]{6}$/i.test(tint.color)) throw new Error("Invalid acrylic color.");
   return { ...config, tint: { id: text(tint.id, "color ID"), label: text(tint.label, "color name"), color: tint.color, ...(typeof tint.shopLabel === "string" ? { shopLabel: tint.shopLabel.slice(0, 200) } : {}) }, transparency: choice(config.transparency ?? "transparent", ["transparent", "see-through", "opaque", "opal"], "transparency") };
+}
+function sheetMaterials<T extends SheetMaterialConfiguration>(config: T, validId: RegExp, min: number, max: number): T {
+  function entries(value: unknown, label: string) {
+    const values = Object.entries(record(value ?? {}, label));
+    if (values.length > 80 || values.some(([id]) => !validId.test(id))) throw new Error(`Invalid ${label}.`);
+    return values;
+  }
+  return { ...config,
+    sheetTints: Object.fromEntries(entries(config.sheetTints, "sheet colors").map(([id, tint]) => [id, material({ tint: tint as T["tint"] }).tint])),
+    sheetTransparencies: Object.fromEntries(entries(config.sheetTransparencies, "sheet transparencies").map(([id, value]) => [id, choice(value, ["transparent", "see-through", "opaque", "opal"], "sheet transparency")])),
+    sheetThicknesses: Object.fromEntries(entries(config.sheetThicknesses, "sheet thicknesses").map(([id, value]) => [id, number(value, `${id} sheet thickness`, min, max)])),
+  };
 }
 function cutouts(input: unknown): CustomCutout[] {
   return list(input, "artwork", 20).map(value => {
@@ -122,10 +135,10 @@ export function readCase(input: unknown): CaseConfiguration {
   return config;
 }
 export function readStand(input: unknown): StandConfiguration {
-  return normalizeStandConfiguration({ ...material(base(input, defaultStandConfiguration)), object: object(record(input, "Stand").object) });
+  return normalizeStandConfiguration({ ...sheetMaterials(material(base(input, defaultStandConfiguration)), /^(rib|brace)-(?:[ab]-)?([1-9]|1[0-9]|20)$/, 5, 10), object: object(record(input, "Stand").object) });
 }
 export function readProtector(input: unknown): ProtectorConfiguration {
-  return { ...material(base(input, defaultProtectorConfiguration)), object: object(record(input, "Protector").object) };
+  return { ...sheetMaterials(material(base(input, defaultProtectorConfiguration)), /^(top-sheet|foot-(left|right|front|rear)-([1-9]|10)|strip-(left|right|front|rear))$/, 5, 10), object: object(record(input, "Protector").object) };
 }
 export function readPanel(input: unknown): PanelConfiguration {
   const config = material(base(input, defaultPanelConfiguration));
@@ -144,7 +157,7 @@ export function readPanel(input: unknown): PanelConfiguration {
   return normalizePanelConfiguration(config);
 }
 export function readArt(input: unknown): ArtConfiguration {
-  const config = material(base(input, defaultArtConfiguration));
+  const config = sheetMaterials(material(base(input, defaultArtConfiguration)), /^[ab]-([1-9]|10)$/, 3, 6);
   const overrides = record(config.sheets, "Art sheet overrides");
   if (Object.keys(overrides).length > 20) throw new Error("At most 20 art sheets are supported.");
   for (const [id, value] of Object.entries(overrides)) {

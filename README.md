@@ -147,8 +147,10 @@ JSON version 6 includes each sheet's family, centre-plane origin, yaw, mating
 slots, and cable-hole centres. Preview and cutting exports use those same parts.
 Standard remains the default for older configurations.
 
-All stand parts use one measured GS acrylic thickness (5–10 mm). Standard slot width is
-sheet thickness plus the selected clearance (0–0.4 mm); slot roots have circular
+Stand parts use measured GS acrylic thicknesses (5–10 mm). Enable **Individual
+sheet materials** under **Material & fit** to choose each rib and brace’s color,
+transparency and thickness, including in diagonal mode and model-fitted stands.
+Slot width follows the adjoining sheet thickness plus the selected clearance (0–0.4 mm); slot roots have circular
 relief so square shoulders can seat. Joint shoulders have 0.2 mm total vertical
 clearance. The front deck is 11 sheet thicknesses above the floor, leaving a
 solid web above the 8-thickness-high braces. The footprint extends 30 mm behind
@@ -449,7 +451,7 @@ The third designer mode creates an oversized top sheet with edge-locating feet. 
 
 Support the left/right edges or all four edges. Add intermediate feet separately for each left/right edge (up to 6 extra) and each front/rear edge (up to 8 extra); actual limits depend on available space and sheet thickness. Feet are evenly distributed between the end feet. Minimum corner inset prevents perpendicular feet and strip heads colliding, and minimum spacing retains material between cover slots.
 
-Optional locking strips extend every foot tab above the cover and cut a rectangular pass-through hole. One horizontal acrylic strip per supported edge threads through all its tabs. The widened trailing head stops insertion; withdraw each strip before disassembly. Strips prevent feet dropping out vertically but remain removable sideways, so their fit and retention need prototype testing. The same sheet thickness and slot-fit clearance apply throughout.
+Optional locking strips extend every foot tab above the cover and cut a rectangular pass-through hole. One horizontal acrylic strip per supported edge threads through all its tabs. The widened trailing head stops insertion; withdraw each strip before disassembly. Strips prevent feet dropping out vertically but remain removable sideways, so their fit and retention need prototype testing. Enable **Individual sheet materials** under **Material & construction** to choose the cover, each foot and each retaining strip’s color, transparency and thickness (5–10 mm). Cover slots follow each foot’s thickness, tab heights follow the cover, and pass-through holes follow the matching strip. Slot-fit clearance applies throughout.
 
 Perspective, side, top, exploded and cutting-layout views share polygons with the full-size SVG and version 2 JSON exports. Exports include every foot and retaining strip, resolved counts, orientations, retention geometry and assembly notes. Each designer mode retains independent configuration and material choices during the session. The prototype has no validated load or impact rating; extra edge supports do not support the centre of the sheet. Check contact surfaces, keys, connectors, fit, internal corners and sheet flex before fabrication.
 
@@ -581,6 +583,17 @@ and uses complementary half-lap slots with 0.2 mm vertical relief. Leaves remain
 clear of the perpendicular sheet family above the root grid; bends begin above
 the joints. Previewed curves and developed flat patterns share the existing bend
 model: inside radius twice sheet thickness, neutral axis at mid-sheet.
+
+Enable **Individual sheet materials** under **Grid & material** for per-sheet
+color, transparency and thickness (3–6 mm). Slots follow the adjoining sheet,
+and bend allowance follows each leaf’s own thickness. Structural spacing uses
+the largest configured thickness.
+
+Across art, stand and protector modes, material choices survive switching modes,
+toggling individual materials off and on, undo/redo, and project saving. Global
+material controls apply to all sheets while individual materials are enabled.
+JSON and SVG exports identify each sheet’s material and thickness; fabrication
+stock packing separates different materials and thicknesses.
 
 Art reuses acrylic color, transparency, measured thickness, slot clearance,
 3D orbit/side/top and exploded views, cutting layout, fabrication stock packing,

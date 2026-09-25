@@ -24,6 +24,6 @@ export function useSynthProtector(appearance: ProtectorConfiguration) {
   }, [config]);
   const current = config.object && result?.input === config ? result : undefined;
   const resolved = current?.protector ?? manual;
-  const protector = useMemo(() => ({ ...resolved, config: { ...resolved.config, tint: appearance.tint, transparency: appearance.transparency ?? "transparent" } }), [resolved, appearance.tint, appearance.transparency]);
+  const protector = useMemo(() => ({ ...resolved, config: { ...resolved.config, tint: appearance.tint, transparency: appearance.transparency ?? "transparent", sheetTints: appearance.sheetTints, sheetTransparencies: appearance.sheetTransparencies } }), [resolved, appearance.tint, appearance.transparency, appearance.sheetTints, appearance.sheetTransparencies]);
   return { protector, protectorError: current?.error, protectorBusy: !!config.object && !current };
 }

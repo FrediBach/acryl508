@@ -623,11 +623,53 @@ test("mode switching preserves independent designs and routes material choices a
     assert.match(document.querySelector(".info-dialog:not(.project-dialog)").textContent, /Slot together\. Play at your angle/);
     assert.match(document.querySelector(".info-dialog:not(.project-dialog)").textContent, /no load capacity or stability rating/);
     await click("Close notes");
+    // Each multi-sheet designer exposes and persists the same optional material controls.
+    for (const [modeLabel, mode, materialSection, thickness] of [["Art mode", "art", "Grid & material", 5.5], ["Synth protector", "protector", "Material & construction", 8.5], ["Synth stand", "stand", "Material & fit", 9.5]]) {
+      await click(modeLabel);
+      if (!section(materialSection).open) await toggleSection(materialSection);
+      assert.equal(button("Use individual acrylic materials for each sheet").getAttribute("aria-checked"), "false");
+      await click("Use individual acrylic materials for each sheet");
+      const materialRow = () => document.querySelector(".panel-material");
+      await selectValue(materialRow().querySelector("select"), "blue");
+      await selectValue(materialRow().querySelectorAll("select")[1], "opaque");
+      await React.act(async () => {
+        const input = materialRow().querySelector('input[type="number"]');
+        Object.getOwnPropertyDescriptor(dom.window.HTMLInputElement.prototype, "value").set.call(input, String(thickness));
+        input.dispatchEvent(new dom.window.Event("input", { bubbles: true }));
+      });
+      await click("Design JSON");
+      const data = JSON.parse(await downloads.at(-1).blob.text()), id = data.parts[0].id;
+      assert.equal(data.configuration.individualSheetMaterials, true);
+      assert.equal(data.configuration.sheetTints[id].id, "blue");
+      assert.equal(data.configuration.sheetTransparencies[id], "opaque");
+      assert.equal(data.parts[0].thickness, thickness);
+      await click("Cutting layout");
+      const path = document.querySelector(`.stand-cutting-layout [data-part="${id}"] path`);
+      assert.equal(path.getAttribute("fill"), "#15a8dc");
+      assert.equal(path.getAttribute("fill-opacity"), "1");
+      await click("Use individual acrylic materials for each sheet");
+      assert.equal(document.querySelector(".panel-material"), null);
+      await click("Use individual acrylic materials for each sheet");
+      assert.equal(materialRow().querySelector("select").value, "blue");
+      assert.equal(materialRow().querySelector("input").value, String(thickness));
+      await click("Material library");
+      await React.act(async () => document.querySelector('.info-dialog:not(.project-dialog) button[aria-label="Red"]').click());
+      await click("Close notes");
+      assert.equal(materialRow().querySelector("select").value, "red", "Library color applies to every sheet");
+      assert.equal(materialRow().querySelectorAll("select")[1].value, "opaque");
+      await click("Undo design change");
+      assert.equal(materialRow().querySelector("select").value, "blue");
+      await click("Panel designer");
+      await click(modeLabel);
+      assert.equal(materialRow().querySelector("select").value, "blue", `${mode} choices survive mode switching`);
+    }
+    await click("Synth stand");
     await click("Download project");
     const projectBackup = await downloads.at(-1).blob.text();
     const projectData = JSON.parse(projectBackup);
     assert.equal(projectData.designs.case.hp, 104);
     assert.equal(projectData.designs.panel.components.length, 4);
+    for (const mode of ["art", "stand", "protector"]) assert.equal(projectData.designs[mode].individualSheetMaterials, true);
     await click("Save copy");
     // IndexedDB commits asynchronously; wait for the operation, not a fixed UI state assumption.
     await React.act(async () => new Promise(resolve => setTimeout(resolve, 30)));
@@ -660,6 +702,13 @@ test("mode switching preserves independent designs and routes material choices a
     await React.act(async () => new Promise(resolve => setTimeout(resolve, 30)));
     await click("Case designer");
     assert.equal(button("104").getAttribute("aria-pressed"), "true", "Autosave restores after remount");
+    await click("Download project");
+    const recoveredMaterials = JSON.parse(await downloads.at(-1).blob.text());
+    for (const mode of ["art", "stand", "protector"]) {
+      assert.deepEqual(recoveredMaterials.designs[mode].sheetTints, projectData.designs[mode].sheetTints);
+      assert.deepEqual(recoveredMaterials.designs[mode].sheetTransparencies, projectData.designs[mode].sheetTransparencies);
+      assert.deepEqual(recoveredMaterials.designs[mode].sheetThicknesses, projectData.designs[mode].sheetThicknesses);
+    }
     const opentype = require("opentype.js");
     const glyphPath = new opentype.Path(); glyphPath.moveTo(0, 0); glyphPath.lineTo(500, 0); glyphPath.lineTo(500, 700); glyphPath.lineTo(0, 700); glyphPath.close();
     const testFont = new opentype.Font({ familyName: "Case Font", styleName: "Regular", unitsPerEm: 1000, ascender: 800, descender: -200, glyphs: [new opentype.Glyph({ name: ".notdef", advanceWidth: 600, path: new opentype.Path() }), new opentype.Glyph({ name: "A", unicode: 65, advanceWidth: 600, path: glyphPath })] });

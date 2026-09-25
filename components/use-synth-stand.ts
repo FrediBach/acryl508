@@ -26,6 +26,6 @@ export function useSynthStand(appearance: StandConfiguration) {
   }, [config]);
   const current = config.object && result?.input === config ? result : undefined;
   const resolved = current?.stand ?? manual;
-  const stand = useMemo(() => ({ ...resolved, config: { ...resolved.config, tint: appearance.tint, transparency: appearance.transparency ?? "transparent" } }), [resolved, appearance.tint, appearance.transparency]);
+  const stand = useMemo(() => ({ ...resolved, config: { ...resolved.config, tint: appearance.tint, transparency: appearance.transparency ?? "transparent", sheetTints: appearance.sheetTints, sheetTransparencies: appearance.sheetTransparencies } }), [resolved, appearance.tint, appearance.transparency, appearance.sheetTints, appearance.sheetTransparencies]);
   return { stand, standError: current?.error, standBusy: !!config.object && !current };
 }
