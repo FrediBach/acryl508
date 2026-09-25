@@ -8,7 +8,7 @@ import { fitCoupon, packSheets, stockSvg, type Fabrication } from "@/lib/fabrica
 import { downloadFile } from "./project-toolbar";
 import { NumberControl } from "./cutout-controls";
 
-const modeLabels: Record<DesignerMode, string> = { case: "Case designer", stand: "Synth stand", protector: "Synth protector", panel: "Panel designer" };
+const modeLabels: Record<DesignerMode, string> = { case: "Case designer", stand: "Synth stand", protector: "Synth protector", panel: "Panel designer", art: "Art mode" };
 
 export function FabricationWorkspace({ fabrication, mode, dialogRef }: { fabrication: Fabrication; mode: DesignerMode; dialogRef: RefObject<HTMLDialogElement | null> }) {
   const [width, setWidth] = useState(1000), [height, setHeight] = useState(600), [gap, setGap] = useState(10), [rotate, setRotate] = useState(true);

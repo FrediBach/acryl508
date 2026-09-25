@@ -21,7 +21,7 @@ This starter does not use `wrangler.jsonc`.
 ## Included
 
 - responsive configurator shell under `app/`
-- top-bar Case designer / Synth stand / Synth protector / Panel designer modes with independent configurations, local autosave, and portable project files
+- top-bar Case designer / Synth stand / Synth protector / Panel designer / Art modes with independent configurations, local autosave, and portable project files
 - Eurorack blank and DIY panels with component openings, SVG/font artwork, separate cut/engrave exports, alignment and ventilation
 - automatic slotted acrylic synth stands with solid ribs, three cross braces, 3D and cutting layouts, and JSON/SVG export
 - optional local STL/OBJ fitting for stands and protectors, with units, orientation and angle controls; protectors use a level cover above the posed model and individual contour-fitted feet with broad locating lips
@@ -50,14 +50,14 @@ This starter does not use `wrangler.jsonc`.
 
 ## Projects, recovery and history
 
-The project toolbar names the workspace and autosaves all four designers in
+The project toolbar names the workspace and autosaves all five designers in
 IndexedDB after a short pause. Reloading restores the last autosave, including
 uploaded meshes and up to ten imported fonts. **Save copy** keeps a named
 snapshot; **Open** lists those copies. These saves belong to this browser and
 origin, not an account: clearing site data removes them, and another device or
 deployment URL has separate storage. Storage errors are shown explicitly.
 
-**Project → Download project** downloads a version 1 `.acryl508.json` file containing all four
+**Project → Download project** downloads a version 1 `.acryl508.json` file containing all five
 editable configurations, source meshes and font bytes. **Import JSON** opens
 these files or existing single-designer exports. Single-designer imports replace
 only their corresponding design. Legacy exports with custom text retain their
@@ -563,3 +563,30 @@ which settings to adjust. Preview and SVG/JSON share the fitted outlines;
 JSON includes the model and pose. Models and manual settings are independent
 between stand and protector modes. Inspect contacts around keys, knobs and
 other delicate surfaces: the mesh does not identify suitable bearing points.
+
+## Art mode
+
+Art mode creates a decorative slotted grid with one leaf per sheet. Growth
+height, height variation, centre crown and a deterministic pattern seed control
+the silhouette. Optional outward bends have angle, location and variation
+sliders. Every sheet can override height, bend angle and bend location; resetting
+an override returns it to the generator. A new seed preserves overrides.
+
+The two sheet families have 2–10 sheets each, in pairs, leaving a clear central
+bay. Footprint is 120–600 mm per side, automatically enlarged when density and
+material thickness need more room. The root grid is eight sheet thicknesses high
+and uses complementary half-lap slots with 0.2 mm vertical relief. Leaves remain
+clear of the perpendicular sheet family above the root grid; bends begin above
+the joints. Previewed curves and developed flat patterns share the existing bend
+model: inside radius twice sheet thickness, neutral axis at mid-sheet.
+
+Art reuses acrylic color, transparency, measured thickness, slot clearance,
+3D orbit/side/top and exploded views, cutting layout, fabrication stock packing,
+fit coupons, JSON/SVG exports, project saving, autosave and undo/redo. Older
+projects acquire the default art configuration when opened. Design SVG separates
+red cut paths from blue dashed bend-start guides. Stock SVG contains cuts only;
+part-specific forming instructions remain in the fabrication warnings and JSON.
+
+Assemble B slots-up and A slots-down before forming the leaves outward. This is
+a decorative prototype: forming sequence, fit, flex, leaf collisions and tipping
+stability need physical validation. Collision and load simulation are not included.

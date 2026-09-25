@@ -1,5 +1,6 @@
 import { ArrowUpRight, Moon, Sun } from "lucide-react";
-export type DesignerMode = "case" | "stand" | "protector" | "panel";
+import type { DesignerMode } from "@/lib/project";
+export type { DesignerMode } from "@/lib/project";
 type Props = { mode: DesignerMode; onModeChange: (mode: DesignerMode) => void; dark: boolean; onThemeChange: () => void; onInfo: (tab: "materials" | "guide") => void };
 export function ConfiguratorHeader({ mode, onModeChange, dark, onThemeChange, onInfo }: Props) {
   return <header className="app-header">
@@ -12,6 +13,7 @@ export function ConfiguratorHeader({ mode, onModeChange, dark, onThemeChange, on
       <button aria-pressed={mode === "stand"} className={mode === "stand" ? "mode-active" : ""} onClick={() => onModeChange("stand")}>Synth stand</button>
       <button aria-pressed={mode === "protector"} className={mode === "protector" ? "mode-active" : ""} onClick={() => onModeChange("protector")}>Synth protector</button>
       <button aria-pressed={mode === "panel"} className={mode === "panel" ? "mode-active" : ""} onClick={() => onModeChange("panel")}>Panel designer</button>
+      <button aria-pressed={mode === "art"} className={mode === "art" ? "mode-active" : ""} onClick={() => onModeChange("art")}>Art mode</button>
     </div>
     <nav className="primary-nav" aria-label="Primary navigation">
       <button className="nav-link" onClick={() => onInfo("materials")}>Material library</button>

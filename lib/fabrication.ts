@@ -1,3 +1,4 @@
+import type { Art } from "./art";
 import type { MultiPolygon } from "polygon-clipping";
 import { polygonBounds, mapPolygons } from "./custom-cutouts";
 import { casePathData, caseSheetLayout } from "./svg-export";
@@ -38,6 +39,11 @@ export function standFabrication(stand: SynthStand, error?: string, busy?: boole
 export function protectorFabrication(protector: SynthProtector, error?: string, busy?: boolean): Fabrication {
   return { parts: protector.parts.map(part => ({ id: part.id, label: part.label, polygons: down(part.polygons), material: materialLabel(protector.config.tint, protector.config.transparency) })),
     warnings: ["Verify foot contacts, controls clearance, joint retention and cover flex on a prototype.", ...(error ? [error] : []), ...(busy ? ["Model fitting is in progress."] : [])], hardware: ["No screws or adhesive; feet slot into the cover."], thickness: protector.config.thickness, clearance: protector.config.clearance, blocked: !!error || !!busy };
+}
+export function artFabrication(art: Art): Fabrication {
+  return { parts: art.parts.map(part => ({ id: part.id, label: part.label, polygons: down(part.polygons), material: materialLabel(art.config.tint, art.config.transparency) })),
+    warnings: ["Decorative prototype: validate slot fit, forming sequence, leaf clearance and tipping stability.", ...art.parts.filter(part => part.bend).map(part => `${part.label}: form ${part.settings.bendAngle.toFixed(1)}° outward, starting ${(part.bend!.start * 100).toFixed(1)} mm above the bottom edge, inside radius ${2 * art.config.thickness} mm. Flat pattern includes ${(part.bend!.length * 100).toFixed(1)} mm bend allowance. Stock SVG contains cut paths only; use the design SVG for bend guides.`)],
+    hardware: ["No screws or adhesive. Assemble B slots-up and A slots-down, then form the leaves."], thickness: art.config.thickness, clearance: art.config.clearance, blocked: false };
 }
 export function panelFabrication(panel: DesignedPanel): Fabrication {
   return { parts: [{ id: "panel", label: "Panel", polygons: down(panel.polygons), engraving: down(panel.engravings.flatMap(item => item.polygons)), material: materialLabel(panel.config.tint, panel.config.transparency) }],

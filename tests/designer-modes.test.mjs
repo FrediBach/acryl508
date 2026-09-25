@@ -24,6 +24,7 @@ test("mode switching preserves independent designs and routes material choices a
   // Test real controls and shell with only the WebGL renderers stubbed.
   function load(file) {
     if (cache.has(file)) return cache.get(file).exports;
+    if (file.endsWith("/art-preview.tsx")) return { ArtPreview: () => React.createElement("div", null, "Art preview") };
     if (file.endsWith("/panel-preview.tsx")) return { PanelPreview: () => React.createElement("div", null, "Panel preview") };
     if (file.endsWith("/case-preview.tsx")) return { CasePreview: () => React.createElement("div", null, "Case preview") };
     if (file.endsWith("/protector-preview.tsx")) return { ProtectorPreview: () => React.createElement("div", null, "Protector preview") };
@@ -58,7 +59,7 @@ test("mode switching preserves independent designs and routes material choices a
     await React.act(async () => { root.render(React.createElement(ConfiguratorShell)); });
     assert.equal(button("Case designer").getAttribute("aria-pressed"), "true");
     assert.equal(document.querySelector(".workspace .fabrication-workspace"), null, "Fabrication no longer extends the main workspace");
-    for (const [modeLabel, firstPart] of [["Case designer", "Bottom"], ["Synth stand", "Support rib 1"], ["Synth protector", "Protective top sheet"], ["Panel designer", "Panel"]]) {
+    for (const [modeLabel, firstPart] of [["Case designer", "Bottom"], ["Synth stand", "Support rib 1"], ["Synth protector", "Protective top sheet"], ["Panel designer", "Panel"], ["Art mode", "Sheet A-1"]]) {
       await click(modeLabel);
       const trigger = button("Fabrication workspace");
       assert.ok(trigger.closest(".summary-panel"), "Each mode opens fabrication from its specification section");
@@ -89,6 +90,28 @@ test("mode switching preserves independent designs and routes material choices a
       await React.act(async () => overlay.click());
       assert.equal(overlay.open, false, "Clicking the backdrop closes the overlay");
     }
+    await click("Art mode");
+    await click("Cutting layout");
+    assert.equal(document.querySelector('svg[aria-label="Art cutting layout: 8 slotted sheets"]').querySelectorAll("g[data-part]").length, 8);
+    await click("New growth pattern");
+    await click("Export art design JSON");
+    assert.equal(JSON.parse(await downloads.at(-1).blob.text()).configuration.seed,509);
+    await click("Undo design change");
+    await click("Export art design JSON");
+    assert.equal(JSON.parse(await downloads.at(-1).blob.text()).configuration.seed,508);
+    await click("Redo design change");
+    await click("Bend the leaves");
+    await click("Export art sheets as SVG");
+    assert.doesNotMatch(await downloads.at(-1).blob.text(),/data-operation="bend-guide"/);
+    await click("Bend the leaves");
+    await click("Material library");
+    await React.act(async () => document.querySelector('.info-dialog:not(.project-dialog) button[aria-label="Blue"]').click());
+    await click("Close notes");
+    await click("Export art design JSON");
+    assert.equal(JSON.parse(await downloads.at(-1).blob.text()).configuration.tint.id,"blue");
+    await click("Build notes");
+    assert.match(document.querySelector(".info-dialog:not(.project-dialog)").textContent,/acrylic botany/);
+    await click("Close notes");
     await click("Case designer");
     await click("Cutting layout");
     assert.equal(button("Cutting layout").getAttribute("aria-pressed"), "true");
