@@ -91,8 +91,8 @@
 .app-shell { display: flex; flex-direction: column; height: 100dvh; }
 .app-header { flex: 0 0 64px; min-height: 64px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 42px; gap: 28px; }
 .brand { display: inline-flex; align-items: center; gap: 13px; font-size: 29px; letter-spacing: -1.8px; font-weight: 650; line-height: 1; }
-.brand-lockup { position: relative; flex-shrink: 0; }
-.brand-copyright { position: absolute; top: calc(100% + 3px); left: 41px; color: var(--muted-foreground); font-size: 9px; line-height: 1; white-space: nowrap; }
+.brand-lockup { position: relative; display: flex; flex-shrink: 0; }
+.brand-copyright { position: absolute; top: calc(100% - 2px); left: 41px; color: var(--muted-foreground); font-size: 9px; line-height: 1; white-space: nowrap; }
 .brand-copyright:hover { color: var(--foreground); text-decoration: underline; text-underline-offset: 2px; }
 .brand-number { font-weight: 400; }
 .brand-period { color: var(--signal); }
