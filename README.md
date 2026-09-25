@@ -277,7 +277,7 @@ holder extension. Cable fit and loaded finger strength need prototype validation
 ## Custom cutouts
 
 Section 05 accepts filled SVG outlines (up to 1 MB), or text from the bundled
-Helvetiker / Optimer fonts and imported static TTF / OTF fonts (up to 5 MB).
+Helvetiker / Optimer / Allerta Stencil fonts and imported static TTF / OTF fonts (up to 5 MB).
 Add up to 20 cutouts, choose front, rear, left, right or bottom, and set each
 cutout's width, rotation and centre position in millimetres. Click or drag in
 the outside panel view to place it. Text changes take effect with **Apply text**.
@@ -294,13 +294,15 @@ connected pieces are checked. Only the largest piece sharing an edge with the
 original panel perimeter is kept. Detached pieces and enclosed letter centres
 are removed, even if an island is larger than the remaining frame. Warnings
 report removed pieces, cuts outside the panel, and panels with no material left.
-Use stencil lettering when enclosed centres should remain attached.
+Choose the built-in **Allerta Stencil** font when enclosed letter centres should
+remain attached.
 
 JSON version 9 includes per-row angle increments and the resolved row geometry, automatic integral feet, the ordered 1U/3U row layout, adjustable side-panel margin, optional individual panel tints, each cutout's source metadata, normalized outlines,
 placement, and width, plus removal reports and the resolved panel outlines in
 millimetres. It remains a design specification requiring fabrication validation.
 Font copyrights and distribution licences are retained in the bundled JSON
-assets under `public/fonts/`.
+assets and `allerta-stencil-OFL.txt` under `public/fonts/`. Allerta Stencil is
+bundled from the [Google Fonts repository](https://github.com/google/fonts/tree/main/ofl/allertastencil).
 
 The SVG export places all five enclosure sheets, including the integral stance
 and grip outlines, in one full-size, millimetre-based document. Parts are separate named groups and

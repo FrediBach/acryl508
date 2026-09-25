@@ -7,7 +7,7 @@ import { loadTypescript } from "./load-typescript.mjs";
 const { normalizeOutlines, subtractCutouts, placedCutout, polygonBounds, geometryArea, cutoutSides } = await loadTypescript("../lib/custom-cutouts.ts");
 const { createCasePanels } = await loadTypescript("../lib/case-panels.ts");
 const { defaultConfiguration, configurationExport } = await loadTypescript("../lib/configurator.ts");
-const { typefaceFont, textOutlines, importFont, importSvg } = await loadTypescript("../lib/cutout-sources.ts");
+const { loadBuiltinFont, typefaceFont, textOutlines, importFont, importSvg } = await loadTypescript("../lib/cutout-sources.ts");
 const rectangle = (left, bottom, right, top) => [[left, bottom], [right, bottom], [right, top], [left, top], [left, bottom]];
 const panel = [[rectangle(-50, -40, 50, 40)]];
 const cut = (polygons, overrides = {}) => ({ id: "cut", name: "Test", source: { kind: "svg", fileName: "test.svg" }, polygons, side: "front", width: 20, x: 0, y: 0, rotation: 0, ...overrides });
@@ -85,7 +85,7 @@ test("cutouts scale uniformly, rotate around their centre and translate in mm", 
   assert.throws(() => normalizeOutlines([[[[NaN, 0], [1, 0], [1, 1]]]]), /invalid coordinates/);
 });
 
-test("both bundled fonts remove all enclosed centres for A, B, O and 8", async () => {
+test("bundled sans and serif fonts remove all enclosed centres for A, B, O and 8", async () => {
   for (const name of ["helvetiker", "optimer"]) {
     const data = JSON.parse(await readFile(new URL(`../public/fonts/${name}-regular.json`, import.meta.url)));
     const font = typefaceFont(data, name);
@@ -98,6 +98,29 @@ test("both bundled fonts remove all enclosed centres for A, B, O and 8", async (
     assert.throws(() => textOutlines(font, "   "), /Enter some text/);
     assert.throws(() => textOutlines(font, "😀"), /no outline/);
   }
+});
+
+test("the bundled stencil font loads and keeps letter and number centres attached", async t => {
+  const fetchFont = t.mock.method(globalThis, "fetch", async url => {
+    assert.equal(url, "/fonts/allerta-stencil-regular.ttf");
+    return new Response(await readFile(new URL(`../public${url}`, import.meta.url)));
+  });
+  const font = await loadBuiltinFont("allerta-stencil");
+  assert.equal(font.name, "Allerta Stencil");
+  assert.equal(await loadBuiltinFont("allerta-stencil"), font);
+  assert.equal(fetchFont.mock.callCount(), 1);
+  for (const text of ["A508", "ABDO PQR", "abdegopq", "04689"]) {
+    const polygons = textOutlines(font, text);
+    const cutout = cut(polygons, { width: 50 });
+    const result = subtractCutouts(panel, [cutout], "front");
+    assert.equal(result.report.error, undefined, text);
+    assert.equal(result.report.removedParts, 0, text);
+    assert.equal(result.report.removedArea, 0, text);
+    assert.equal(result.polygons.length, 1, text);
+    assert.ok(geometryArea(placedCutout(cutout)) > 0, text);
+    near(geometryArea(result.polygons), geometryArea(panel) - geometryArea(placedCutout(cutout)));
+  }
+  assert.throws(() => textOutlines(font, "😀"), /no outline/);
 });
 
 test("imported OpenType fonts preserve counters and report missing glyphs", async () => {

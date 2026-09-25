@@ -6,6 +6,7 @@ import { mapPolygons, normalizeOutlines, shapesToPolygons } from "./custom-cutou
 export const builtinFonts = [
   { id: "helvetiker", name: "Helvetiker · Sans", url: "/fonts/helvetiker-regular.json" },
   { id: "optimer", name: "Optimer · Serif", url: "/fonts/optimer-regular.json" },
+  { id: "allerta-stencil", name: "Allerta Stencil", url: "/fonts/allerta-stencil-regular.ttf" },
 ];
 export type CutoutFont = { name: string; shapes: (text: string) => Shape[] };
 const fonts = new Map<string, Promise<CutoutFont>>();
@@ -15,7 +16,9 @@ export function loadBuiltinFont(id: string) {
     if (!entry) throw new Error("Choose a font first.");
     const pending = fetch(entry.url).then(async response => {
       if (!response.ok) throw new Error("The font could not be loaded. Try again.");
-      return typefaceFont(await response.json(), entry.name);
+      return entry.url.endsWith(".json")
+        ? typefaceFont(await response.json(), entry.name)
+        : importFont(await response.arrayBuffer(), entry.name);
     }).catch(error => { fonts.delete(id); throw error; });
     fonts.set(id, pending);
   }
