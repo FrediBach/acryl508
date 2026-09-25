@@ -78,7 +78,7 @@ test("cutting SVG and stock sheets retain every part and separate bend guides", 
 });
 
 
-test("optional shelves add level leaf outlines and closed slots beyond each bend", () => {
+test("optional shelves add inward perpendicular leaf outlines and closed slots beyond each bend", () => {
   const art = createArt({ ...defaults, leafShelves: true });
   const shelves = art.parts.filter(p => p.shelf);
   assert.equal(shelves.length, defaults.rows + defaults.columns);
@@ -96,9 +96,17 @@ test("optional shelves add level leaf outlines and closed slots beyond each bend
     const anchor = artPartPoint(parent, 0, joint.slotY, parent.thickness / 2);
     const tabCentre = artPartPoint(part, 0, joint.tabDepth / 2, part.thickness / 2);
     for (const key of ["x", "y", "z"]) assert.ok(Math.abs(anchor[key] - tabCentre[key]) < 1e-8);
+    const tip = artPartPoint(part, 0, part.height, part.thickness / 2);
+    const parentUp = artPartPoint(parent, 0, joint.slotY + 1, parent.thickness / 2);
+    const tangent = [parentUp.x - anchor.x, parentUp.y - anchor.y, parentUp.z - anchor.z];
+    const growth = [tip.x - anchor.x, tip.y - anchor.y, tip.z - anchor.z];
+    assert.ok(Math.abs(growth.reduce((sum, v, i) => sum + v * tangent[i], 0)) < 1e-8, "Shelf projects at 90 degrees to the bent leaf");
+    assert.ok(part.direction * (part.family === "a" ? growth[2] : growth[0]) < 0, "Shelf points inward on both families and sides");
+    assert.ok(growth[1] > 0, "Inward shelf tilts up with the bent leaf");
     for (const [x,y] of part.polygons[0][0]) {
       const top = artPartPoint(part, x, y, part.thickness);
-      assert.equal(top.y, anchor.y + part.thickness / 2, "Shelf top stays horizontal on every family and side");
+      const offset = [top.x - anchor.x, top.y - anchor.y, top.z - anchor.z];
+      assert.ok(Math.abs(offset.reduce((sum, v, i) => sum + v * tangent[i], 0) - part.thickness / 2) < 1e-8);
     }
     assert.deepEqual(part.polygons[0][0].slice(0, 3), [[-joint.tabWidth / 2, 0], [joint.tabWidth / 2, 0], [joint.tabWidth / 2, joint.tabDepth]]);
   }
@@ -109,14 +117,16 @@ test("shelf tabs clear the full parent thickness at every supported bend angle",
   for (const angle of [1,35,60,75]) for (const parentThickness of [3,6]) for (const thickness of [3,6]) {
     const art = createArt({ ...defaults, leafShelves: true, width: 600, depth: 600, height: 600, crown: 0, variation: 0, bendAngle: angle, bendVariation: 0,
       individualSheetMaterials: true, sheetThicknesses: { "a-1": parentThickness, "shelf-a-1": thickness } });
-    const part = art.parts.find(p => p.id === "shelf-a-1"), parent = art.parts.find(p => p.id === "a-1");
-    assert.ok(part);
-    const joint = part.shelf, sin = Math.sin(parent.bend.angle), cos = Math.cos(parent.bend.angle);
-    for (const v of [-thickness / 2, thickness / 2]) for (const n of [-parentThickness / 2, parentThickness / 2]) {
-      const u = (v + parent.direction * n * sin) / cos;
-      assert.ok(Math.abs(u) < joint.slotHeight / 2, "The horizontal shelf fits through the slanted slot");
-      const outward = parent.direction * u * sin + n * cos;
-      assert.ok(Math.abs(outward) < joint.tabDepth / 2, "Tab passes through both parent faces");
+    for (const part of art.parts.filter(p => p.shelf)) {
+      const joint = part.shelf, parent = art.parts.find(p => p.id === joint.parent);
+      assert.equal(joint.slotHeight, part.thickness + art.config.clearance);
+      assert.ok(joint.tabDepth > parent.thickness);
+      // The tab corners meet the slot on both parent faces after assembly.
+      for (const v of [-part.thickness / 2, part.thickness / 2]) for (const n of [-parent.thickness / 2, parent.thickness / 2]) {
+        const onParent = artPartPoint(parent, 0, joint.slotY + v, parent.thickness / 2 + n);
+        const onShelf = artPartPoint(part, 0, joint.tabDepth / 2 - parent.direction * n, part.thickness / 2 + v);
+        for (const key of ["x", "y", "z"]) assert.ok(Math.abs(onParent[key] - onShelf[key]) < 1e-8, "Perpendicular tab and slot faces align");
+      }
     }
   }
 });
@@ -140,7 +150,7 @@ test("shelf limits preserve connected leaves and explain omitted shelves", () =>
 
 test("shelves and their materials survive projects, cut exports and stock packing", () => {
   const art = createArt({ ...defaults, leafShelves: true, shelfWidth: 90, shelfDepth: 100, individualSheetMaterials: true,
-    sheetThicknesses: { "shelf-a-1": 6 }, sheetTints: { "shelf-a-1": { id: "blue", label: "Blue", color: "#0044cc" } } });
+    sheetThicknesses: { "shelf-a-1": 6 }, sheetTints: { "a-1": { id: "blue", label: "Blue", color: "#0044cc" } } });
   assert.deepEqual(parseProject(JSON.stringify(artExport(art))).designs.art, art.config);
   assert.deepEqual(parseProject(JSON.stringify(makeProject("Shelves", "art", { ...initialDesigns, art: art.config }, []))).designs.art, art.config);
   const oldConfig = { ...defaults }; delete oldConfig.leafShelves; delete oldConfig.shelfWidth; delete oldConfig.shelfDepth;
@@ -153,4 +163,25 @@ test("shelves and their materials survive projects, cut exports and stock packin
   assert.deepEqual(packed.unplaced, []);
   assert.equal(packed.sheets.flatMap(s => s.parts).length, art.parts.length);
   assert.ok(packed.sheets.some(s => s.thickness === 6 && s.parts.some(p => p.id === "shelf-a-1")));
+});
+
+
+test("shelf appearance follows parent edits and overrides old independent shelf colors everywhere", () => {
+  const blue = { id: "blue", label: "Blue", color: "#0044cc" };
+  const red = { id: "red", label: "Red", color: "#ff0000" };
+  const config = { ...defaults, leafShelves: true, individualSheetMaterials: true,
+    sheetTints: { "a-1": blue, "shelf-a-1": red, "b-4": red, "shelf-b-4": blue },
+    sheetTransparencies: { "a-1": "opaque", "shelf-a-1": "transparent" } };
+  for (const input of [config, { ...config, sheetTints: { ...config.sheetTints, "a-1": red } }, { ...config, individualSheetMaterials: false }]) {
+    const art = createArt(input), materials = artExport(art).sheetMaterials, fabrication = artFabrication(art);
+    for (const part of art.parts.filter(p => p.shelf)) {
+      const parent = materials.find(m => m.id === part.shelf.parent), shelf = materials.find(m => m.id === part.id);
+      assert.deepEqual(shelf.tint, parent.tint);
+      assert.equal(shelf.transparency, parent.transparency);
+      assert.equal(fabrication.parts.find(p => p.id === part.id).material, fabrication.parts.find(p => p.id === part.shelf.parent).material);
+      assert.ok(artSvg(art).includes(`id="${part.id}" data-thickness-mm="${part.thickness}" data-color="${parent.tint.color}" data-transparency="${parent.transparency}"`));
+    }
+  }
+  const restored = createArt(parseProject(JSON.stringify(artExport(createArt(config)))).designs.art);
+  assert.equal(artExport(restored).sheetMaterials.find(m => m.id === "shelf-a-1").tint.color, blue.color);
 });

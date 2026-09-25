@@ -576,10 +576,12 @@ the silhouette. Optional outward bends have angle, location and variation
 sliders. Every sheet can override height, bend angle and bend location; resetting
 an override returns it to the generator. A new seed preserves overrides.
 
-Enable **Leaf shelves** under **Outward bends** to add a level, rounded leaf
-shelf just after each bend. Adjust shelf width and depth; rectangular tabs and
-matching closed slots account for the parent angle, both sheet thicknesses and
-slot clearance. Shelves have their own material controls and appear in the 3D
+Enable **Leaf shelves** under **Outward bends** to add a rounded small leaf
+pointing inward at 90° to the bent section of its parent, just after each bend.
+Adjust shelf width and depth; rectangular tabs cross the parent perpendicularly,
+and matching closed slots fit shelf thickness plus clearance. Shelves inherit
+the parent leaf’s color and transparency, with independently adjustable thickness.
+They appear in the 3D
 preview, exploded view, cutting layout, JSON/SVG and fabrication stock sheets.
 Straight leaves have no shelf. If a leaf is too narrow or its bend too near the
 tip, its shelf is omitted with a note explaining which settings to adjust.

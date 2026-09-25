@@ -2,7 +2,7 @@
 import { useId, useState } from "react";
 import { ChevronDown, Minus, Plus } from "lucide-react";
 import { acrylicTints, materialLabel } from "@/lib/acrylic-material";
-import { allSheetMaterials, sheetMaterial, sheetThicknessLabel, type SheetMaterialConfiguration } from "@/lib/sheet-materials";
+import { allSheetMaterials, sheetAppearanceSource, sheetMaterial, sheetThicknessLabel, type SheetMaterialConfiguration } from "@/lib/sheet-materials";
 import { ColorChooser, MaterialPreviewNote, TransparencyChooser } from "./material-controls";
 
 type Props = { config: SheetMaterialConfiguration; parts: { id: string; label: string }[]; limits: { min: number; max: number }; label: string; onChange: (patch: Partial<SheetMaterialConfiguration>) => void };
@@ -23,10 +23,11 @@ export function SheetMaterialControls({ config, parts, limits, label, onChange }
     <div className="inline-field"><label htmlFor={id}>Individual sheet materials</label><button id={id} role="switch" aria-checked={individual} aria-label="Use individual acrylic materials for each sheet" aria-describedby={`${id}-note`} className={`toggle ${individual ? "toggle-on" : ""}`} onClick={() => onChange({ individualSheetMaterials: !individual })}><span>{individual ? <Plus size={10} /> : <Minus size={10} />}</span></button></div>
     <p className="control-note" id={`${id}-note`}>{individual ? "Choose a color, transparency and thickness for each sheet. Slots and tabs adapt to the adjoining sheets." : "All sheets use the same color, transparency and thickness."}</p>
     {individual && <div className="panel-tint-list" aria-label="Individual sheet materials">{parts.map(part => {
-      const material = sheetMaterial(config, part.id);
+      const material = sheetMaterial(config, part.id), sourceId = sheetAppearanceSource(part.id);
+      const parent = sourceId !== part.id ? parts.find(item => item.id === sourceId) : undefined;
       return <div className="panel-material" key={part.id}>
-        <label className="inline-field" htmlFor={`${id}-${part.id}-color`}><span><i style={{ background: material.tint.color }} />{part.label}</span><span className="select-wrap"><select id={`${id}-${part.id}-color`} aria-label={`${part.label} color`} value={material.tint.id} onChange={event => { const tint = acrylicTints.find(tint => tint.id === event.target.value); if (tint) onChange({ sheetTints: { ...config.sheetTints, [part.id]: tint } }); }}>{!acrylicTints.some(tint => tint.id === material.tint.id) && <option value={material.tint.id}>{material.tint.label}</option>}{acrylicTints.map(tint => <option key={tint.id} value={tint.id}>{tint.label}</option>)}</select><ChevronDown size={12} /></span></label>
-        <TransparencyChooser compact label={`${part.label} transparency`} value={material.transparency} onChange={transparency => onChange({ sheetTransparencies: { ...config.sheetTransparencies, [part.id]: transparency } })} />
+        {parent ? <p className="control-note"><strong>{part.label}</strong> · Color and transparency follow {parent.label}.</p> : <><label className="inline-field" htmlFor={`${id}-${part.id}-color`}><span><i style={{ background: material.tint.color }} />{part.label}</span><span className="select-wrap"><select id={`${id}-${part.id}-color`} aria-label={`${part.label} color`} value={material.tint.id} onChange={event => { const tint = acrylicTints.find(tint => tint.id === event.target.value); if (tint) onChange({ sheetTints: { ...config.sheetTints, [part.id]: tint } }); }}>{!acrylicTints.some(tint => tint.id === material.tint.id) && <option value={material.tint.id}>{material.tint.label}</option>}{acrylicTints.map(tint => <option key={tint.id} value={tint.id}>{tint.label}</option>)}</select><ChevronDown size={12} /></span></label>
+        <TransparencyChooser compact label={`${part.label} transparency`} value={material.transparency} onChange={transparency => onChange({ sheetTransparencies: { ...config.sheetTransparencies, [part.id]: transparency } })} /></>}
         <SheetThicknessField id={`${id}-${part.id}-thickness`} label={`${part.label} thickness`} value={material.thickness} limits={limits} onChange={thickness => onChange({ sheetThicknesses: { ...config.sheetThicknesses, [part.id]: thickness } })} />
       </div>;
     })}</div>}

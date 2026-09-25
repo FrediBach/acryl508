@@ -53,14 +53,18 @@ export type ArtPart = {
   id: string; label: string; thickness: number; family: "a" | "b"; position: number; width: number; height: number;
   leafWidth: number; polygons: MultiPolygon; bend: AccessoryBend | null; direction: number;
   settings: Required<ArtOverride>; slots: { width: number; center: number; root: number; opens: "up" | "down"; mate: string }[];
-  shelf?: { parent: string; parentThickness: number; slotY: number; slotWidth: number; slotHeight: number; tabWidth: number; tabDepth: number; anchorY: number; anchorZ: number };
+  shelf?: { parent: string; parentThickness: number; angle: number; slotY: number; slotWidth: number; slotHeight: number; tabWidth: number; tabDepth: number; anchorY: number; anchorZ: number };
 };
-// Shared assembled coordinates for envelope calculation and the level shelf preview.
+// Shared assembled coordinates for envelope calculation and the inward shelf preview.
 export function artPartPoint(part: ArtPart, x: number, y: number, z: number) {
   let py: number, pz: number;
   if (part.shelf) {
-    py = part.shelf.anchorY + z - part.thickness / 2;
-    pz = part.shelf.anchorZ + part.direction * (y - part.shelf.tabDepth / 2);
+    const along = y - part.shelf.tabDepth / 2, normal = z - part.thickness / 2;
+    const sin = Math.sin(part.shelf.angle), cos = Math.cos(part.shelf.angle);
+    // Shelf length follows the inward normal of the bent leaf; its thickness
+    // follows the leaf's tangent, keeping their planes exactly perpendicular.
+    py = part.shelf.anchorY + along * sin + normal * cos;
+    pz = part.shelf.anchorZ + part.direction * (-along * cos + normal * sin);
   } else {
     const p = bendPoint(x / 100, y / 100, z / 100, part.thickness / 100, part.bend ? [part.bend] : [], part.direction);
     py = p.y * 100; pz = p.z * 100 - part.thickness / 2;
@@ -116,9 +120,9 @@ export function createArt(input: ArtConfiguration) {
   if (config.leafShelves) for (const parent of [...parts]) {
     if (!parent.bend) continue;
     const id = `shelf-${parent.id}`, thickness = sheetThickness(config, id);
-    const angle = parent.bend.angle, cos = Math.cos(angle), sin = Math.sin(angle);
-    // A level rectangular tab crosses the entire inclined parent, not just its neutral plane.
-    const slotHeight = (thickness + parent.thickness * sin + config.clearance) / cos;
+    const angle = parent.bend.angle;
+    // Perpendicular tabs need only the shelf thickness plus fit clearance.
+    const slotHeight = thickness + config.clearance;
     const slotY = (parent.bend.start + parent.bend.length) * 100 + 2 * parent.thickness + slotHeight / 2;
     const shoulder = baseHeight + (parent.height - baseHeight) * 0.5;
     const top = slotY + slotHeight / 2 + 2 * parent.thickness;
@@ -129,7 +133,7 @@ export function createArt(input: ArtConfiguration) {
       continue;
     }
     const slotWidth = tabWidth + config.clearance;
-    const tabDepth = (parent.thickness + thickness * sin) / cos + 2 * parent.thickness;
+    const tabDepth = 3 * parent.thickness;
     const outline: Pair[] = [[-tabWidth / 2,0],[tabWidth / 2,0],[tabWidth / 2,tabDepth],[config.shelfWidth / 2,tabDepth]];
     for (let step = 1; step <= 24; step++) {
       const theta = step / 24 * Math.PI;
@@ -141,7 +145,7 @@ export function createArt(input: ArtConfiguration) {
     parts.push({ id, label: `Leaf shelf ${parent.id.toUpperCase()}`, thickness, family: parent.family, position: parent.position,
       width: config.shelfWidth, height: tabDepth + config.shelfDepth, leafWidth: config.shelfWidth, polygons: [[outline]], bend: null,
       direction: parent.direction, settings: parent.settings, slots: [],
-      shelf: { parent: parent.id, parentThickness: parent.thickness, slotY, slotWidth, slotHeight, tabWidth, tabDepth, anchorY: anchor.y * 100, anchorZ: anchor.z * 100 - parent.thickness / 2 } });
+      shelf: { parent: parent.id, parentThickness: parent.thickness, angle, slotY, slotWidth, slotHeight, tabWidth, tabDepth, anchorY: anchor.y * 100, anchorZ: anchor.z * 100 - parent.thickness / 2 } });
   }
   const points = parts.flatMap(part => part.polygons.flatMap(polygon => polygon.flatMap(ring => ring.flatMap(([x,y]) => [0, part.thickness].map(z => {
     const p = artPartPoint(part, x, y, z); return [p.x, p.y, p.z];
@@ -165,15 +169,15 @@ export const artBuildNotes = [
   "Height, crown and variation create a repeatable plant-like form. The seed changes its pattern. Individual sheet overrides stay fixed until reset.",
   "Bends start above the slotted base and point away from the centre. Form after assembly; bending before assembly can obstruct insertion. Preview and flat patterns use a mid-sheet neutral axis and an inside radius of twice the thickness.",
   "Cut a slot-fit coupon from measured GS acrylic first. Apply laser kerf compensation once in CAM. Blue dashed SVG lines are bend-start guides, not cuts.",
-  "Optional leaf shelves slide level into rectangular slots just beyond each bend after forming. Shelf tabs and slots account for both sheet thicknesses and the bend angle. Test joint retention and loaded stability; no load rating or collision simulation is provided. Keep the grid supported while forming.",
+  "Optional leaf shelves point inward at 90 degrees to the bent section of each parent leaf and inherit its color and transparency. Insert their rectangular tabs just beyond the bends after forming. Slots fit the shelf thickness plus clearance. Test joint retention and loaded stability; no load rating or collision simulation is provided. Keep the grid supported while forming.",
 ];
 export function artExport(art: Art) {
   return { product: "Acryl508", mode: "art", version: 1, units: "mm", status: "unvalidated-prototype", configuration: art.config, sheetMaterials: sheetMaterialExport(art.config, art.parts),
     dimensions: art.dimensions, construction: { baseHeight: art.baseHeight, jointHeight: art.jointHeight, slotWidth: art.slotWidth, method: "Open half-lap grid", hardware: 0 },
-    coordinates: "Part outlines are millimetres, X along the sheet, Y up. A sheets lie along world X at Z=position. B sheets rotate +90 degrees around Y and lie at X=position. Bend start/length are in 100 mm scene units; bend angle is radians. Bend direction follows the sign of position, away from the centre. Shelf outlines use X across and Y from the tab end toward the tip. Shelves are level: world height is shelf.anchorY, and outward displacement from shelf.anchorZ is direction * (Y - shelf.tabDepth / 2), relative to the parent position. Shelf anchors are in millimetres.",
+    coordinates: "Part outlines are millimetres, X along the sheet, Y up. A sheets lie along world X at Z=position. B sheets rotate +90 degrees around Y and lie at X=position. Bend start/length are in 100 mm scene units; bend angle is radians. Bend direction follows the sign of position, away from the centre. Shelf outlines use X across and Y from the tab end toward the tip. Shelves point inward perpendicular to the bent parent. With u = Y - shelf.tabDepth / 2 and v = Z - thickness / 2, local assembled Y = shelf.anchorY + u*sin(shelf.angle) + v*cos(shelf.angle), and local assembled Z = shelf.anchorZ + direction*(-u*cos(shelf.angle) + v*sin(shelf.angle)). Apply the same family rotation and position as the parent. Shelf anchors are millimetres and shelf.angle is radians.",
     parts: art.parts, notes: artBuildNotes, warnings: art.shelfWarnings };
 }
 export function artSvg(art: Art) {
   const layout = artSheetLayout(art);
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="${layout.width}mm" height="${layout.height}mm" viewBox="0 0 ${layout.width} ${layout.height}"><title>Acryl508 art / ${art.parts.length} sheets</title><desc>GS acrylic ${sheetThicknessLabel(art.config, art.parts)} mm. Slots fit adjoining sheet thickness plus ${art.config.clearance} mm clearance. Red: finished cut edges. Blue dashed: bend-start guides, do not cut. Bend allowance included; mid-sheet neutral axis, inside radius twice each sheet thickness. Form outward after slotting together, then insert optional leaf shelves level. Prototype fit, forming and stability.</desc>${layout.parts.map(({part,x,y}) => `<g id="${part.id}" ${sheetMaterialAttributes(art.config, part.id)} transform="translate(${x} ${y})"><title>${part.label} / ${part.shelf ? `level shelf for ${part.shelf.parent.toUpperCase()}` : part.bend ? `${part.settings.bendAngle.toFixed(1)} degrees outward; bend starts ${(part.bend.start * 100).toFixed(1)} mm above base bottom` : "flat"}</title><path data-operation="cut" d="${standPathData(part.polygons)}" fill="none" stroke="#ef4444" stroke-width="0.2"/>${part.bend ? `<path data-operation="bend-guide" d="M${-part.leafWidth/2} ${-part.bend.start*100}H${part.leafWidth/2}" fill="none" stroke="#2563eb" stroke-width="0.2" stroke-dasharray="2 2"/>` : ""}</g>`).join("")}</svg>`;
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="${layout.width}mm" height="${layout.height}mm" viewBox="0 0 ${layout.width} ${layout.height}"><title>Acryl508 art / ${art.parts.length} sheets</title><desc>GS acrylic ${sheetThicknessLabel(art.config, art.parts)} mm. Slots fit adjoining sheet thickness plus ${art.config.clearance} mm clearance. Red: finished cut edges. Blue dashed: bend-start guides, do not cut. Bend allowance included; mid-sheet neutral axis, inside radius twice each sheet thickness. Form outward after slotting together, then insert optional leaf shelves inward at 90 degrees to their bent parents. Prototype fit, forming and stability.</desc>${layout.parts.map(({part,x,y}) => `<g id="${part.id}" ${sheetMaterialAttributes(art.config, part.id)} transform="translate(${x} ${y})"><title>${part.label} / ${part.shelf ? `inward shelf at 90 degrees to ${part.shelf.parent.toUpperCase()}` : part.bend ? `${part.settings.bendAngle.toFixed(1)} degrees outward; bend starts ${(part.bend.start * 100).toFixed(1)} mm above base bottom` : "flat"}</title><path data-operation="cut" d="${standPathData(part.polygons)}" fill="none" stroke="#ef4444" stroke-width="0.2"/>${part.bend ? `<path data-operation="bend-guide" d="M${-part.leafWidth/2} ${-part.bend.start*100}H${part.leafWidth/2}" fill="none" stroke="#2563eb" stroke-width="0.2" stroke-dasharray="2 2"/>` : ""}</g>`).join("")}</svg>`;
 }

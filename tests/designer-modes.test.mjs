@@ -101,6 +101,20 @@ test("mode switching preserves independent designs and routes material choices a
     const shelved = JSON.parse(await downloads.at(-1).blob.text());
     assert.equal(shelved.configuration.leafShelves, true);
     assert.equal(shelved.parts.filter(p => p.shelf).length, 8);
+    await click("Use individual acrylic materials for each sheet");
+    assert.equal(document.querySelector('select[aria-label="Leaf shelf A-1 color"]'), null, "Shelf appearance follows its parent instead of offering a separate color");
+    const leafColor = document.querySelector('select[aria-label="Sheet A-1 color"]');
+    await React.act(async () => {
+      leafColor.value = "blue";
+      leafColor.dispatchEvent(new dom.window.Event("change", { bubbles: true }));
+    });
+    const parentFill = document.querySelector('.stand-cutting-layout [data-part="a-1"] path').getAttribute("fill");
+    assert.equal(document.querySelector('.stand-cutting-layout [data-part="shelf-a-1"] path').getAttribute("fill"), parentFill);
+    await click("Export art design JSON");
+    const colored = JSON.parse(await downloads.at(-1).blob.text()).sheetMaterials;
+    assert.equal(colored.find(p => p.id === "shelf-a-1").tint.id, "blue");
+    await click("Undo design change");
+    await click("Undo design change");
     await click("Undo design change");
     assert.equal(button("Leaf shelves").getAttribute("aria-checked"), "false");
     assert.equal(document.querySelectorAll('.stand-cutting-layout g[data-part]').length, 8);

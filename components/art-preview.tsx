@@ -30,7 +30,7 @@ function ArtSheet({ part, art }: { part: ArtPart; art: Art }) {
     if (part.shelf) {
       // Reflect the symmetric X outline to keep winding consistent on both sides.
       const world = (x: number, y: number, z: number) => {
-        const p = artPartPoint(part, -part.direction * x * 100, y * 100, z * 100);
+        const p = artPartPoint(part, part.direction * x * 100, y * 100, z * 100);
         return new Vector3(p.x / 100, p.y / 100, p.z / 100);
       };
       const positions = geometry.getAttribute("position");
@@ -68,7 +68,7 @@ export function ArtPreview(props: Props) {
   return <PreviewBoundary><Canvas camera={{ position: [5,4,6], fov: 34, near: 0.01, far: 150 }} dpr={[1,1.75]} frameloop="demand" gl={{ alpha: true, antialias: true }} fallback={<div className="preview-fallback">WebGL is unavailable. Select Cutting layout to inspect your sheets.</div>}>
     <ambientLight intensity={dark ? 0.8 : 1.3} /><directionalLight position={[3,7,5]} intensity={2.5} /><directionalLight position={[-5,3,-2]} intensity={1.5} color="#e6efff" />
     <Suspense fallback={null}><Environment resolution={128} frames={1}><Lightformer position={[0,5,-3]} rotation={[Math.PI/2,0,0]} scale={[10,8,1]} intensity={3} /><Lightformer position={[-5,2,1]} rotation={[0,Math.PI/2,0]} scale={[6,3,1]} intensity={4} /></Environment>
-      {art.parts.map(part => part.shelf ? <group key={part.id} position={[exploded && part.family === "b" ? part.direction * 0.5 : 0, exploded && part.family === "a" ? art.baseHeight / 100 + 0.5 : 0, exploded && part.family === "a" ? part.direction * 0.5 : 0]}><ArtSheet part={part} art={art} /></group> : <group key={part.id} position={part.family === "a" ? [0, exploded ? art.baseHeight / 100 + 0.5 : 0, part.position / 100 - part.thickness / 200] : [part.position / 100 - part.thickness / 200,0,0]} rotation={[0,part.family === "a" ? 0 : Math.PI / 2,0]}><ArtSheet part={part} art={art} /></group>)}
+      {art.parts.map(part => part.shelf ? <group key={part.id} position={[exploded && part.family === "b" ? -part.direction * Math.cos(part.shelf.angle) * 0.5 : 0, exploded ? Math.sin(part.shelf.angle) * 0.5 + (part.family === "a" ? art.baseHeight / 100 + 0.5 : 0) : 0, exploded && part.family === "a" ? -part.direction * Math.cos(part.shelf.angle) * 0.5 : 0]}><ArtSheet part={part} art={art} /></group> : <group key={part.id} position={part.family === "a" ? [0, exploded ? art.baseHeight / 100 + 0.5 : 0, part.position / 100 - part.thickness / 200] : [part.position / 100 - part.thickness / 200,0,0]} rotation={[0,part.family === "a" ? 0 : Math.PI / 2,0]}><ArtSheet part={part} art={art} /></group>)}
       <ContactShadows key={JSON.stringify([art.config,exploded])} position={[0,-0.02,0]} opacity={dark ? 0.45 : 0.25} scale={35} blur={2.4} far={10} resolution={512} frames={1} color="#24231e" />
     </Suspense><CameraRig {...props} />
   </Canvas></PreviewBoundary>;

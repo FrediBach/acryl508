@@ -11,11 +11,17 @@ export const defaultSheetMaterials = { individualSheetMaterials: false, sheetTin
 export function sheetThickness(config: SheetMaterialConfiguration, id: string) {
   return (config.individualSheetMaterials ? config.sheetThicknesses?.[id] : undefined) ?? config.thickness;
 }
+// Art shelves share their parent leaf's appearance, including old projects
+// containing independent shelf colors. Thickness remains independently editable.
+export function sheetAppearanceSource(id: string) {
+  return /^shelf-[ab]-([1-9]|10)$/.test(id) ? id.slice(6) : id;
+}
 export function sheetMaterial(config: SheetMaterialConfiguration, id: string) {
+  const appearanceId = sheetAppearanceSource(id);
   return {
     thickness: sheetThickness(config, id),
-    tint: (config.individualSheetMaterials ? config.sheetTints?.[id] : undefined) ?? config.tint,
-    transparency: (config.individualSheetMaterials ? config.sheetTransparencies?.[id] : undefined) ?? config.transparency ?? defaultTransparency,
+    tint: (config.individualSheetMaterials ? config.sheetTints?.[appearanceId] : undefined) ?? config.tint,
+    transparency: (config.individualSheetMaterials ? config.sheetTransparencies?.[appearanceId] : undefined) ?? config.transparency ?? defaultTransparency,
   };
 }
 export function maxSheetThickness(config: SheetMaterialConfiguration) {
