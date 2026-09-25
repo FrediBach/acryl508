@@ -108,10 +108,12 @@ export function readCase(input: unknown): CaseConfiguration {
   config.ventDesign = normalizeVentDesign(record(config.ventDesign, "Vent design"));
   config.cutouts = cutouts(config.cutouts);
   config.individualPanelTints = data.individualPanelTints === true;
-  config.panelTints = {}; config.panelTransparencies = {};
+  config.panelTints = {}; config.panelTransparencies = {}; config.panelThicknesses = {};
   for (const side of ["front", "rear", "left", "right", "bottom"] as const) {
     const tint = data.panelTints && record(data.panelTints, "Sheet colors")[side];
     const transparency = data.panelTransparencies && record(data.panelTransparencies, "Sheet transparency")[side];
+    const thickness = data.panelThicknesses === undefined ? undefined : record(data.panelThicknesses, "Sheet thicknesses")[side];
+    if (thickness !== undefined) config.panelThicknesses[side] = number(thickness, `${side} sheet thickness`, 3, 6);
     if (tint) config.panelTints[side] = material({ tint: tint as CaseConfiguration["tint"] }).tint;
     if (transparency) config.panelTransparencies[side] = choice(transparency, ["transparent", "see-through", "opaque", "opal"], "sheet transparency");
   }
@@ -160,6 +162,6 @@ export function parseProject(source: string, current: Designs = initialDesigns, 
   // Existing single-designer JSON exports remain useful: import only that mode.
   const mode = data.mode === "synth-stand" ? "stand" : data.mode === "synth-protector" ? "protector" : data.mode === "panel-designer" ? "panel" : data.product === "Acryl508" && !data.mode ? "case" : undefined;
   if (!mode || data.units !== "mm") throw new Error("Choose an Acryl508 project or configuration JSON file.");
-  number(data.version, "Export version", 1, { case: 11, stand: 6, protector: 2, panel: 1 }[mode]);
+  number(data.version, "Export version", 1, { case: 12, stand: 6, protector: 2, panel: 1 }[mode]);
   return makeProject("Imported design", mode, { ...current, [mode]: readers[mode](data.configuration) }, currentFonts);
 }

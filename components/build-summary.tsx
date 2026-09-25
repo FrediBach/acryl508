@@ -4,7 +4,7 @@ import { ArrowDownToLine, ChevronDown } from "lucide-react";
 import { flatFeetLayout, flatFootStyles } from "@/lib/flat-feet";
 import { patchBoardLayout, patchBoardSides } from "@/lib/patch-board";
 import { cableHolderLayout } from "@/lib/cable-holder";
-import { caseDimensions, footShapes, handleCount, handleSides, handleDimensions, panelCount, panelSides, panelTint, panelTransparency, rackFormatLabel, rackRowLayout, sidePanelMargin, ventStyles, type CaseConfiguration } from "@/lib/configurator";
+import { caseDimensions, caseThicknessLabel, panelThickness, footShapes, handleCount, handleSides, handleDimensions, panelCount, panelSides, panelTint, panelTransparency, rackFormatLabel, rackRowLayout, sidePanelMargin, ventStyles, type CaseConfiguration } from "@/lib/configurator";
 
 export function BuildSummary({ config, canExportSvg = true, onExportJson, onExportSvg, onOpenFabrication }: { canExportSvg?: boolean; config: CaseConfiguration; onExportJson: () => void; onExportSvg: () => void; onOpenFabrication: () => void }) {
   const dimensions = caseDimensions(config);
@@ -26,7 +26,7 @@ export function BuildSummary({ config, canExportSvg = true, onExportJson, onExpo
       </div>
       <dl className="case-summary-overview">
         <div><dt>Case footprint</dt><dd>{dimensions.width.toFixed(1)} × {dimensions.length.toFixed(1)} <small>mm</small></dd></div>
-        <div><dt>Material</dt><dd>{config.thickness} mm GS <span className="spec-colors" aria-label={config.individualPanelTints ? "Individual sheet materials" : materialLabel(config.tint, config.transparency)}>{(config.individualPanelTints ? panelSides : panelSides.slice(0, 1)).map(side => { const tint = panelTint(config, side.value); return <span key={side.value} className="spec-color" style={{ background: tint.color }} title={`${side.label}: ${materialLabel(tint, panelTransparency(config, side.value))}`} />; })}</span></dd></div>
+        <div><dt>Material</dt><dd>{caseThicknessLabel(config)} mm GS <span className="spec-colors" aria-label={config.individualPanelTints ? "Individual sheet materials" : materialLabel(config.tint, config.transparency)}>{(config.individualPanelTints ? panelSides : panelSides.slice(0, 1)).map(side => { const tint = panelTint(config, side.value); return <span key={side.value} className="spec-color" style={{ background: tint.color }} title={`${side.label}: ${panelThickness(config, side.value)} mm · ${materialLabel(tint, panelTransparency(config, side.value))}`} />; })}</span></dd></div>
         <div><dt>Construction</dt><dd>{panelCount()} panels · {handleCount(config) ? `${handleCount(config)} integral ${handleCount(config) === 1 ? "grip" : "grips"}` : "no handles"}</dd></div>
       </dl>
       {!canExportSvg && <p className="cutout-warning" role="alert">Resolve empty panels and cutout errors before exporting SVG.</p>}

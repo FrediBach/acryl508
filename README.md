@@ -27,6 +27,7 @@ This starter does not use `wrangler.jsonc`.
 - optional local STL/OBJ fitting for stands and protectors, with units, orientation and angle controls; protectors use a level cover above the posed model and individual contour-fitted feet with broad locating lips
 - interactive Three.js case preview with ordered, mix-and-match 1U/3U rows, live dimensions, and optional per-sheet acrylic colors and transparency
 - interlocking case panels retained by rail-end screws, with stance and handles integral to the side panels
+- individual case-sheet thicknesses (3–6 mm), with matching joint slots, tab reach, ventilation, preview and fabrication stock grouping
 - adjustable side-panel retaining margins from the original 2× sheet thickness to a guarded near-flush 1× profile
 - bottom ventilation with long slits, short slits, round or hexagonal holes, and three densities
 - full-size SVG sheet export with named panel groups, slots, holes, vents, and custom cutouts

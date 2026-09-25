@@ -1,19 +1,20 @@
 import type { Shape } from "three";
 import type { CaseConfiguration } from "./configurator";
+import { panelThickness, type SheetThicknessConfiguration } from "./sheet-thickness";
 
 export const cableHolderLimits = { height: { min: 20, max: 70 }, slitWidth: { min: 3, max: 8 } };
 
-export function cableHolderLayout(config: Pick<CaseConfiguration, "hp" | "thickness" | "cableHolderHeight" | "cableHolderSlitWidth">) {
+export function cableHolderLayout(config: Pick<CaseConfiguration, "hp" | "cableHolderHeight" | "cableHolderSlitWidth"> & SheetThicknessConfiguration) {
   const bounded = (value: number | undefined, fallback: number, limits: { min: number; max: number }) =>
     Math.min(limits.max, Math.max(limits.min, Number.isFinite(value) ? value! : fallback));
   const height = bounded(config.cableHolderHeight, 35, cableHolderLimits.height);
   const slitWidth = bounded(config.cableHolderSlitWidth, 5, cableHolderLimits.slitWidth);
-  const inset = Math.max(8, 2 * config.thickness);
+  const inset = Math.max(8, 2 * panelThickness(config, "rear"));
   const width = config.hp * 5.08 - 2 * inset;
-  const fingerCount = Math.max(2, Math.floor((width + slitWidth) / (Math.max(14, 2 * config.thickness) + slitWidth)));
+  const fingerCount = Math.max(2, Math.floor((width + slitWidth) / (Math.max(14, 2 * panelThickness(config, "rear")) + slitWidth)));
   const fingerWidth = (width - (fingerCount - 1) * slitWidth) / fingerCount;
   const pitch = fingerWidth + slitWidth;
-  const rootHeight = Math.max(6, config.thickness);
+  const rootHeight = Math.max(6, panelThickness(config, "rear"));
   return { height, slitWidth, width, fingerCount, fingerWidth, pitch, rootHeight,
     slitCount: fingerCount - 1,
     slitCenters: Array.from({ length: fingerCount - 1 }, (_, index) => -width / 2 + fingerWidth + slitWidth / 2 + index * pitch),

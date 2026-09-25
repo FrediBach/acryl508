@@ -1,3 +1,5 @@
+import { caseThicknesses, panelThickness, jointThickness, type SheetThicknessConfiguration } from "./sheet-thickness";
+export { caseThicknesses, panelThickness, panelThicknessesFrom, caseThicknessLabel, jointThickness, type SheetThicknessConfiguration } from "./sheet-thickness";
 import { cutoutSides, type CustomCutout, type CutoutReport, type CutoutSide } from "./custom-cutouts";
 import type { MultiPolygon } from "polygon-clipping";
 import { defaultVentDesign, normalizeVentDesign, type VentDesign } from "./vent-design";
@@ -22,7 +24,7 @@ export type VentCoverage = "bands" | "field";
 export type VentMix = "checkerboard" | "rows" | "columns";
 export type CaseConfiguration = {
   hp: number; rows: number; rowUnits: RackUnit[]; depth: number; thickness: number; sideMarginRatio: number;
-  tint: AcrylicTint; transparency?: AcrylicTransparency; panelTransparencies?: Partial<Record<PanelSide, AcrylicTransparency>>; individualPanelTints?: boolean; panelTints?: Partial<Record<PanelSide, AcrylicTint>>;
+  tint: AcrylicTint; transparency?: AcrylicTransparency; panelTransparencies?: Partial<Record<PanelSide, AcrylicTransparency>>; individualPanelTints?: boolean; panelThicknesses?: Partial<Record<PanelSide, number>>; panelTints?: Partial<Record<PanelSide, AcrylicTint>>;
   angle: number; rowAngles?: number[]; vents: boolean; busboard: Busboard;
   ventStyle: VentStyle; ventDensity: VentDensity;
   ventLayout: VentLayout; ventCoverage: VentCoverage; ventMix: VentMix;
@@ -96,7 +98,7 @@ export function totalRackUnits(config: Pick<CaseConfiguration, "rows" | "rowUnit
 export function rackFormatLabel(config: Pick<CaseConfiguration, "rows" | "rowUnits">) {
   return rackRows(config).map(units => `${units}U`).join(" + ");
 }
-type RackLayoutConfiguration = Pick<CaseConfiguration, "rows" | "rowUnits"> & Partial<Pick<CaseConfiguration, "angle" | "rowAngles" | "thickness">>;
+type RackLayoutConfiguration = Pick<CaseConfiguration, "rows" | "rowUnits"> & Partial<Pick<CaseConfiguration, "angle" | "rowAngles" | "thickness" | "individualPanelTints" | "panelThicknesses">>;
 export const maxRowAngle = 60;
 export const maxTotalRowAngle = 75;
 // Increments are stored rear-to-front, like rowUnits. The front row is the
@@ -113,11 +115,12 @@ export function rackRowAngles(config: RackLayoutConfiguration) {
 }
 export function rackRowLayout(config: RackLayoutConfiguration) {
   const units = rackRows(config), increments = rackRowAngles(config);
+  const thickestSheet = Math.max(...Object.values(caseThicknesses({ ...config, thickness: config.thickness ?? 5 })));
   let distance = 0, rise = 0, angle = 0;
   const rows = [];
   for (let index = units.length - 1; index >= 0; index--) {
     const increment = increments[index];
-    const gap = increment > 0 ? (Math.max(8, 2 * (config.thickness ?? 5)) + 14 * Math.tan(increment * Math.PI / 360)) / 3 : 0;
+    const gap = increment > 0 ? (Math.max(8, 2 * thickestSheet) + 14 * Math.tan(increment * Math.PI / 360)) / 3 : 0;
     const bend = (angle + increment / 2) * Math.PI / 180;
     distance += gap * Math.cos(bend);
     rise += gap * Math.sin(bend);
@@ -147,9 +150,9 @@ export function rackEnvelope(config: RackLayoutConfiguration) {
   const angled = rows.some(row => row.angle > 0);
   return { length: angled ? front.z * 2 : rows.reduce((sum, row) => sum + row.length, 0), rise: rear.y, angled };
 }
-export function sidePanelMargin(config: Pick<CaseConfiguration, "thickness" | "sideMarginRatio">) {
+export function sidePanelMargin(config: SheetThicknessConfiguration & Pick<CaseConfiguration, "sideMarginRatio">) {
   const ratio = Number.isFinite(config.sideMarginRatio) ? config.sideMarginRatio : maxSideMarginRatio;
-  return config.thickness * Math.min(maxSideMarginRatio, Math.max(minSideMarginRatio, ratio));
+  return jointThickness(config) * Math.min(maxSideMarginRatio, Math.max(minSideMarginRatio, ratio));
 }
 export function handleCount(config: CaseConfiguration): 0 | 1 | 2 {
   if (!config.handle) return 0;
@@ -172,17 +175,19 @@ export function panelCount() { return 5; }
 export function caseDimensions(config: CaseConfiguration) {
   const rack = rackEnvelope(config);
   const margin = sidePanelMargin(config);
-  return { width: config.hp * 5.08 + config.thickness * 2, length: rack.length + config.thickness * 2 + margin * 2, height: config.depth + config.thickness + margin + rack.rise };
+  const t = caseThicknesses(config);
+  // Keep the stance centred on the rack; the thinner end gets extra retaining material.
+  return { width: config.hp * 5.08 + t.left + t.right, length: rack.length + 2 * Math.max(t.front, t.rear) + margin * 2, height: config.depth + t.bottom + margin + rack.rise };
 }
 export function configurationExport(config: CaseConfiguration, cutoutReports: CutoutReport[] = [], resolvedPanels: Partial<Record<CutoutSide, MultiPolygon>> = {}) {
   const holder = cableHolderLayout(config);
   const board = patchBoardLayout(config);
   const feet = flatFeetLayout(config);
   return {
-    product: "Acryl508", version: 11, units: "mm", status: "design-concept",
+    product: "Acryl508", version: 12, units: "mm", status: "design-concept",
     configuration: { ...config, flatFootStyle: feet.style, flatFootHeight: feet.height, transparency: config.transparency ?? defaultTransparency, patchBoardWidth: board.width, patchBoardHeight: board.height, patchBoardSpacing: board.spacing, handleWidth: handleDimensions(config).width, handleHeight: handleDimensions(config).height, ventLayout: config.ventLayout ?? "aligned", ventCoverage: config.ventCoverage ?? "bands", ventMix: config.ventMix ?? "checkerboard", ventDesign: normalizeVentDesign(config.ventDesign), material: "GS cast acrylic", fasteners: "Black socket-head screws", assembly: "Mechanical; no glue" },
     ventilation: {
-      minimumWebMm: Math.max(3, config.thickness), borderMm: Math.max(8, 2 * config.thickness),
+      minimumWebMm: Math.max(3, panelThickness(config, "bottom")), borderMm: Math.max(8, 2 * panelThickness(config, "bottom")),
       coverage: "Two bands or a full field with a solid centre strip. Staggered rows are offset by half a column pitch and shortened at the borders. Mixed openings alternate round dots and short slits by opening, row or column.",
       effects: "Up to three deterministic fields, summed by target, then constrained to separate cells. Size is bounded and positions use the remaining room in each cell.",
       customCutouts: "Omit vents within one minimum web of each bottom custom-cutout polygon bounding box.",
@@ -227,18 +232,22 @@ export function configurationExport(config: CaseConfiguration, cutoutReports: Cu
       resolvedPanelOutlinesMm: resolvedPanels,
       outlineStatus: "Sampled outlines for the concept preview; not fabrication-ready cutting paths.",
     },
+    sheetMaterials: panelSides.map(({ value: side, label }) => ({ side, label, thicknessMm: panelThickness(config, side), tint: panelTint(config, side), transparency: panelTransparency(config, side) })),
     acrylicParts: { enclosurePanels: 5, footPanels: 0, handlePanels: 0, totalPanels: panelCount() },
     panelAssembly: {
       method: "Base and end-panel tabs captured in closed side-panel slots; rail-end screws retain the side panels",
       railCount: rackRows(config).length * 2, railEndScrewCount: rackRows(config).length * 4,
       additionalPanelFasteners: 0, adhesive: false,
       baseUndersideHeight: sidePanelMargin(config), endRetainingMargin: sidePanelMargin(config),
-      slotCenterToEdge: sidePanelMargin(config) + config.thickness / 2,
-      minimumSlotCenterToEdge: config.thickness * 1.5,
+      slotCenterToEdge: sidePanelMargin(config) + jointThickness(config) / 2,
+      minimumSlotCenterToEdge: jointThickness(config) * 1.5,
+      slotWidthsMm: { bottom: panelThickness(config, "bottom"), front: panelThickness(config, "front"), rear: panelThickness(config, "rear") },
+      tabReachMm: { left: panelThickness(config, "left"), right: panelThickness(config, "right") },
+      endMarginPolicy: "Side outlines stay centred on the rack; the thinner end sheet receives additional retaining margin",
       disassembly: "Support the case, remove the rail-end screws on one side, withdraw that side panel, then slide the base and end-panel tabs out of the remaining side panel. Stance and handles are integral to the side panels.",
       status: "Concept; kerf, sheet tolerances, corner relief, rail threads, screw engagement and loaded retention require fabrication validation",
     },
-    stance: { automaticFeet: rackEnvelope(config).angled, method: "Integral side-panel profile", angle: config.angle, shape: config.footShape, minimumWebMm: config.footShape === "sled" && config.angle > 0 ? sledWebThickness(config.thickness) : null, innerCorners: config.footShape === "sled" ? "Rounded" : null, additionalParts: 0 },
+    stance: { automaticFeet: rackEnvelope(config).angled, method: "Integral side-panel profile", angle: config.angle, shape: config.footShape, minimumWebMm: config.footShape === "sled" && config.angle > 0 ? sledWebThickness(Math.min(panelThickness(config, "left"), panelThickness(config, "right"))) : null, innerCorners: config.footShape === "sled" ? "Rounded" : null, additionalParts: 0 },
     patchBoard: { enabled: Boolean(config.patchBoard), method: "Integral side-panel extension with round cable storage holes", sides: patchBoardSides(config), widthMm: board.width, riseMm: board.height, holeDiameterMm: board.holeDiameter, spacingMm: board.spacing, columns: board.columns, rows: board.rows, holesPerSide: config.patchBoard ? board.holeCount : 0, holeCentersMm: config.patchBoard ? board.centers : [], holeCoordinates: "Relative to the centre of the extension bottom, above the highest rim under its roots", additionalParts: 0 },
     handles: { method: "Integral side-panel grips", mode: config.handleMode ?? "auto", count: handleCount(config), widthMm: handleDimensions(config).width, riseMm: handleDimensions(config).height, roundedRoots: true, sides: handleSides(config), additionalParts: 0 },
     flatFeet: { enabled: feet.enabled, style: feet.style, heightMm: feet.height, method: "Integral side-panel profiles", contactCount: feet.enabled ? feet.style === "runners" ? 2 : 4 : 0, additionalParts: 0 },

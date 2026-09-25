@@ -1,5 +1,5 @@
 import { Path, type Shape } from "three";
-import { caseDimensions, handleSides, handleDimensions, rackEnvelope, rackRowLayout, rackRowPoint, sidePanelMargin, type CaseConfiguration } from "./configurator";
+import { caseDimensions, caseThicknesses, handleSides, handleDimensions, rackEnvelope, rackRowLayout, rackRowPoint, sidePanelMargin, type CaseConfiguration } from "./configurator";
 import { flatFeetLayout } from "./flat-feet";
 import { patchBoardLayout, patchBoardSides } from "./patch-board";
 import { createSideProfile } from "./acrylic-profiles";
@@ -17,12 +17,14 @@ function hole(shape: Shape, x: number, y: number, radius: number) {
 
 export function createCasePanels(config: CaseConfiguration) {
   const dimensions = caseDimensions(config);
-  const w = dimensions.width / 100, l = dimensions.length / 100, h = dimensions.height / 100, t = config.thickness / 100;
+  const mm = caseThicknesses(config);
+  const thicknesses = { bottom: mm.bottom / 100, front: mm.front / 100, rear: mm.rear / 100, left: mm.left / 100, right: mm.right / 100 };
+  const w = dimensions.width / 100, l = dimensions.length / 100, h = dimensions.height / 100, t = thicknesses.bottom;
   const edgeMargin = sidePanelMargin(config) / 100;
   const rack = rackEnvelope(config), rows = rackRowLayout(config);
-  const frontHeight = (config.depth + config.thickness) / 100 + edgeMargin;
+  const frontHeight = (config.depth + mm.bottom) / 100 + edgeMargin;
   const holder = cableHolderLayout(config);
-  const panels = createPanelProfiles(w, l, frontHeight, t, edgeMargin, config.cableHolder ? shape => cableHolderTopEdge(shape, h, holder) : undefined, h);
+  const panels = createPanelProfiles(w, l, frontHeight, t, edgeMargin, config.cableHolder ? shape => cableHolderTopEdge(shape, h, holder) : undefined, h, thicknesses);
   const { innerLength } = panels.layout;
   const base = panels.base;
   const boardDefinitions = {
@@ -41,7 +43,7 @@ export function createCasePanels(config: CaseConfiguration) {
     x / 100 + mountingRadius + t > box.left && x / 100 - mountingRadius - t < box.right &&
     y / 100 + mountingRadius + t > box.bottom && y / 100 - mountingRadius - t < box.top)).length;
   exclusions.push(...mountingHoles.map(({ x, y }) => ({ left: x / 100 - mountingRadius, right: x / 100 + mountingRadius, bottom: y / 100 - mountingRadius, top: y / 100 + mountingRadius })));
-  const ventilation = createBottomVentLayout(w, innerLength, config.ventStyle, config.ventDensity, { thickness: t, design: config.ventDesign, exclusions, layout: config.ventLayout, coverage: config.ventCoverage, mix: config.ventMix });
+  const ventilation = createBottomVentLayout(w, innerLength, config.ventStyle, config.ventDensity, { thickness: t, innerWidth: panels.layout.innerWidth, design: config.ventDesign, exclusions, layout: config.ventLayout, coverage: config.ventCoverage, mix: config.ventMix });
   if (config.vents) base.holes.push(...ventilation.paths);
   for (const { x, y } of mountingHoles) hole(base, x / 100, y / 100, mountingRadius);
   const side = panels.side;
@@ -62,8 +64,8 @@ export function createCasePanels(config: CaseConfiguration) {
   const size = handleDimensions(config);
   const handleSize = { width: size.width / 100, height: size.height / 100 };
   const board = patchBoardLayout(config), boardSides = patchBoardSides(config);
-  const left = createSideProfile(side, l, h, t, config.angle, config.footShape, grips.includes("left"), handleSize, rim, rack.angled, boardSides.includes("left") ? board : undefined, feet);
-  const right = createSideProfile(side, l, h, t, config.angle, config.footShape, grips.includes("right"), handleSize, rim, rack.angled, boardSides.includes("right") ? board : undefined, feet);
+  const left = createSideProfile(side, l, h, thicknesses.left, config.angle, config.footShape, grips.includes("left"), handleSize, rim, rack.angled, boardSides.includes("left") ? board : undefined, feet);
+  const right = createSideProfile(side, l, h, thicknesses.right, config.angle, config.footShape, grips.includes("right"), handleSize, rim, rack.angled, boardSides.includes("right") ? board : undefined, feet);
   const originals = { front: panels.end, rear: panels.rear, left, right, bottom: base };
   const faces = Object.fromEntries(cutoutSides.map(({ value }) => {
     // Each editor face is viewed from outside, centred in millimetres, Y up.

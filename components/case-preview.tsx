@@ -6,7 +6,7 @@ import { Path, Shape, Vector3 } from "three";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { flatFeetLayout } from "@/lib/flat-feet";
 import { patchBoardLayout, patchBoardSides } from "@/lib/patch-board";
-import { caseDimensions, handleSides, handleDimensions, panelTint, panelTransparency, rackEnvelope, rackRowLayout, sidePanelMargin, type CaseConfiguration } from "@/lib/configurator";
+import { caseDimensions, handleSides, handleDimensions, panelTint, panelThickness, panelTransparency, rackEnvelope, rackRowLayout, sidePanelMargin, type CaseConfiguration } from "@/lib/configurator";
 import { acrylicMaterial, acrylicEdgeOpacity } from "@/lib/acrylic-material";
 import { caseLift } from "@/lib/acrylic-profiles";
 import { cableHolderLayout } from "@/lib/cable-holder";
@@ -75,29 +75,30 @@ function ExampleModules({ width, y, z, units, length }: { width: number; y: numb
   </group>)}</group>;
 }
 function AcrylicCase({ config, panels, exploded, modules }: Pick<Props, "config" | "panels" | "exploded" | "modules">) {
-  const { width, length } = caseDimensions(config);
-  const w = width * unit, l = length * unit, h = (config.depth + config.thickness + sidePanelMargin(config)) * unit, t = config.thickness * unit;
+  const { length } = caseDimensions(config);
+  const l = length * unit, h = (config.depth + panelThickness(config, "bottom") + sidePanelMargin(config)) * unit;
+  const { thicknesses: t, innerWidth, innerLength } = panels.layout;
   const a = config.angle * Math.PI / 180;
   const feet = flatFeetLayout(config);
   const lift = caseLift(l, config.angle, rackEnvelope(config).angled, feet.enabled ? feet.height * unit : 0);
   const explode = exploded ? 0.4 : 0;
-  const { baseBottom, baseTop, endOuter } = panels.layout;
+  const { baseBottom, baseTop } = panels.layout;
   const tints = { bottom: panelTint(config, "bottom"), left: panelTint(config, "left"), right: panelTint(config, "right"), rear: panelTint(config, "rear"), front: panelTint(config, "front") };
-  const baseArgs = useMemo(() => [panels.faces.bottom.shapes, { depth: t, bevelEnabled: false, curveSegments: 8 }] as const, [panels, t]);
-  const leftArgs = useMemo(() => [panels.faces.left.shapes, { depth: t, bevelEnabled: false, curveSegments: 12 }] as const, [panels, t]);
-  const rightArgs = useMemo(() => [panels.faces.right.shapes, { depth: t, bevelEnabled: false, curveSegments: 12 }] as const, [panels, t]);
-  const rearArgs = useMemo(() => [panels.faces.rear.shapes, { depth: t, bevelEnabled: false, curveSegments: 12 }] as const, [panels, t]);
-  const frontArgs = useMemo(() => [panels.faces.front.shapes, { depth: t, bevelEnabled: false }] as const, [panels, t]);
+  const baseArgs = useMemo(() => [panels.faces.bottom.shapes, { depth: t.bottom, bevelEnabled: false, curveSegments: 8 }] as const, [panels, t.bottom]);
+  const leftArgs = useMemo(() => [panels.faces.left.shapes, { depth: t.left, bevelEnabled: false, curveSegments: 12 }] as const, [panels, t.left]);
+  const rightArgs = useMemo(() => [panels.faces.right.shapes, { depth: t.right, bevelEnabled: false, curveSegments: 12 }] as const, [panels, t.right]);
+  const rearArgs = useMemo(() => [panels.faces.rear.shapes, { depth: t.rear, bevelEnabled: false, curveSegments: 12 }] as const, [panels, t.rear]);
+  const frontArgs = useMemo(() => [panels.faces.front.shapes, { depth: t.front, bevelEnabled: false }] as const, [panels, t.front]);
   return <group>
     <group rotation={[a, 0, 0]} position={[0, lift, 0]}>
-      <mesh position={[0, baseBottom - explode, 0]} rotation={[-Math.PI / 2, 0, 0]}><extrudeGeometry args={baseArgs} /><meshPhysicalMaterial {...acrylicMaterial(tints.bottom, t, panelTransparency(config, "bottom"))} /><PanelEdges args={baseArgs} color={tints.bottom.color} opacity={acrylicEdgeOpacity(panelTransparency(config, "bottom"))} threshold={35} /></mesh>
+      <mesh position={[0, baseBottom - explode, 0]} rotation={[-Math.PI / 2, 0, 0]}><extrudeGeometry args={baseArgs} /><meshPhysicalMaterial {...acrylicMaterial(tints.bottom, t.bottom, panelTransparency(config, "bottom"))} /><PanelEdges args={baseArgs} color={tints.bottom.color} opacity={acrylicEdgeOpacity(panelTransparency(config, "bottom"))} threshold={35} /></mesh>
       {[-1, 1].map(side => <group key={side}>
-        <mesh position={[side * (w / 2 - t / 2 + explode) - t / 2, 0, 0]} rotation={[0, Math.PI / 2, 0]}><extrudeGeometry args={side === -1 ? leftArgs : rightArgs} /><meshPhysicalMaterial {...acrylicMaterial(side === -1 ? tints.left : tints.right, t, panelTransparency(config, side === -1 ? "left" : "right"))} /><PanelEdges args={side === -1 ? leftArgs : rightArgs} color={side === -1 ? tints.left.color : tints.right.color} opacity={acrylicEdgeOpacity(panelTransparency(config, side === -1 ? "left" : "right"))} threshold={35} /></mesh>
-        <mesh position={[0, 0, side * (endOuter - t / 2 + explode) - t / 2]}><extrudeGeometry args={side === -1 ? rearArgs : frontArgs} /><meshPhysicalMaterial {...acrylicMaterial(side === -1 ? tints.rear : tints.front, t, panelTransparency(config, side === -1 ? "rear" : "front"))} /><PanelEdges args={side === -1 ? rearArgs : frontArgs} color={side === -1 ? tints.rear.color : tints.front.color} opacity={acrylicEdgeOpacity(panelTransparency(config, side === -1 ? "rear" : "front"))} /></mesh>
+        <mesh position={[side === -1 ? -innerWidth / 2 - t.left - explode : innerWidth / 2 + explode, 0, 0]} rotation={[0, Math.PI / 2, 0]}><extrudeGeometry args={side === -1 ? leftArgs : rightArgs} /><meshPhysicalMaterial {...acrylicMaterial(side === -1 ? tints.left : tints.right, side === -1 ? t.left : t.right, panelTransparency(config, side === -1 ? "left" : "right"))} /><PanelEdges args={side === -1 ? leftArgs : rightArgs} color={side === -1 ? tints.left.color : tints.right.color} opacity={acrylicEdgeOpacity(panelTransparency(config, side === -1 ? "left" : "right"))} threshold={35} /></mesh>
+        <mesh position={[0, 0, side === -1 ? -innerLength / 2 - t.rear - explode : innerLength / 2 + explode]}><extrudeGeometry args={side === -1 ? rearArgs : frontArgs} /><meshPhysicalMaterial {...acrylicMaterial(side === -1 ? tints.rear : tints.front, side === -1 ? t.rear : t.front, panelTransparency(config, side === -1 ? "rear" : "front"))} /><PanelEdges args={side === -1 ? rearArgs : frontArgs} color={side === -1 ? tints.rear.color : tints.front.color} opacity={acrylicEdgeOpacity(panelTransparency(config, side === -1 ? "rear" : "front"))} /></mesh>
       </group>)}
       {rackRowLayout(config).map(row => {
         const z = row.center * unit, railOffset = row.railOffset * unit, length = row.length * unit;
-        return <group key={row.index} position={[0, h + row.rise * unit, z]} rotation={[row.angle * Math.PI / 180, 0, 0]}>{[-1, 1].map(end => <group key={end}><Rail width={w - 2 * t} y={-0.07 + explode} z={end * railOffset} />{[-1, 1].map(side => <RailFastener key={side} side={side} width={w} thickness={t} y={-0.07} z={end * railOffset} explode={explode} />)}</group>)}{modules && <ExampleModules width={w - 2 * t - 0.02} y={explode * 2} z={0} units={row.units} length={length} />}</group>;
+        return <group key={row.index} position={[0, h + row.rise * unit, z]} rotation={[row.angle * Math.PI / 180, 0, 0]}>{[-1, 1].map(end => <group key={end}><Rail width={innerWidth} y={-0.07 + explode} z={end * railOffset} />{[-1, 1].map(side => <RailFastener key={side} side={side} width={innerWidth + 2 * (side === -1 ? t.left : t.right)} thickness={side === -1 ? t.left : t.right} y={-0.07} z={end * railOffset} explode={explode} />)}</group>)}{modules && <ExampleModules width={innerWidth - 0.02} y={explode * 2} z={0} units={row.units} length={length} />}</group>;
       })}
       {config.busboard === "sinusoda" && panels.powerBoard?.fits && <SinusodaPreview baseTop={baseTop - explode} />}
       {config.busboard === "trolley" && panels.powerBoard?.fits && <TrolleyPreview baseTop={baseTop - explode} offsetX={panels.powerBoard.x} />}

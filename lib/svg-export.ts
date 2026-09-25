@@ -1,6 +1,6 @@
 import type { Shape } from "three";
 import { caseCanExport, type CasePanels } from "./case-panels";
-import { rackFormatLabel, type CaseConfiguration, type PanelSide } from "./configurator";
+import { panelThickness, panelTint, panelTransparency, rackFormatLabel, type CaseConfiguration, type PanelSide } from "./configurator";
 import { mapPolygons, polygonBounds, shapesToPolygons } from "./custom-cutouts";
 import type { MultiPolygon } from "polygon-clipping";
 import { trolleyBus } from "./trolley";
@@ -83,7 +83,7 @@ export function configurationSvg(config: CaseConfiguration, panels: CasePanels) 
   const { parts: placed, width, height } = caseSheetLayout(panels);
   const groups = placed.map(({ item, x: translateX, y: translateY }) => {
     const path = casePathData(item.polygons);
-    return `  <g id="panel-${item.id}" data-part="${item.id}"${path ? "" : ' data-empty="true"'} transform="translate(${number(translateX)} ${number(translateY)})">\n    <title>${escapeXml(item.label)}</title>${path ? `\n    <path d="${path}" />` : ""}\n  </g>`;
+    return `  <g id="panel-${item.id}" data-part="${item.id}" data-thickness-mm="${panelThickness(config, item.id)}" data-color="${escapeXml(panelTint(config, item.id).label)}" data-transparency="${panelTransparency(config, item.id)}"${path ? "" : ' data-empty="true"'} transform="translate(${number(translateX)} ${number(translateY)})">\n    <title>${escapeXml(item.label)} · ${panelThickness(config, item.id)} mm</title>${path ? `\n    <path d="${path}" />` : ""}\n  </g>`;
   }).join("\n");
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${number(width)}mm" height="${number(height)}mm" viewBox="0 0 ${number(width)} ${number(height)}" fill="none" stroke="#000000" stroke-width="0.2" stroke-linecap="round" stroke-linejoin="round" data-units="mm">

@@ -81,7 +81,7 @@ test("history groups full gestures, restores deleted content, branches, and caps
 test("appearance edits preserve geometry input identity; dimension and mesh edits invalidate it", () => {
   for (const config of Object.values(initialDesigns)) {
     const cache = geometryInputCache(), original = cache(config);
-    assert.equal(cache({ ...config, tint: { id: "red", label: "Red", color: "#ff0000" }, transparency: "opaque", individualPanelTints: true, panelTints: {} }), original);
+    assert.equal(cache({ ...config, tint: { id: "red", label: "Red", color: "#ff0000" }, transparency: "opaque", panelTints: {} }), original);
     assert.notEqual(cache({ ...config, thickness: config.thickness + 1 }), original);
   }
   const cache = geometryInputCache(), object = { vertices: [1, 2, 3] };

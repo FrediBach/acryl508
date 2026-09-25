@@ -4,7 +4,7 @@ import { normalizeVentDesign, sampleVentField, type VentDesign } from "./vent-de
 
 export type VentBounds = { left: number; right: number; bottom: number; top: number };
 export type VentOpening = { x: number; y: number; width: number; height: number; shape: Exclude<VentStyle, "mixed"> };
-type VentOptions = { thickness?: number; design?: Partial<VentDesign>; exclusions?: VentBounds[]; layout?: VentLayout; coverage?: VentCoverage; mix?: VentMix };
+type VentOptions = { thickness?: number; innerWidth?: number; design?: Partial<VentDesign>; exclusions?: VentBounds[]; layout?: VentLayout; coverage?: VentCoverage; mix?: VentMix };
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 
 export function ventOpeningPath(opening: VentOpening) {
@@ -45,7 +45,9 @@ export function createBottomVentLayout(width: number, innerLength: number, style
   const nominalWidth = slits ? 0.034 : style === "hexagonal" ? 0.06 : 0.05;
   const requestedPitch = (slits ? { low: 0.18, medium: 0.12, high: 0.085 } : { low: 0.24, medium: 0.18, high: 0.13 })[density] ?? 0.12;
   const pitch = Math.max(requestedPitch, nominalWidth + minimumWeb);
-  const usableWidth = width - 2 * thickness - 2 * edgeMargin;
+  // Mixed side sheets change the outer case width, not the base's vent field.
+  const nominalSheetWidth = options.innerWidth === undefined ? width : options.innerWidth + 2 * thickness;
+  const usableWidth = (options.innerWidth ?? width - 2 * thickness) - 2 * edgeMargin;
   const maximumBandHeight = (innerLength - 2 * edgeMargin - minimumWeb) / 2;
   const bandHeight = fullField ? maximumBandHeight : Math.min(innerLength * 0.18 + 0.034, maximumBandHeight);
   const nominalHeight = slits || mixed ? style === "long-slits" ? bandHeight : Math.min(0.12, bandHeight) : nominalWidth;
@@ -54,7 +56,7 @@ export function createBottomVentLayout(width: number, innerLength: number, style
   // clearance envelopes so even maximum position effects retain a full web.
   const rowPitch = staggered && !slits && !mixed ? Math.max(nominalHeight + minimumWeb, pitch * Math.sqrt(3) / 2) : regularRowPitch;
   const fittingColumns = Math.floor((usableWidth + minimumWeb) / pitch);
-  const columns = Math.max(0, fullField ? fittingColumns : Math.min(Math.floor((width - 0.5) / pitch), fittingColumns));
+  const columns = Math.max(0, fullField ? fittingColumns : Math.min(Math.floor((nominalSheetWidth - 0.5) / pitch), fittingColumns));
   const rows = bandHeight < nominalHeight || nominalHeight < minimumOpening ? 0 : Math.floor((bandHeight - nominalHeight + 1e-9) / rowPitch) + 1;
   const bandCenter = clamp(innerLength * 0.28, (minimumWeb + bandHeight) / 2, (innerLength - bandHeight) / 2 - edgeMargin);
   for (const side of [-1, 1]) for (let row = 0; row < rows; row++) {
