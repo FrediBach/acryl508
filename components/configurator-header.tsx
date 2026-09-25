@@ -3,7 +3,10 @@ export type DesignerMode = "case" | "stand" | "protector" | "panel";
 type Props = { mode: DesignerMode; onModeChange: (mode: DesignerMode) => void; dark: boolean; onThemeChange: () => void; onInfo: (tab: "materials" | "guide") => void };
 export function ConfiguratorHeader({ mode, onModeChange, dark, onThemeChange, onInfo }: Props) {
   return <header className="app-header">
-    <a href="#configure" className="brand" aria-label="Acryl508 home"><span className="brand-symbol" aria-hidden="true"><i /><i /><i /></span><span>acryl<span className="brand-number">508</span><span className="brand-period">.</span></span></a>
+    <div className="brand-lockup">
+      <a href="#configure" className="brand" aria-label="Acryl508 home"><span className="brand-symbol" aria-hidden="true"><i /><i /><i /></span><span>acryl<span className="brand-number">508</span><span className="brand-period">.</span></span></a>
+      <a className="brand-copyright" href="http://www.fredibach.com" target="_blank" rel="noopener noreferrer">© 2026 Fredi Bach</a>
+    </div>
     <div className="designer-mode-switch" role="group" aria-label="Designer mode">
       <button aria-pressed={mode === "case"} className={mode === "case" ? "mode-active" : ""} onClick={() => onModeChange("case")}>Case designer</button>
       <button aria-pressed={mode === "stand"} className={mode === "stand" ? "mode-active" : ""} onClick={() => onModeChange("stand")}>Synth stand</button>

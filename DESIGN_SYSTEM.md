@@ -54,6 +54,10 @@ sits alongside it on desktop. Compact undo/redo controls and a Project disclosur
 hold the file actions. The menu closes after selection, on Escape, on outside
 click, or when keyboard focus leaves it. At narrow widths, secondary save status
 is hidden while the editable name, history and project actions remain available.
+The linked © 2026 Fredi Bach credit sits beneath the wordmark within the existing
+header height. The project toolbar includes the muted slogan “Acrylic sheet
+projects for electronic musicians”; it hides at 1100 px and below to preserve
+room for project controls without adding a row.
 
 ## Product constraints
 

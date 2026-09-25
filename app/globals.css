@@ -91,6 +91,9 @@
 .app-shell { display: flex; flex-direction: column; height: 100dvh; }
 .app-header { flex: 0 0 64px; min-height: 64px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 42px; gap: 28px; }
 .brand { display: inline-flex; align-items: center; gap: 13px; font-size: 29px; letter-spacing: -1.8px; font-weight: 650; line-height: 1; }
+.brand-lockup { position: relative; flex-shrink: 0; }
+.brand-copyright { position: absolute; top: calc(100% + 3px); left: 41px; color: var(--muted-foreground); font-size: 9px; line-height: 1; white-space: nowrap; }
+.brand-copyright:hover { color: var(--foreground); text-decoration: underline; text-underline-offset: 2px; }
 .brand-number { font-weight: 400; }
 .brand-period { color: var(--signal); }
 .brand-symbol { position: relative; width: 28px; height: 29px; margin-top: 3px; }
@@ -540,6 +543,7 @@
 /* Workspace projects and fabrication */
 .project-toolbar { position:relative; z-index:10; flex-shrink:0; display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px 20px; min-height:48px; padding:7px 42px; border-bottom:1px solid var(--border); }
 .project-identity { display:flex; flex:1; min-width:0; align-items:center; gap:8px; }
+.project-slogan { flex-shrink:0; margin:0 24px 0 0; color:var(--muted-foreground); font-size:11px; line-height:1.4; }
 .project-file-icon { flex-shrink:0; color:var(--muted-foreground); }
 .project-title-input { flex:0 1 auto; min-width:80px; max-width:100%; height:30px; margin-left:-3px; padding:4px 6px; border:1px solid transparent; border-radius:3px; background:transparent; color:var(--foreground); font:500 12px var(--font-geist-sans),sans-serif; text-overflow:ellipsis; }
 .project-title-input:hover { border-color:var(--border); }
@@ -563,7 +567,7 @@
 .project-menu-panel > button svg { color:var(--muted-foreground); flex-shrink:0; }
 .project-menu-separator { margin:4px 5px; border-top:1px solid var(--border); }
 .project-menu-panel > p { margin:4px 5px 0; padding:9px 5px 5px; border-top:1px solid var(--border); color:var(--muted-foreground); font-size:9px; }
-@media (max-width:1100px) { .project-toolbar { padding-inline:28px; } }
+@media (max-width:1100px) { .project-toolbar { padding-inline:28px; } .project-slogan { display:none; } }
 @media (max-width:700px) { .project-toolbar { padding-inline:20px; gap:8px; } .project-save-status { display:none; } .project-actions { gap:6px; } .project-history { gap:0; padding-right:6px; } .project-title-input { min-width:60px; } }
 @media (max-width:380px) { .project-file-icon { display:none; } .project-toolbar { padding-inline:12px; } }
 .project-error { width:100%; color:var(--foreground); background:color-mix(in srgb, #e65a22 12%, transparent); border-left:3px solid #e65a22; padding:10px 12px; font-size:12px; line-height:1.6; }

@@ -92,6 +92,7 @@ export function ProjectToolbar({ designs, mode, canUndo, canRedo, onUndo, onRedo
       <input id="project-name" className="project-title-input" aria-label="Project name" title="Rename project" maxLength={100} value={name} disabled={!ready} style={{ width: `${Math.min(32, Math.max(14, name.length + 1))}ch` }} onChange={event => setName(event.target.value)} />
       <span className="project-save-status" role="status" title={status}>{savedLocally && <Check size={12} aria-hidden="true" />}<span>{savedLocally ? "Saved locally" : status}</span></span>
     </div>
+    <p className="project-slogan">Acrylic sheet projects for electronic musicians</p>
     <div className="project-actions">
       <div className="project-history" role="group" aria-label="Design history">
         <button className="icon-button" aria-label="Undo design change" title="Undo · Ctrl/Cmd Z" disabled={!canUndo || !ready} onClick={onUndo}><Undo2 size={15} /></button>
