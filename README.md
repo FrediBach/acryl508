@@ -576,6 +576,17 @@ the silhouette. Optional outward bends have angle, location and variation
 sliders. Every sheet can override height, bend angle and bend location; resetting
 an override returns it to the generator. A new seed preserves overrides.
 
+Enable **Leaf shelves** under **Outward bends** to add a level, rounded leaf
+shelf just after each bend. Adjust shelf width and depth; rectangular tabs and
+matching closed slots account for the parent angle, both sheet thicknesses and
+slot clearance. Shelves have their own material controls and appear in the 3D
+preview, exploded view, cutting layout, JSON/SVG and fabrication stock sheets.
+Straight leaves have no shelf. If a leaf is too narrow or its bend too near the
+tip, its shelf is omitted with a note explaining which settings to adjust.
+Assemble and form the main leaves before inserting shelves. Tab retention,
+flex and loaded stability require a physical prototype; no load rating is given.
+The option defaults to off, including when opening older projects.
+
 The two sheet families have 2–10 sheets each, in pairs, leaving a clear central
 bay. Footprint is 120–600 mm per side, automatically enlarged when density and
 material thickness need more room. The root grid is eight sheet thicknesses high

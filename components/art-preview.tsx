@@ -8,7 +8,7 @@ import { acrylicMaterial, acrylicEdgeOpacity } from "@/lib/acrylic-material";
 import { bentPanelGeometry, bentPanelEdges } from "@/lib/bent-panel-geometry";
 import { panelEdgePoints } from "@/lib/panel-edges";
 import { sheetMaterial } from "@/lib/sheet-materials";
-import type { Art, ArtPart } from "@/lib/art";
+import { artPartPoint, type Art, type ArtPart } from "@/lib/art";
 import { PreviewBoundary } from "./stand-preview";
 export type ArtView = "perspective" | "side" | "top";
 type Props = { art: Art; dark: boolean; exploded: boolean; view: ArtView; resetKey: number };
@@ -25,7 +25,23 @@ function ArtSheet({ part, art }: { part: ArtPart; art: Art }) {
       return shape;
     });
     const bends = part.bend ? [part.bend] : [], depth = thickness / 100;
-    return { geometry: bentPanelGeometry(shapes, depth, bends, part.direction), edges: bentPanelEdges(panelEdgePoints(shapes, depth, 12, 15), depth, bends, part.direction) };
+    const geometry = bentPanelGeometry(shapes, depth, bends, part.direction);
+    let edges = bentPanelEdges(panelEdgePoints(shapes, depth, 12, 15), depth, bends, part.direction);
+    if (part.shelf) {
+      // Reflect the symmetric X outline to keep winding consistent on both sides.
+      const world = (x: number, y: number, z: number) => {
+        const p = artPartPoint(part, -part.direction * x * 100, y * 100, z * 100);
+        return new Vector3(p.x / 100, p.y / 100, p.z / 100);
+      };
+      const positions = geometry.getAttribute("position");
+      for (let i = 0; i < positions.count; i++) {
+        const p = world(positions.getX(i), positions.getY(i), positions.getZ(i));
+        positions.setXYZ(i, p.x, p.y, p.z);
+      }
+      geometry.computeVertexNormals(); geometry.computeBoundingSphere();
+      edges = edges.map(([x,y,z]) => world(x,y,z).toArray() as [number, number, number]);
+    }
+    return { geometry, edges };
   }, [part, thickness]);
   useEffect(() => () => geometry.dispose(), [geometry]);
   const opacity = acrylicEdgeOpacity(transparency);
@@ -52,7 +68,7 @@ export function ArtPreview(props: Props) {
   return <PreviewBoundary><Canvas camera={{ position: [5,4,6], fov: 34, near: 0.01, far: 150 }} dpr={[1,1.75]} frameloop="demand" gl={{ alpha: true, antialias: true }} fallback={<div className="preview-fallback">WebGL is unavailable. Select Cutting layout to inspect your sheets.</div>}>
     <ambientLight intensity={dark ? 0.8 : 1.3} /><directionalLight position={[3,7,5]} intensity={2.5} /><directionalLight position={[-5,3,-2]} intensity={1.5} color="#e6efff" />
     <Suspense fallback={null}><Environment resolution={128} frames={1}><Lightformer position={[0,5,-3]} rotation={[Math.PI/2,0,0]} scale={[10,8,1]} intensity={3} /><Lightformer position={[-5,2,1]} rotation={[0,Math.PI/2,0]} scale={[6,3,1]} intensity={4} /></Environment>
-      {art.parts.map(part => <group key={part.id} position={part.family === "a" ? [0, exploded ? art.baseHeight / 100 + 0.5 : 0, part.position / 100 - part.thickness / 200] : [part.position / 100 - part.thickness / 200,0,0]} rotation={[0,part.family === "a" ? 0 : Math.PI / 2,0]}><ArtSheet part={part} art={art} /></group>)}
+      {art.parts.map(part => part.shelf ? <group key={part.id} position={[exploded && part.family === "b" ? part.direction * 0.5 : 0, exploded && part.family === "a" ? art.baseHeight / 100 + 0.5 : 0, exploded && part.family === "a" ? part.direction * 0.5 : 0]}><ArtSheet part={part} art={art} /></group> : <group key={part.id} position={part.family === "a" ? [0, exploded ? art.baseHeight / 100 + 0.5 : 0, part.position / 100 - part.thickness / 200] : [part.position / 100 - part.thickness / 200,0,0]} rotation={[0,part.family === "a" ? 0 : Math.PI / 2,0]}><ArtSheet part={part} art={art} /></group>)}
       <ContactShadows key={JSON.stringify([art.config,exploded])} position={[0,-0.02,0]} opacity={dark ? 0.45 : 0.25} scale={35} blur={2.4} far={10} resolution={512} frames={1} color="#24231e" />
     </Suspense><CameraRig {...props} />
   </Canvas></PreviewBoundary>;

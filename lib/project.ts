@@ -157,7 +157,7 @@ export function readPanel(input: unknown): PanelConfiguration {
   return normalizePanelConfiguration(config);
 }
 export function readArt(input: unknown): ArtConfiguration {
-  const config = sheetMaterials(material(base(input, defaultArtConfiguration)), /^[ab]-([1-9]|10)$/, 3, 6);
+  const config = sheetMaterials(material(base(input, defaultArtConfiguration)), /^(shelf-)?[ab]-([1-9]|10)$/, 3, 6);
   const overrides = record(config.sheets, "Art sheet overrides");
   if (Object.keys(overrides).length > 20) throw new Error("At most 20 art sheets are supported.");
   for (const [id, value] of Object.entries(overrides)) {

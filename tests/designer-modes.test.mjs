@@ -93,6 +93,17 @@ test("mode switching preserves independent designs and routes material choices a
     await click("Art mode");
     await click("Cutting layout");
     assert.equal(document.querySelector('svg[aria-label="Art cutting layout: 8 slotted sheets"]').querySelectorAll("g[data-part]").length, 8);
+    await click("Leaf shelves");
+    assert.equal(button("Leaf shelves").getAttribute("aria-checked"), "true");
+    assert.equal(document.querySelectorAll('.stand-cutting-layout g[data-part]').length, 16);
+    assert.equal(document.querySelectorAll('#art-sheet option').length, 8, "Growth controls only list main leaves");
+    await click("Export art design JSON");
+    const shelved = JSON.parse(await downloads.at(-1).blob.text());
+    assert.equal(shelved.configuration.leafShelves, true);
+    assert.equal(shelved.parts.filter(p => p.shelf).length, 8);
+    await click("Undo design change");
+    assert.equal(button("Leaf shelves").getAttribute("aria-checked"), "false");
+    assert.equal(document.querySelectorAll('.stand-cutting-layout g[data-part]').length, 8);
     await click("New growth pattern");
     await click("Export art design JSON");
     assert.equal(JSON.parse(await downloads.at(-1).blob.text()).configuration.seed,509);
