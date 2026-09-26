@@ -58,10 +58,54 @@ KiCad `Edge.Cuts` line/arc endpoint envelopes:
 | `Bluetooth/Mynd_BT.kicad_pcb` | 55 × 41 mm |
 | `UI/Mynd_UI.kicad_pcb` | 116 × 26 mm |
 
-These are board outlines, excluding component heights, connectors and cables.
-The repository notes that KiCad files were converted from Altium and may contain
-conversion errors. Preview board placement, battery envelope, driver depths and
-diaphragms are illustrative. No collision or cable-routing validation is claimed.
+These dimensions are board outlines. The preview now includes the actual STEP
+component models referenced by each PCB, retaining their footprint positions,
+rotations, offsets and top/bottom placement. The repository notes that the KiCad
+files were converted from Altium and may contain conversion errors.
+
+## Detailed preview assets
+
+`public/models/mynd/` contains locally served GLBs for all nine released PCBs:
+main, amplifier, Bluetooth, UI, USB-C, AUX, battery connector, amplifier connector
+and baffle connector. Together they contain **788 referenced component instances**
+with no missing model references. Board outlines, mounting holes, pads and line
+silkscreen come from the PCB files. Component STEP surfaces are tessellated and
+simplified for browser rendering, with display materials assigned for readability.
+The original radiator frames, port housing, HMI cover and rubber HMI pad are also
+tessellated from the released STEP files. Source geometry is kept at 1:1 mm scale.
+
+The released complete Rhino file contains 17 printable mechanical bodies; it does
+not provide the complete electroacoustic drivers or battery pack. The preview's
+woofer cone, surround, basket, mounting ears and magnet, tweeter diaphragm and body,
+radiator membranes and battery pack are **reconstructed illustrations**, not
+manufacturer meshes. Cable paths illustrate routing without claiming electrical
+pin assignments. They are hidden in exploded view instead of stretching wires.
+
+`manifest.json` records each input's SHA-256, the pinned upstream revision, PCB
+dimensions, mounting centres, model references, mesh bounds and triangle counts.
+All models are bundled with their attribution and CC BY-SA license; the running
+app never needs to fetch files from GitHub. Rebuild with
+`scripts/build-mynd-assets.py /path/to/mynd-hardware` in a temporary environment
+with the packages listed in that script. The importer follows the model-transform
+order in [KiCad's STEP exporter](https://docs.kicad.org/doxygen/step__pcb__model_8cpp_source.html):
+model scale, negative X/Y/Z rotations, offset, bottom-side flip, footprint rotation
+and footprint position, with KiCad's downward Y converted to upward Y.
+
+Board placements in the acrylic shell are proposed arrangements, not the stock
+assembly. The main board follows the base, the amplifier/Bluetooth boards follow
+the rear, control parts follow the top, port parts follow the left side and driver
+parts follow the baffle during explosion. Neither enclosure fit nor cable routing
+has been physically validated. The new flat-sheet control/port adapters remain
+necessary even though the original pod meshes are now visible.
+
+The assembly preview includes four M3 tie rods, four threaded hex grille spacers,
+four grille screws, rear nuts, corner washers, twenty driver/radiator screws and
+washers, and PCB standoffs/screws at the source mounting centres. Profiles are
+illustrative M3 hardware, not a specified supplier part. Spacers fill the chosen
+gap less two 0.5 mm washers; rod reach and screw lengths follow the actual sheets.
+Items move with their attachment panels in exploded view and keep their physical
+length. Source PCB mounting locations are shown; mounting holes in the enclosure
+and required supports are still subject to the proposed internal arrangement.
 
 The manufacturer's [MYND specifications](https://hr.teufelaudio.com/mynd-107002004)
 identify one nominal 90 mm woofer, two nominal 20 mm tweeters and a three-channel

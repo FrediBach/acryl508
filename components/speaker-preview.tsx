@@ -6,8 +6,9 @@ import { ExtrudeGeometry, Path, Shape, Vector3 } from "three";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { acrylicMaterial } from "@/lib/acrylic-material";
 import { sheetMaterial } from "@/lib/sheet-materials";
-import { myndDrivers, type Speaker, type SpeakerPart } from "@/lib/speaker";
+import { type Speaker, type SpeakerPart } from "@/lib/speaker";
 import { PreviewBoundary } from "./stand-preview";
+import { SpeakerHardware } from "./speaker-hardware";
 export type SpeakerView = "perspective" | "front" | "rear";
 type Props = { speaker: Speaker; dark: boolean; exploded: boolean; hardware: boolean; view: SpeakerView; resetKey: number };
 function Sheet({ part, speaker, exploded }: { part: SpeakerPart; speaker: Speaker; exploded: boolean }) {
@@ -27,25 +28,6 @@ function Sheet({ part, speaker, exploded }: { part: SpeakerPart; speaker: Speake
   const material=sheetMaterial(speaker.config,part.id);
   return <mesh geometry={geometry} position={part.position.map((v,i)=>(v+(exploded ? part.explode[i] : 0))/100) as [number,number,number]} rotation={part.rotation}><meshPhysicalMaterial {...acrylicMaterial(material.tint,part.thickness/100,material.transparency)} /></mesh>;
 }
-function Hardware({ speaker }: { speaker: Speaker }) {
-  const front=speaker.config.depth/200-sheetMaterial(speaker.config,"baffle").thickness/100;
-  return <group>
-    {myndDrivers.map(driver=><group key={driver.id} position={[driver.x/100,driver.y/100,front]}>
-      {driver.kind === "radiator" ? <mesh position={[0,0,-0.03]}><boxGeometry args={[0.46,0.94,0.05]} /><meshStandardMaterial color="#202227" roughness={0.9} /></mesh> : <>
-        <mesh rotation={[Math.PI/2,0,0]} position={[0,0,-0.04]}><cylinderGeometry args={[driver.width/200,driver.width/200,0.08,48]} /><meshStandardMaterial color="#16181c" roughness={0.8} /></mesh>
-        <mesh position={[0,0,0.005]} scale={[1,1,0.3]}><sphereGeometry args={[driver.kind === "woofer" ? 0.18 : 0.1,32,16,0,Math.PI*2,0,Math.PI]} /><meshStandardMaterial color="#303238" roughness={0.95} /></mesh>
-        {driver.kind === "woofer" && <mesh position={[0,0,-0.23]} rotation={[Math.PI/2,0,0]}><cylinderGeometry args={[0.28,0.24,0.3,32]} /><meshStandardMaterial color="#55585e" metalness={0.5} roughness={0.4} /></mesh>}
-      </>}
-    </group>)}
-    {/* PCB envelopes from KiCad Edge.Cuts; components and placements illustrative. */}
-    <mesh position={[0,-speaker.config.height/200+0.22,-0.02]}><boxGeometry args={[1.36,0.016,0.75]} /><meshStandardMaterial color="#20694b" roughness={0.65} /></mesh>
-    <mesh position={[0.45,0.1,-speaker.config.depth/200+0.2]}><boxGeometry args={[0.905,0.575,0.016]} /><meshStandardMaterial color="#20694b" roughness={0.65} /></mesh>
-    <mesh position={[-0.55,0.35,-speaker.config.depth/200+0.2]}><boxGeometry args={[0.55,0.41,0.016]} /><meshStandardMaterial color="#20694b" roughness={0.65} /></mesh>
-    <mesh position={[0,speaker.config.height/200-0.15,0]}><boxGeometry args={[1.16,0.016,0.26]} /><meshStandardMaterial color="#20694b" roughness={0.65} /></mesh>
-    <mesh position={[-0.99,-0.37,-0.12]}><boxGeometry args={[0.3,0.42,0.65]} /><meshStandardMaterial color="#282a30" roughness={0.85} /></mesh>
-    {speaker.mounts.map(([x,y],i)=><mesh key={i} position={[x/100,y/100,0]} rotation={[Math.PI/2,0,0]}><cylinderGeometry args={[0.015,0.015,speaker.innerDepth/100,12]} /><meshStandardMaterial color="#92969e" metalness={0.85} roughness={0.25} /></mesh>)}
-  </group>;
-}
 function Camera({ speaker,view,resetKey,exploded }: Omit<Props,"dark"|"hardware">) {
   const controls=useRef<OrbitControlsImpl>(null),{camera,size,invalidate}=useThree();
   const {width,height,depth}=speaker.config;
@@ -64,7 +46,7 @@ export function SpeakerPreview(props: Props) {
     <ambientLight intensity={dark ? 0.8 : 1.3} /><directionalLight position={[3,7,5]} intensity={2.5} /><directionalLight position={[-5,3,-2]} intensity={1.5} color="#e6efff" />
     <Suspense fallback={null}><Environment resolution={128} frames={1}><Lightformer position={[0,5,-3]} rotation={[Math.PI/2,0,0]} scale={[10,8,1]} intensity={3} /><Lightformer position={[-5,2,1]} rotation={[0,Math.PI/2,0]} scale={[6,3,1]} intensity={4} /></Environment>
       {speaker.parts.map(part=><Sheet key={part.id} part={part} speaker={speaker} exploded={exploded} />)}
-      {hardware && <Hardware speaker={speaker} />}
+      <SpeakerHardware speaker={speaker} exploded={exploded} donorVisible={hardware} />
       <ContactShadows key={JSON.stringify([speaker.config,exploded,hardware])} position={[0,-speaker.config.height/200-(exploded ? 0.4 : 0.03),0]} opacity={dark ? 0.45 : 0.25} scale={15} blur={2.4} far={5} resolution={512} frames={1} color="#24231e" />
     </Suspense><Camera {...props} />
   </Canvas></PreviewBoundary>;

@@ -1,0 +1,720 @@
+{
+  "repository": "https://github.com/teufelaudio/mynd-hardware",
+  "revision": "149d002334b0725fba03499079bdaf2e61c8ff36",
+  "license": "CC-BY-SA-4.0",
+  "units": "mm",
+  "assets": {
+    "Main": {
+      "kind": "source-pcb",
+      "source": "PCB_Schematics/KiCad/Main/Mynd_Main.kicad_pcb",
+      "outlineSize": [
+        75.00000000000001,
+        136.0
+      ],
+      "sourceOrigin": [
+        148.5011,
+        105.0036
+      ],
+      "thickness": 1.6,
+      "mounts": [
+        [
+          27.500010000000003,
+          49.999990000000004,
+          3.2
+        ],
+        [
+          33.5,
+          -64.0,
+          3.2
+        ],
+        [
+          -27.500000000000014,
+          -64.0,
+          3.2
+        ],
+        [
+          -33.49999000000001,
+          64.0,
+          3.2
+        ],
+        [
+          -33.49999000000001,
+          8.0,
+          3.2
+        ],
+        [
+          33.5,
+          -21.0,
+          3.2
+        ]
+      ],
+      "components": 459,
+      "missingModels": [],
+      "modelFiles": [
+        "PCB_Schematics/KiCad/Main/ALTIUM_EMBEDDED_MODELS/0603_105.step",
+        "PCB_Schematics/KiCad/Main/ALTIUM_EMBEDDED_MODELS/0603_50.step",
+        "PCB_Schematics/KiCad/Main/ALTIUM_EMBEDDED_MODELS/0603_80.step",
+        "PCB_Schematics/KiCad/Main/ALTIUM_EMBEDDED_MODELS/0805_145.step",
+        "PCB_Schematics/KiCad/Main/ALTIUM_EMBEDDED_MODELS/20-wtb-a-double-row-st-smt-2x5p(1).stp",
+        "PCB_Schematics/KiCad/Main/ALTIUM_EMBEDDED_MODELS/6.3x5.4_Chip.stp",
+        "PCB_Schematics/KiCad/Main/ALTIUM_EMBEDDED_MODELS/610024243021 (rev1).stp",
+        "PCB_Schematics/KiCad/Main/ALTIUM_EMBEDDED_MODELS/744231061_Download_STP_WE-CNSW-0805_rev1.stp",
+        "PCB_Schematics/KiCad/Main/ALTIUM_EMBEDDED_MODELS/8x10_Chip.stp",
+        "PCB_Schematics/KiCad/Main/ALTIUM_EMBEDDED_MODELS/A2501W_8P.step",
+        "PCB_Schematics/KiCad/Main/ALTIUM_EMBEDDED_MODELS/D0008A.stp",
+        "PCB_Schematics/KiCad/Main/ALTIUM_EMBEDDED_MODELS/DBV0003A.stp",
+        "PCB_Schematics/KiCad/Main/ALTIUM_EMBEDDED_MODELS/DFN70P101X50-2N.step",
+        "PCB_Schematics/KiCad/Main/ALTIUM_EMBEDDED_MODELS/DGK0008A.stp",
+        "PCB_Schematics/KiCad/Main/ALTIUM_EMBEDDED_MODELS/DQH0008A.stp",
+        "PCB_Schematics/KiCad/Main/ALTIUM_EMBEDDED_MODELS/JSHC0630.step",
+        "PCB_Schematics/KiCad/Main/ALTIUM_EMBEDDED_MODELS/JSHC1040.step",
+        "PCB_Schematics/KiCad/Main/ALTIUM_EMBEDDED_MODELS/LQFP64_1000X1000X160_50.step",
+        "PCB_Schematics/KiCad/Main/ALTIUM_EMBEDDED_MODELS/RGR0020A.stp",
+        "PCB_Schematics/KiCad/Main/ALTIUM_EMBEDDED_MODELS/RSN0032B.stp",
+        "PCB_Schematics/KiCad/Main/ALTIUM_EMBEDDED_MODELS/RSW0010A.stp",
+        "PCB_Schematics/KiCad/Main/ALTIUM_EMBEDDED_MODELS/SNR6020B.step",
+        "PCB_Schematics/KiCad/Main/ALTIUM_EMBEDDED_MODELS/TMPA1206.step",
+        "PCB_Schematics/KiCad/Main/ALTIUM_EMBEDDED_MODELS/User Library-ALU-G.STEP",
+        "PCB_Schematics/KiCad/Main/ALTIUM_EMBEDDED_MODELS/User Library-CAPC1005X___.step",
+        "PCB_Schematics/KiCad/Main/ALTIUM_EMBEDDED_MODELS/User Library-CAPC3216X___.step",
+        "PCB_Schematics/KiCad/Main/ALTIUM_EMBEDDED_MODELS/User Library-INDC1608X___.step",
+        "PCB_Schematics/KiCad/Main/ALTIUM_EMBEDDED_MODELS/User Library-INDC2012X___.step",
+        "PCB_Schematics/KiCad/Main/ALTIUM_EMBEDDED_MODELS/User Library-RESC1005X___.step",
+        "PCB_Schematics/KiCad/Main/ALTIUM_EMBEDDED_MODELS/User Library-RESC1608X___.STEP",
+        "PCB_Schematics/KiCad/Main/ALTIUM_EMBEDDED_MODELS/User Library-RESC2012X___.STEP",
+        "PCB_Schematics/KiCad/Main/ALTIUM_EMBEDDED_MODELS/User Library-RESC3216X___.step",
+        "PCB_Schematics/KiCad/Main/ALTIUM_EMBEDDED_MODELS/User Library-SOD-123_DiodesInc.STEP",
+        "PCB_Schematics/KiCad/Main/ALTIUM_EMBEDDED_MODELS/User Library-SOD2513X11.STEP",
+        "PCB_Schematics/KiCad/Main/ALTIUM_EMBEDDED_MODELS/User Library-SOT-23-2.STEP",
+        "PCB_Schematics/KiCad/Main/ALTIUM_EMBEDDED_MODELS/User Library-SOT-23-5.STEP",
+        "PCB_Schematics/KiCad/Main/ALTIUM_EMBEDDED_MODELS/User Library-SOT457.STEP",
+        "PCB_Schematics/KiCad/Main/ALTIUM_EMBEDDED_MODELS/WB200AL-12.stp",
+        "PCB_Schematics/KiCad/Main/ALTIUM_EMBEDDED_MODELS/phb-row-st-smt-2-3p.stp",
+        "PCB_Schematics/KiCad/Main/ALTIUM_EMBEDDED_MODELS/pin_header_a-sl127-dg-g10mp1.stp",
+        "PCB_Schematics/KiCad/Main/ALTIUM_EMBEDDED_MODELS/pin_header_a-sl254-eg-g03mr1.stp"
+      ],
+      "file": "pcb-main.glb",
+      "bytes": 6867904,
+      "triangles": 278048,
+      "bounds": [
+        [
+          -37.500000000000014,
+          -68.0,
+          -6.840000000000001
+        ],
+        [
+          37.5,
+          68.0,
+          11.04
+        ]
+      ]
+    },
+    "Amp": {
+      "kind": "source-pcb",
+      "source": "PCB_Schematics/KiCad/Amp/Mynd_AMP.kicad_pcb",
+      "outlineSize": [
+        90.50000000000001,
+        57.5
+      ],
+      "sourceOrigin": [
+        148.5011,
+        105.0036
+      ],
+      "thickness": 1.6,
+      "mounts": [
+        [
+          35.76908,
+          -24.783060000000006,
+          3.2
+        ],
+        [
+          -27.750000000000014,
+          11.000010000000003,
+          3.2
+        ],
+        [
+          41.22394,
+          11.012080000000012,
+          3.2
+        ],
+        [
+          -27.750000000000014,
+          -24.749989999999997,
+          3.2
+        ]
+      ],
+      "components": 125,
+      "missingModels": [],
+      "modelFiles": [
+        "PCB_Schematics/KiCad/Amp/ALTIUM_EMBEDDED_MODELS/0603_105.step",
+        "PCB_Schematics/KiCad/Amp/ALTIUM_EMBEDDED_MODELS/0603_50.step",
+        "PCB_Schematics/KiCad/Amp/ALTIUM_EMBEDDED_MODELS/0603_80.step",
+        "PCB_Schematics/KiCad/Amp/ALTIUM_EMBEDDED_MODELS/0805_125.step",
+        "PCB_Schematics/KiCad/Amp/ALTIUM_EMBEDDED_MODELS/0805_145.step",
+        "PCB_Schematics/KiCad/Amp/ALTIUM_EMBEDDED_MODELS/10x10_Chip.stp",
+        "PCB_Schematics/KiCad/Amp/ALTIUM_EMBEDDED_MODELS/61001021821 (rev1).stp",
+        "PCB_Schematics/KiCad/Amp/ALTIUM_EMBEDDED_MODELS/61002421121 (rev1).stp",
+        "PCB_Schematics/KiCad/Amp/ALTIUM_EMBEDDED_MODELS/8x10_Chip.stp",
+        "PCB_Schematics/KiCad/Amp/ALTIUM_EMBEDDED_MODELS/JSHC0630.step",
+        "PCB_Schematics/KiCad/Amp/ALTIUM_EMBEDDED_MODELS/JSHC0650.step",
+        "PCB_Schematics/KiCad/Amp/ALTIUM_EMBEDDED_MODELS/L1612.step",
+        "PCB_Schematics/KiCad/Amp/ALTIUM_EMBEDDED_MODELS/PWP0028C.stp",
+        "PCB_Schematics/KiCad/Amp/ALTIUM_EMBEDDED_MODELS/RHB0032E.stp",
+        "PCB_Schematics/KiCad/Amp/ALTIUM_EMBEDDED_MODELS/User Library-CAPC3216X___.step",
+        "PCB_Schematics/KiCad/Amp/ALTIUM_EMBEDDED_MODELS/User Library-INDC1608X___.step",
+        "PCB_Schematics/KiCad/Amp/ALTIUM_EMBEDDED_MODELS/User Library-RESC1608X___.STEP",
+        "PCB_Schematics/KiCad/Amp/ALTIUM_EMBEDDED_MODELS/User Library-RESC3216X___.step"
+      ],
+      "file": "pcb-amp.glb",
+      "bytes": 2109144,
+      "triangles": 85427,
+      "bounds": [
+        [
+          -45.250000000000014,
+          -28.75,
+          -0.8400000000000001
+        ],
+        [
+          45.25,
+          28.75,
+          10.841000000000001
+        ]
+      ]
+    },
+    "Bluetooth": {
+      "kind": "source-pcb",
+      "source": "PCB_Schematics/KiCad/Bluetooth/Mynd_BT.kicad_pcb",
+      "outlineSize": [
+        55.000000000000014,
+        41.0
+      ],
+      "sourceOrigin": [
+        148.5011,
+        105.00361
+      ],
+      "thickness": 1.6,
+      "mounts": [
+        [
+          -10.0,
+          -16.5,
+          3.2
+        ],
+        [
+          23.499989999999997,
+          16.5,
+          3.2
+        ],
+        [
+          -10.0,
+          16.5,
+          3.2
+        ],
+        [
+          23.47880999999998,
+          -16.500370000000004,
+          3.2
+        ]
+      ],
+      "components": 94,
+      "missingModels": [],
+      "modelFiles": [
+        "PCB_Schematics/KiCad/Bluetooth/ALTIUM_EMBEDDED_MODELS/0603_50.step",
+        "PCB_Schematics/KiCad/Bluetooth/ALTIUM_EMBEDDED_MODELS/0603_80.step",
+        "PCB_Schematics/KiCad/Bluetooth/ALTIUM_EMBEDDED_MODELS/0805_145.step",
+        "PCB_Schematics/KiCad/Bluetooth/ALTIUM_EMBEDDED_MODELS/61002421121 (rev1).stp",
+        "PCB_Schematics/KiCad/Bluetooth/ALTIUM_EMBEDDED_MODELS/D0008A.stp",
+        "PCB_Schematics/KiCad/Bluetooth/ALTIUM_EMBEDDED_MODELS/ICMF062P.step",
+        "PCB_Schematics/KiCad/Bluetooth/ALTIUM_EMBEDDED_MODELS/SOP127P600-8N.step",
+        "PCB_Schematics/KiCad/Bluetooth/ALTIUM_EMBEDDED_MODELS/User Library-CAPC1005X___.step",
+        "PCB_Schematics/KiCad/Bluetooth/ALTIUM_EMBEDDED_MODELS/User Library-INDC1608X___.step",
+        "PCB_Schematics/KiCad/Bluetooth/ALTIUM_EMBEDDED_MODELS/User Library-IPEX.STEP",
+        "PCB_Schematics/KiCad/Bluetooth/ALTIUM_EMBEDDED_MODELS/User Library-RESC1005X___.step",
+        "PCB_Schematics/KiCad/Bluetooth/ALTIUM_EMBEDDED_MODELS/User Library-RESC1608X___.STEP",
+        "PCB_Schematics/KiCad/Bluetooth/ALTIUM_EMBEDDED_MODELS/User Library-RESC2012X___.STEP",
+        "PCB_Schematics/KiCad/Bluetooth/ALTIUM_EMBEDDED_MODELS/User Library-SOD2513X11.STEP",
+        "PCB_Schematics/KiCad/Bluetooth/ALTIUM_EMBEDDED_MODELS/User Library-SOT-23-2.STEP",
+        "PCB_Schematics/KiCad/Bluetooth/ALTIUM_EMBEDDED_MODELS/User Library-SOT-23-5.STEP",
+        "PCB_Schematics/KiCad/Bluetooth/ALTIUM_EMBEDDED_MODELS/WB2835P.step",
+        "PCB_Schematics/KiCad/Bluetooth/ALTIUM_EMBEDDED_MODELS/pin_header_a-sl254-eg-g03mr1.stp"
+      ],
+      "file": "pcb-bluetooth.glb",
+      "bytes": 1514832,
+      "triangles": 61029,
+      "bounds": [
+        [
+          -27.500000000000014,
+          -20.5,
+          -2.29
+        ],
+        [
+          27.5,
+          20.84501456586902,
+          10.680000000000001
+        ]
+      ]
+    },
+    "UI": {
+      "kind": "source-pcb",
+      "source": "PCB_Schematics/KiCad/UI/Mynd_UI.kicad_pcb",
+      "outlineSize": [
+        116.00000000000001,
+        26.0
+      ],
+      "sourceOrigin": [
+        148.5011,
+        105.0036
+      ],
+      "thickness": 1.6,
+      "mounts": [],
+      "components": 67,
+      "missingModels": [],
+      "modelFiles": [
+        "PCB_Schematics/KiCad/UI/ALTIUM_EMBEDDED_MODELS/0603_50.step",
+        "PCB_Schematics/KiCad/UI/ALTIUM_EMBEDDED_MODELS/0603_80.step",
+        "PCB_Schematics/KiCad/UI/ALTIUM_EMBEDDED_MODELS/0805_145.step",
+        "PCB_Schematics/KiCad/UI/ALTIUM_EMBEDDED_MODELS/43439.stp",
+        "PCB_Schematics/KiCad/UI/ALTIUM_EMBEDDED_MODELS/DFN70P101X50-2N.step",
+        "PCB_Schematics/KiCad/UI/ALTIUM_EMBEDDED_MODELS/LED_RGB_1608.step",
+        "PCB_Schematics/KiCad/UI/ALTIUM_EMBEDDED_MODELS/RGE0024F.stp",
+        "PCB_Schematics/KiCad/UI/ALTIUM_EMBEDDED_MODELS/User Library-CAPC3216X___.step",
+        "PCB_Schematics/KiCad/UI/ALTIUM_EMBEDDED_MODELS/User Library-INDC1608X___.step",
+        "PCB_Schematics/KiCad/UI/ALTIUM_EMBEDDED_MODELS/User Library-RESC1608X___.STEP",
+        "PCB_Schematics/KiCad/UI/ALTIUM_EMBEDDED_MODELS/User Library-SOT-23-2.STEP",
+        "PCB_Schematics/KiCad/UI/ALTIUM_EMBEDDED_MODELS/WB200AL-12.stp"
+      ],
+      "file": "pcb-ui.glb",
+      "bytes": 904884,
+      "triangles": 36331,
+      "bounds": [
+        [
+          -58.000000000000014,
+          -13.0,
+          -9.514128571814044
+        ],
+        [
+          58.0,
+          13.0,
+          2.142361079702119
+        ]
+      ]
+    },
+    "Jack_USB": {
+      "kind": "source-pcb",
+      "source": "PCB_Schematics/KiCad/Jack_USB/Mynd_USB_JACK.kicad_pcb",
+      "outlineSize": [
+        23.0,
+        20.799999999999997
+      ],
+      "sourceOrigin": [
+        148.5011,
+        105.003611
+      ],
+      "thickness": 1.6,
+      "mounts": [],
+      "components": 27,
+      "missingModels": [],
+      "modelFiles": [
+        "PCB_Schematics/KiCad/Jack_USB/ALTIUM_EMBEDDED_MODELS/0603_50.step",
+        "PCB_Schematics/KiCad/Jack_USB/ALTIUM_EMBEDDED_MODELS/0603_80.step",
+        "PCB_Schematics/KiCad/Jack_USB/ALTIUM_EMBEDDED_MODELS/0805_145.step",
+        "PCB_Schematics/KiCad/Jack_USB/ALTIUM_EMBEDDED_MODELS/744231061_Download_STP_WE-CNSW-0805_rev1.stp",
+        "PCB_Schematics/KiCad/Jack_USB/ALTIUM_EMBEDDED_MODELS/DFN70P101X50-2N.step",
+        "PCB_Schematics/KiCad/Jack_USB/ALTIUM_EMBEDDED_MODELS/K3D-DX07WH24JA3-V2_JAE_Proprietary.STEP",
+        "PCB_Schematics/KiCad/Jack_USB/ALTIUM_EMBEDDED_MODELS/PHB-ROW-ST-SMT-2-5P_ASM.step",
+        "PCB_Schematics/KiCad/Jack_USB/ALTIUM_EMBEDDED_MODELS/SCM7060.step",
+        "PCB_Schematics/KiCad/Jack_USB/ALTIUM_EMBEDDED_MODELS/User Library-RESC1005X___.step",
+        "PCB_Schematics/KiCad/Jack_USB/ALTIUM_EMBEDDED_MODELS/User Library-SOD-123FL CASE 498.STEP"
+      ],
+      "file": "pcb-jack-usb.glb",
+      "bytes": 430432,
+      "triangles": 17146,
+      "bounds": [
+        [
+          -14.299999999999994,
+          -10.399999999999991,
+          -4.640000000000001
+        ],
+        [
+          14.099959999999996,
+          10.400000000000006,
+          8.868438824525748
+        ]
+      ]
+    },
+    "Jack_Line_In": {
+      "kind": "source-pcb",
+      "source": "PCB_Schematics/KiCad/Jack_Line_In/Mynd_LINE_IN_Jack.kicad_pcb",
+      "outlineSize": [
+        24.100760000000008,
+        16.500749999999996
+      ],
+      "sourceOrigin": [
+        148.5011,
+        105.0036
+      ],
+      "thickness": 1.6,
+      "mounts": [],
+      "components": 10,
+      "missingModels": [],
+      "modelFiles": [
+        "PCB_Schematics/KiCad/Jack_Line_In/ALTIUM_EMBEDDED_MODELS/0603_50.step",
+        "PCB_Schematics/KiCad/Jack_Line_In/ALTIUM_EMBEDDED_MODELS/DFN70P101X50-2N.step",
+        "PCB_Schematics/KiCad/Jack_Line_In/ALTIUM_EMBEDDED_MODELS/User Library-INDC1608X___.step",
+        "PCB_Schematics/KiCad/Jack_Line_In/ALTIUM_EMBEDDED_MODELS/User Library-RESC1608X___.STEP",
+        "PCB_Schematics/KiCad/Jack_Line_In/ALTIUM_EMBEDDED_MODELS/User Library-SOT-23-2.STEP",
+        "PCB_Schematics/KiCad/Jack_Line_In/ALTIUM_EMBEDDED_MODELS/model_2",
+        "PCB_Schematics/KiCad/Jack_Line_In/ALTIUM_EMBEDDED_MODELS/phb-row-st-smt-2-3p_asm.stp"
+      ],
+      "file": "pcb-jack-line-in.glb",
+      "bytes": 203688,
+      "triangles": 8028,
+      "bounds": [
+        [
+          -15.145190000000019,
+          -8.250374999999991,
+          -1.9200270262351549
+        ],
+        [
+          14.833459999999985,
+          8.250375000000005,
+          8.98734764594817
+        ]
+      ]
+    },
+    "Conn_Bat": {
+      "kind": "source-pcb",
+      "source": "PCB_Schematics/KiCad/Conn_Bat/Mynd_Batt.kicad_pcb",
+      "outlineSize": [
+        40.99999,
+        21.0
+      ],
+      "sourceOrigin": [
+        148.5011,
+        105.003605
+      ],
+      "thickness": 1.6,
+      "mounts": [
+        [
+          -17.000005000000016,
+          4.500009999999989,
+          3.2
+        ],
+        [
+          17.000004999999987,
+          4.500009999999989,
+          3.2
+        ]
+      ],
+      "components": 2,
+      "missingModels": [],
+      "modelFiles": [
+        "PCB_Schematics/KiCad/Conn_Bat/ALTIUM_EMBEDDED_MODELS/A2501W_8P.step",
+        "PCB_Schematics/KiCad/Conn_Bat/ALTIUM_EMBEDDED_MODELS/TSB1.step"
+      ],
+      "file": "pcb-conn-bat.glb",
+      "bytes": 227280,
+      "triangles": 10492,
+      "bounds": [
+        [
+          -20.499995000000013,
+          -11.049990000000003,
+          -6.840000000000001
+        ],
+        [
+          20.499994999999984,
+          10.5,
+          8.039999999967
+        ]
+      ]
+    },
+    "Conn_Amp": {
+      "kind": "source-pcb",
+      "source": "PCB_Schematics/KiCad/Conn_Amp/Mynd_Conn.kicad_pcb",
+      "outlineSize": [
+        27.0,
+        53.99999
+      ],
+      "sourceOrigin": [
+        148.5011,
+        105.00359999999999
+      ],
+      "thickness": 1.6,
+      "mounts": [],
+      "components": 2,
+      "missingModels": [],
+      "modelFiles": [
+        "PCB_Schematics/KiCad/Conn_Amp/ALTIUM_EMBEDDED_MODELS/pin_header_a-sl254-da-g10mp1.stp",
+        "PCB_Schematics/KiCad/Conn_Amp/ALTIUM_EMBEDDED_MODELS/tsb0-0128d-00xxa_asm__sw0001.stp"
+      ],
+      "file": "pcb-conn-amp.glb",
+      "bytes": 146596,
+      "triangles": 5772,
+      "bounds": [
+        [
+          -13.584679999999999,
+          -33.063494999999996,
+          -0.8400000000000001
+        ],
+        [
+          13.56533,
+          26.999995,
+          7.501166114666042
+        ]
+      ]
+    },
+    "Conn_Baffle": {
+      "kind": "source-pcb",
+      "source": "PCB_Schematics/KiCad/Conn_Baffle/Mynd_Baffle.kicad_pcb",
+      "outlineSize": [
+        45.000000000000014,
+        30.0
+      ],
+      "sourceOrigin": [
+        148.5011,
+        105.003595
+      ],
+      "thickness": 1.6,
+      "mounts": [
+        [
+          18.500010000000003,
+          -0.5,
+          3.5
+        ],
+        [
+          -18.499989999999997,
+          -0.5,
+          3.5
+        ],
+        [
+          6.000010000000003,
+          10.499990000000011,
+          3.5
+        ]
+      ],
+      "components": 2,
+      "missingModels": [],
+      "modelFiles": [
+        "PCB_Schematics/KiCad/Conn_Baffle/ALTIUM_EMBEDDED_MODELS/A2501_6P.step",
+        "PCB_Schematics/KiCad/Conn_Baffle/ALTIUM_EMBEDDED_MODELS/TSB1.step"
+      ],
+      "file": "pcb-conn-baffle.glb",
+      "bytes": 170732,
+      "triangles": 8198,
+      "bounds": [
+        [
+          -22.500000000000014,
+          -15.0,
+          -1.1760852861851598
+        ],
+        [
+          22.5,
+          15.0,
+          8.74
+        ]
+      ]
+    },
+    "radiator-frames": {
+      "kind": "source-mechanical",
+      "source": "CAD/STP/MYND Print parts PR Frame.stp",
+      "file": "radiator-frames.glb",
+      "bytes": 650856,
+      "triangles": 27110,
+      "bounds": [
+        [
+          -114.80000248091,
+          17.79999426945182,
+          15.0
+        ],
+        [
+          114.80000248091,
+          36.80000000000003,
+          130.492892237284
+        ]
+      ]
+    },
+    "port-housing": {
+      "kind": "source-mechanical",
+      "source": "CAD/STP/MYND Print parts Port housing.stp",
+      "file": "port-housing.glb",
+      "bytes": 149636,
+      "triangles": 6194,
+      "bounds": [
+        [
+          -114.501128440951,
+          27.86,
+          31.53000000000001
+        ],
+        [
+          -88.49999999999977,
+          83.86,
+          71.50275179249694
+        ]
+      ]
+    },
+    "hmi-cover": {
+      "kind": "source-mechanical",
+      "source": "CAD/STP/MYND Print parts HMI cover.stp",
+      "file": "hmi-cover.glb",
+      "bytes": 220304,
+      "triangles": 9154,
+      "bounds": [
+        [
+          -72.5,
+          22.0,
+          143.59999999999997
+        ],
+        [
+          72.5,
+          85.67,
+          162.5000000000001
+        ]
+      ]
+    },
+    "hmi-pad": {
+      "kind": "source-mechanical",
+      "source": "CAD/STP/MYND Print parts Rubber HMI pad.stp",
+      "file": "hmi-pad.glb",
+      "bytes": 591940,
+      "triangles": 24639,
+      "bounds": [
+        [
+          -72.5,
+          28.67,
+          158.89999999999995
+        ],
+        [
+          72.5,
+          85.67,
+          169.42496559304385
+        ]
+      ]
+    }
+  },
+  "sourceSha256": {
+    "PCB_Schematics/KiCad/Main/Mynd_Main.kicad_pcb": "79d954720192004a2960d0446775cdecd87c9b92cc0418085fed7ae059486a22",
+    "PCB_Schematics/KiCad/Main/ALTIUM_EMBEDDED_MODELS/0603_105.step": "f6080d5186b1d4de169a9a033d6ed388373558a5f3304d395306bf4ef1ecc913",
+    "PCB_Schematics/KiCad/Main/ALTIUM_EMBEDDED_MODELS/DQH0008A.stp": "601ee168e4ca56d2bcc73d0654ea0ca9cd7874a8b4cac8568d28ba94bd6dc5cf",
+    "PCB_Schematics/KiCad/Main/ALTIUM_EMBEDDED_MODELS/User Library-RESC1608X___.STEP": "9654eeae5a0b099c1ffe4e54681721c534c01cb2a0508c83b34d912b605c5b09",
+    "PCB_Schematics/KiCad/Main/ALTIUM_EMBEDDED_MODELS/User Library-SOT-23-2.STEP": "11d573c03c4d2801d0f03c534532f93e1995f102f163682294787638eb360cab",
+    "PCB_Schematics/KiCad/Main/ALTIUM_EMBEDDED_MODELS/0603_50.step": "1f9f8efc0850983566f6a60f87144ad9dad0df0725161ac4322988cab6e91c20",
+    "PCB_Schematics/KiCad/Main/ALTIUM_EMBEDDED_MODELS/phb-row-st-smt-2-3p.stp": "1ed581dae96a05756b9778c29c9235c5f47832131c9aada35c14c04c86cab7ca",
+    "PCB_Schematics/KiCad/Main/ALTIUM_EMBEDDED_MODELS/DFN70P101X50-2N.step": "028ef52a3513f75bd0c223af62b787aa2454c3170e0c255181165e14f6b77ef8",
+    "PCB_Schematics/KiCad/Main/ALTIUM_EMBEDDED_MODELS/User Library-RESC2012X___.STEP": "381aa2cd6fd15d80a12c1bb25535d14bed47eb0a4f3dd34ab80df23db40510b6",
+    "PCB_Schematics/KiCad/Main/ALTIUM_EMBEDDED_MODELS/0603_80.step": "5ca990931788858c95f177f65e6df6a4b2794389645a056bf99b04d92304ee05",
+    "PCB_Schematics/KiCad/Main/ALTIUM_EMBEDDED_MODELS/User Library-CAPC3216X___.step": "3d069ac680e72a0c4012a80399d3889df11d78b95611b108134b887a534991aa",
+    "PCB_Schematics/KiCad/Main/ALTIUM_EMBEDDED_MODELS/User Library-SOT457.STEP": "9b46449308aa0eb9d6510d877d2ee3f72edfe65c8c4ff5e38016f60d845fdd94",
+    "PCB_Schematics/KiCad/Main/ALTIUM_EMBEDDED_MODELS/User Library-INDC1608X___.step": "53bb62d2402b52896c4f892bc6fe7698f2fb1f59b077bd27b95b2ebc1d024186",
+    "PCB_Schematics/KiCad/Main/ALTIUM_EMBEDDED_MODELS/6.3x5.4_Chip.stp": "ea1fec29a75d6cca25073a13d88255f82a62b5fc1564cff01a97f66872dc7cc5",
+    "PCB_Schematics/KiCad/Main/ALTIUM_EMBEDDED_MODELS/0805_145.step": "969ceab282df7ba58dbe523ca3d2fe641ab6281e045bd507839e0e7817dbeb82",
+    "PCB_Schematics/KiCad/Main/ALTIUM_EMBEDDED_MODELS/LQFP64_1000X1000X160_50.step": "79a304c96143d3d7830046cb22f8c057555e54534188505773087cc988939103",
+    "PCB_Schematics/KiCad/Main/ALTIUM_EMBEDDED_MODELS/8x10_Chip.stp": "6f5c9093b1673a5a28473f3128042b7416029fa13e815df4c4fbfe16693be920",
+    "PCB_Schematics/KiCad/Main/ALTIUM_EMBEDDED_MODELS/User Library-SOD2513X11.STEP": "281e1b96d1fc1835a9130197d5b49521845997d4db93e6dd6b7f1d6ea648c792",
+    "PCB_Schematics/KiCad/Main/ALTIUM_EMBEDDED_MODELS/RSN0032B.stp": "b2ed7489a62bab8434205d899faea7920d35520613156ecb9c48bbf664f78381",
+    "PCB_Schematics/KiCad/Main/ALTIUM_EMBEDDED_MODELS/JSHC1040.step": "202b1cdf04358f4167610272e4a5a538245c06fe319554da0367cc3ad1e88eeb",
+    "PCB_Schematics/KiCad/Main/ALTIUM_EMBEDDED_MODELS/User Library-RESC3216X___.step": "3b535a9c8ef8de170af7fd77311a2b1eaaaa6efef187b3858368d61767cab95a",
+    "PCB_Schematics/KiCad/Main/ALTIUM_EMBEDDED_MODELS/User Library-SOD-123_DiodesInc.STEP": "45f26dcaa1002f7264fd0646636741a834a836b761a6c703bf04dedac16da820",
+    "PCB_Schematics/KiCad/Main/ALTIUM_EMBEDDED_MODELS/744231061_Download_STP_WE-CNSW-0805_rev1.stp": "32e3660af31c971d9c77e5414b426af5fe9c221eb4f812ecdb2f2d8d5342d2c4",
+    "PCB_Schematics/KiCad/Main/ALTIUM_EMBEDDED_MODELS/User Library-INDC2012X___.step": "d6b4d6d94a46b3c0be270b51f06e0110ecf709c19a292fd541fba2588dacaba9",
+    "PCB_Schematics/KiCad/Main/ALTIUM_EMBEDDED_MODELS/JSHC0630.step": "a3d2aefe1d04b223444e5d01b0d897e0c70a95dba16d96b6d6629a687a952742",
+    "PCB_Schematics/KiCad/Main/ALTIUM_EMBEDDED_MODELS/DGK0008A.stp": "cb34ee2a997ce9cfc577ecabf65960cb6320fc6eea0a9f7f03b647a0ec548ee1",
+    "PCB_Schematics/KiCad/Main/ALTIUM_EMBEDDED_MODELS/User Library-ALU-G.STEP": "fcacaf78526aaeb5d75d93a780555fd09320f3d01ff2c0937c450bced06bd11f",
+    "PCB_Schematics/KiCad/Main/ALTIUM_EMBEDDED_MODELS/RSW0010A.stp": "d2c5d087054e0becf60652ad81abd8f562df120d1b39361d071522fdc214c0ab",
+    "PCB_Schematics/KiCad/Main/ALTIUM_EMBEDDED_MODELS/D0008A.stp": "c0d56c0764e1503cba0ec510e927a3f5f8f768da298b5865a97355e959441233",
+    "PCB_Schematics/KiCad/Main/ALTIUM_EMBEDDED_MODELS/610024243021 (rev1).stp": "abd9185ccf1ec142f3826016acdb7a4f75a3e4d6aafedac7bffdcdaffe162960",
+    "PCB_Schematics/KiCad/Main/ALTIUM_EMBEDDED_MODELS/pin_header_a-sl254-eg-g03mr1.stp": "d8b526b98fd3dc49c1b825e39e824bbb9057cce4d8b2b4c3f4999df7a2ccdbb3",
+    "PCB_Schematics/KiCad/Main/ALTIUM_EMBEDDED_MODELS/RGR0020A.stp": "72345b940b458312b2bff6fbfcbbd2d4de8dc00eead2c68aafed5881238d7222",
+    "PCB_Schematics/KiCad/Main/ALTIUM_EMBEDDED_MODELS/WB200AL-12.stp": "0a0c3c62bb2db06f8c3134f3eba907cac641c666578ed3f19097e30f57f86ccb",
+    "PCB_Schematics/KiCad/Main/ALTIUM_EMBEDDED_MODELS/20-wtb-a-double-row-st-smt-2x5p(1).stp": "1d0c144ac0d5111da93b844c575ff5008d7e3c0477611f976502877ded464072",
+    "PCB_Schematics/KiCad/Main/ALTIUM_EMBEDDED_MODELS/TMPA1206.step": "620eaa94a6122e24f8fbc159c28baae6aa7026f27b6449bcfeeaafc92d05ccb0",
+    "PCB_Schematics/KiCad/Main/ALTIUM_EMBEDDED_MODELS/pin_header_a-sl127-dg-g10mp1.stp": "b3168c5b42454a4c4b5030495ababb057d890ede583448588e287eec09029150",
+    "PCB_Schematics/KiCad/Main/ALTIUM_EMBEDDED_MODELS/User Library-RESC1005X___.step": "0287ef17be1e3c578b077271e8bd57017a213c9f095a97ea58a6dde9389cecdf",
+    "PCB_Schematics/KiCad/Main/ALTIUM_EMBEDDED_MODELS/DBV0003A.stp": "b73a78fdcc6b20bb9dd49cc931fee7f5fe792d3c1a899b365b5be8f2fef14750",
+    "PCB_Schematics/KiCad/Main/ALTIUM_EMBEDDED_MODELS/User Library-SOT-23-5.STEP": "30e62b91d7622a062aa9dc445d47cdb1ae6560091d99a173395fdbcd2c7cd6cf",
+    "PCB_Schematics/KiCad/Main/ALTIUM_EMBEDDED_MODELS/SNR6020B.step": "628ce9008745132128153740fe8ae5c00c0277fef1d9af908315a16667d799e0",
+    "PCB_Schematics/KiCad/Main/ALTIUM_EMBEDDED_MODELS/A2501W_8P.step": "32e015ca83eb04a9926e63b68c9dddbbb18fca9106d81bd1378ce6df1e419544",
+    "PCB_Schematics/KiCad/Main/ALTIUM_EMBEDDED_MODELS/User Library-CAPC1005X___.step": "16c9378aab34baf5ec1e7baa5ebd18d5685a5d13389447e4275b10291a91e075",
+    "PCB_Schematics/KiCad/Amp/Mynd_AMP.kicad_pcb": "91fd378b2b365834ea3110843fbf531af0bfff0860277df97f879ce678521e19",
+    "PCB_Schematics/KiCad/Amp/ALTIUM_EMBEDDED_MODELS/0603_105.step": "f6080d5186b1d4de169a9a033d6ed388373558a5f3304d395306bf4ef1ecc913",
+    "PCB_Schematics/KiCad/Amp/ALTIUM_EMBEDDED_MODELS/User Library-RESC1608X___.STEP": "9654eeae5a0b099c1ffe4e54681721c534c01cb2a0508c83b34d912b605c5b09",
+    "PCB_Schematics/KiCad/Amp/ALTIUM_EMBEDDED_MODELS/User Library-RESC3216X___.step": "3b535a9c8ef8de170af7fd77311a2b1eaaaa6efef187b3858368d61767cab95a",
+    "PCB_Schematics/KiCad/Amp/ALTIUM_EMBEDDED_MODELS/10x10_Chip.stp": "e27c0d495e5bd46d6c8a6bebddb8ce19e55415b7567b59c6988be2cc0b85d6a5",
+    "PCB_Schematics/KiCad/Amp/ALTIUM_EMBEDDED_MODELS/0805_125.step": "b15d2830ee51338dca8ed08b3a6c739cbadde24709a63357d1817f1260af8d3e",
+    "PCB_Schematics/KiCad/Amp/ALTIUM_EMBEDDED_MODELS/0603_50.step": "1f9f8efc0850983566f6a60f87144ad9dad0df0725161ac4322988cab6e91c20",
+    "PCB_Schematics/KiCad/Amp/ALTIUM_EMBEDDED_MODELS/0603_80.step": "5ca990931788858c95f177f65e6df6a4b2794389645a056bf99b04d92304ee05",
+    "PCB_Schematics/KiCad/Amp/ALTIUM_EMBEDDED_MODELS/8x10_Chip.stp": "6f5c9093b1673a5a28473f3128042b7416029fa13e815df4c4fbfe16693be920",
+    "PCB_Schematics/KiCad/Amp/ALTIUM_EMBEDDED_MODELS/JSHC0650.step": "74914484710a1f4a346eae764e4a3174da59c5f6605ddb735b101dbde1c1cd39",
+    "PCB_Schematics/KiCad/Amp/ALTIUM_EMBEDDED_MODELS/JSHC0630.step": "a3d2aefe1d04b223444e5d01b0d897e0c70a95dba16d96b6d6629a687a952742",
+    "PCB_Schematics/KiCad/Amp/ALTIUM_EMBEDDED_MODELS/User Library-CAPC3216X___.step": "3d069ac680e72a0c4012a80399d3889df11d78b95611b108134b887a534991aa",
+    "PCB_Schematics/KiCad/Amp/ALTIUM_EMBEDDED_MODELS/L1612.step": "7d3c804ccdb87ed949276ae644a283dd8c992864f28a14b5e099e93ad888fa10",
+    "PCB_Schematics/KiCad/Amp/ALTIUM_EMBEDDED_MODELS/61002421121 (rev1).stp": "6b3d5a5f6b7260fc5f8405b4fd2d221352d525cc35e9d93aa29b1df7b229458a",
+    "PCB_Schematics/KiCad/Amp/ALTIUM_EMBEDDED_MODELS/0805_145.step": "969ceab282df7ba58dbe523ca3d2fe641ab6281e045bd507839e0e7817dbeb82",
+    "PCB_Schematics/KiCad/Amp/ALTIUM_EMBEDDED_MODELS/User Library-INDC1608X___.step": "53bb62d2402b52896c4f892bc6fe7698f2fb1f59b077bd27b95b2ebc1d024186",
+    "PCB_Schematics/KiCad/Amp/ALTIUM_EMBEDDED_MODELS/RHB0032E.stp": "803a739288fd560a459a381dbbbfd179627d232b9d51b1f3e8fae2a0d31adeea",
+    "PCB_Schematics/KiCad/Amp/ALTIUM_EMBEDDED_MODELS/61001021821 (rev1).stp": "c27fa81cb867ed22004d2c5e727d6ba4a2573fba8a4d52723fcb421f3a05949a",
+    "PCB_Schematics/KiCad/Amp/ALTIUM_EMBEDDED_MODELS/PWP0028C.stp": "15aae524e7c5d67ba301ca17ebfe3ab6393065226478c3b4fca8f85a7273fc46",
+    "PCB_Schematics/KiCad/Bluetooth/Mynd_BT.kicad_pcb": "0eaa2ed330ce1830d54140bcfaff45f7308c9ce05f8c5487d07ce8294adca90d",
+    "PCB_Schematics/KiCad/Bluetooth/ALTIUM_EMBEDDED_MODELS/0603_80.step": "5ca990931788858c95f177f65e6df6a4b2794389645a056bf99b04d92304ee05",
+    "PCB_Schematics/KiCad/Bluetooth/ALTIUM_EMBEDDED_MODELS/61002421121 (rev1).stp": "6b3d5a5f6b7260fc5f8405b4fd2d221352d525cc35e9d93aa29b1df7b229458a",
+    "PCB_Schematics/KiCad/Bluetooth/ALTIUM_EMBEDDED_MODELS/User Library-RESC1608X___.STEP": "9654eeae5a0b099c1ffe4e54681721c534c01cb2a0508c83b34d912b605c5b09",
+    "PCB_Schematics/KiCad/Bluetooth/ALTIUM_EMBEDDED_MODELS/0805_145.step": "969ceab282df7ba58dbe523ca3d2fe641ab6281e045bd507839e0e7817dbeb82",
+    "PCB_Schematics/KiCad/Bluetooth/ALTIUM_EMBEDDED_MODELS/pin_header_a-sl254-eg-g03mr1.stp": "d8b526b98fd3dc49c1b825e39e824bbb9057cce4d8b2b4c3f4999df7a2ccdbb3",
+    "PCB_Schematics/KiCad/Bluetooth/ALTIUM_EMBEDDED_MODELS/User Library-SOD2513X11.STEP": "281e1b96d1fc1835a9130197d5b49521845997d4db93e6dd6b7f1d6ea648c792",
+    "PCB_Schematics/KiCad/Bluetooth/ALTIUM_EMBEDDED_MODELS/User Library-CAPC1005X___.step": "16c9378aab34baf5ec1e7baa5ebd18d5685a5d13389447e4275b10291a91e075",
+    "PCB_Schematics/KiCad/Bluetooth/ALTIUM_EMBEDDED_MODELS/WB2835P.step": "7ca3ca3b8242fc0a1b85bbec696d6500aaa626d6feba4df01014037a37a6b349",
+    "PCB_Schematics/KiCad/Bluetooth/ALTIUM_EMBEDDED_MODELS/User Library-IPEX.STEP": "a0fd5747226ff6ebc47325ed86b013a132a62f7dd4f7332198833d27bf0097b2",
+    "PCB_Schematics/KiCad/Bluetooth/ALTIUM_EMBEDDED_MODELS/SOP127P600-8N.step": "4ccd048d00b4cba12868e76c77b7b1f139a8eeb371394a87fdbdbb4235c9a003",
+    "PCB_Schematics/KiCad/Bluetooth/ALTIUM_EMBEDDED_MODELS/ICMF062P.step": "a83c132ab329243b9165393012daaca3b0facb5d3ef505ffde49f555a0f112f7",
+    "PCB_Schematics/KiCad/Bluetooth/ALTIUM_EMBEDDED_MODELS/D0008A.stp": "c0d56c0764e1503cba0ec510e927a3f5f8f768da298b5865a97355e959441233",
+    "PCB_Schematics/KiCad/Bluetooth/ALTIUM_EMBEDDED_MODELS/User Library-RESC1005X___.step": "0287ef17be1e3c578b077271e8bd57017a213c9f095a97ea58a6dde9389cecdf",
+    "PCB_Schematics/KiCad/Bluetooth/ALTIUM_EMBEDDED_MODELS/User Library-SOT-23-2.STEP": "11d573c03c4d2801d0f03c534532f93e1995f102f163682294787638eb360cab",
+    "PCB_Schematics/KiCad/Bluetooth/ALTIUM_EMBEDDED_MODELS/User Library-SOT-23-5.STEP": "30e62b91d7622a062aa9dc445d47cdb1ae6560091d99a173395fdbcd2c7cd6cf",
+    "PCB_Schematics/KiCad/Bluetooth/ALTIUM_EMBEDDED_MODELS/User Library-INDC1608X___.step": "53bb62d2402b52896c4f892bc6fe7698f2fb1f59b077bd27b95b2ebc1d024186",
+    "PCB_Schematics/KiCad/Bluetooth/ALTIUM_EMBEDDED_MODELS/0603_50.step": "1f9f8efc0850983566f6a60f87144ad9dad0df0725161ac4322988cab6e91c20",
+    "PCB_Schematics/KiCad/Bluetooth/ALTIUM_EMBEDDED_MODELS/User Library-RESC2012X___.STEP": "381aa2cd6fd15d80a12c1bb25535d14bed47eb0a4f3dd34ab80df23db40510b6",
+    "PCB_Schematics/KiCad/UI/Mynd_UI.kicad_pcb": "a96793eedd74b8b61e1c561a0d394c85d56c9d5a92f9091e6b45b949b5b976f6",
+    "PCB_Schematics/KiCad/UI/ALTIUM_EMBEDDED_MODELS/LED_RGB_1608.step": "d9c6db5a27d3e1c9448bb66e02af5725745ccb87d4067e1f708f1f048efe7784",
+    "PCB_Schematics/KiCad/UI/ALTIUM_EMBEDDED_MODELS/43439.stp": "54b494d505e43d1b059335c4928d25a14b8341ff29a3c2fe33ad0ea7e81a1fd4",
+    "PCB_Schematics/KiCad/UI/ALTIUM_EMBEDDED_MODELS/User Library-RESC1608X___.STEP": "9654eeae5a0b099c1ffe4e54681721c534c01cb2a0508c83b34d912b605c5b09",
+    "PCB_Schematics/KiCad/UI/ALTIUM_EMBEDDED_MODELS/0603_80.step": "5ca990931788858c95f177f65e6df6a4b2794389645a056bf99b04d92304ee05",
+    "PCB_Schematics/KiCad/UI/ALTIUM_EMBEDDED_MODELS/DFN70P101X50-2N.step": "028ef52a3513f75bd0c223af62b787aa2454c3170e0c255181165e14f6b77ef8",
+    "PCB_Schematics/KiCad/UI/ALTIUM_EMBEDDED_MODELS/User Library-SOT-23-2.STEP": "11d573c03c4d2801d0f03c534532f93e1995f102f163682294787638eb360cab",
+    "PCB_Schematics/KiCad/UI/ALTIUM_EMBEDDED_MODELS/0805_145.step": "969ceab282df7ba58dbe523ca3d2fe641ab6281e045bd507839e0e7817dbeb82",
+    "PCB_Schematics/KiCad/UI/ALTIUM_EMBEDDED_MODELS/User Library-INDC1608X___.step": "53bb62d2402b52896c4f892bc6fe7698f2fb1f59b077bd27b95b2ebc1d024186",
+    "PCB_Schematics/KiCad/UI/ALTIUM_EMBEDDED_MODELS/User Library-CAPC3216X___.step": "3d069ac680e72a0c4012a80399d3889df11d78b95611b108134b887a534991aa",
+    "PCB_Schematics/KiCad/UI/ALTIUM_EMBEDDED_MODELS/WB200AL-12.stp": "0a0c3c62bb2db06f8c3134f3eba907cac641c666578ed3f19097e30f57f86ccb",
+    "PCB_Schematics/KiCad/UI/ALTIUM_EMBEDDED_MODELS/0603_50.step": "1f9f8efc0850983566f6a60f87144ad9dad0df0725161ac4322988cab6e91c20",
+    "PCB_Schematics/KiCad/UI/ALTIUM_EMBEDDED_MODELS/RGE0024F.stp": "7f8e43b3a2dac5fc663aa913cbc1f026a78bc1608052d830d5d71bc479af3a15",
+    "PCB_Schematics/KiCad/Jack_USB/Mynd_USB_JACK.kicad_pcb": "f8309a980654c1cce43a0a80c1defc9954b6edd683301c8c6c461a70e5c4efdd",
+    "PCB_Schematics/KiCad/Jack_USB/ALTIUM_EMBEDDED_MODELS/0603_80.step": "5ca990931788858c95f177f65e6df6a4b2794389645a056bf99b04d92304ee05",
+    "PCB_Schematics/KiCad/Jack_USB/ALTIUM_EMBEDDED_MODELS/DFN70P101X50-2N.step": "028ef52a3513f75bd0c223af62b787aa2454c3170e0c255181165e14f6b77ef8",
+    "PCB_Schematics/KiCad/Jack_USB/ALTIUM_EMBEDDED_MODELS/0805_145.step": "969ceab282df7ba58dbe523ca3d2fe641ab6281e045bd507839e0e7817dbeb82",
+    "PCB_Schematics/KiCad/Jack_USB/ALTIUM_EMBEDDED_MODELS/0603_50.step": "1f9f8efc0850983566f6a60f87144ad9dad0df0725161ac4322988cab6e91c20",
+    "PCB_Schematics/KiCad/Jack_USB/ALTIUM_EMBEDDED_MODELS/User Library-RESC1005X___.step": "0287ef17be1e3c578b077271e8bd57017a213c9f095a97ea58a6dde9389cecdf",
+    "PCB_Schematics/KiCad/Jack_USB/ALTIUM_EMBEDDED_MODELS/744231061_Download_STP_WE-CNSW-0805_rev1.stp": "32e3660af31c971d9c77e5414b426af5fe9c221eb4f812ecdb2f2d8d5342d2c4",
+    "PCB_Schematics/KiCad/Jack_USB/ALTIUM_EMBEDDED_MODELS/K3D-DX07WH24JA3-V2_JAE_Proprietary.STEP": "0c67297aaf02a3bf734ef3a9d5405f4bfe3551383053f31400c5642264c7daee",
+    "PCB_Schematics/KiCad/Jack_USB/ALTIUM_EMBEDDED_MODELS/PHB-ROW-ST-SMT-2-5P_ASM.step": "e276f56e76057b938935290d6659282893fdb848ea78f8b40061e1efb02f4bd3",
+    "PCB_Schematics/KiCad/Jack_USB/ALTIUM_EMBEDDED_MODELS/User Library-SOD-123FL CASE 498.STEP": "0f06d5de69a2dd8ac63df4f216ec3bc376ff65019b5524b51140d2d09f97c8ef",
+    "PCB_Schematics/KiCad/Jack_USB/ALTIUM_EMBEDDED_MODELS/SCM7060.step": "85f45f6c77732364176f7447f4643e789199783bad32abc1b7148b48ba63b0ce",
+    "PCB_Schematics/KiCad/Jack_Line_In/Mynd_LINE_IN_Jack.kicad_pcb": "8dd0057ffb94d78255feffde6ecae170ac8dc7b233a212778553aef5c5284fea",
+    "PCB_Schematics/KiCad/Jack_Line_In/ALTIUM_EMBEDDED_MODELS/DFN70P101X50-2N.step": "028ef52a3513f75bd0c223af62b787aa2454c3170e0c255181165e14f6b77ef8",
+    "PCB_Schematics/KiCad/Jack_Line_In/ALTIUM_EMBEDDED_MODELS/model_2": "975ed1ff9bc3d3a32bed674e7efea8edb9d9600e5308b354aeb7910367f114a8",
+    "PCB_Schematics/KiCad/Jack_Line_In/ALTIUM_EMBEDDED_MODELS/phb-row-st-smt-2-3p_asm.stp": "6f751fec00694faf091e55110cbaa2d672606ff444681b07b0b03d0f89c57efb",
+    "PCB_Schematics/KiCad/Jack_Line_In/ALTIUM_EMBEDDED_MODELS/User Library-RESC1608X___.STEP": "9654eeae5a0b099c1ffe4e54681721c534c01cb2a0508c83b34d912b605c5b09",
+    "PCB_Schematics/KiCad/Jack_Line_In/ALTIUM_EMBEDDED_MODELS/User Library-SOT-23-2.STEP": "11d573c03c4d2801d0f03c534532f93e1995f102f163682294787638eb360cab",
+    "PCB_Schematics/KiCad/Jack_Line_In/ALTIUM_EMBEDDED_MODELS/0603_50.step": "1f9f8efc0850983566f6a60f87144ad9dad0df0725161ac4322988cab6e91c20",
+    "PCB_Schematics/KiCad/Jack_Line_In/ALTIUM_EMBEDDED_MODELS/User Library-INDC1608X___.step": "53bb62d2402b52896c4f892bc6fe7698f2fb1f59b077bd27b95b2ebc1d024186",
+    "PCB_Schematics/KiCad/Conn_Bat/Mynd_Batt.kicad_pcb": "488eeb20eeadf6793d90b70fdee28457d53413153ebf369228b8a32242bfe610",
+    "PCB_Schematics/KiCad/Conn_Bat/ALTIUM_EMBEDDED_MODELS/TSB1.step": "deec37260155d88871fbbdb2314bf5367112d553408d06e5224ba14f6bacf45c",
+    "PCB_Schematics/KiCad/Conn_Bat/ALTIUM_EMBEDDED_MODELS/A2501W_8P.step": "32e015ca83eb04a9926e63b68c9dddbbb18fca9106d81bd1378ce6df1e419544",
+    "PCB_Schematics/KiCad/Conn_Amp/Mynd_Conn.kicad_pcb": "baf56c66e7d3984eab060507a36fe6d34b358ee23a3dd9865dc85ba7fc5e89b3",
+    "PCB_Schematics/KiCad/Conn_Amp/ALTIUM_EMBEDDED_MODELS/pin_header_a-sl254-da-g10mp1.stp": "0320320a30ea01fd0651dc9786756775ad9130a61a5e0392118b677769ba8a16",
+    "PCB_Schematics/KiCad/Conn_Amp/ALTIUM_EMBEDDED_MODELS/tsb0-0128d-00xxa_asm__sw0001.stp": "d89c0a43efcb5a9bcce1a3253903b123494d8d204ed3af4e7cce45f4fcf98a5c",
+    "PCB_Schematics/KiCad/Conn_Baffle/Mynd_Baffle.kicad_pcb": "536c559abbd4a69c029a0b87f7302aa5dfacc20954953726f8e100f0345ae6c5",
+    "PCB_Schematics/KiCad/Conn_Baffle/ALTIUM_EMBEDDED_MODELS/A2501_6P.step": "12633021ae5ee7195215d2498910b9a35af7876125f8b031f24686afe515fe64",
+    "PCB_Schematics/KiCad/Conn_Baffle/ALTIUM_EMBEDDED_MODELS/TSB1.step": "deec37260155d88871fbbdb2314bf5367112d553408d06e5224ba14f6bacf45c",
+    "CAD/STP/MYND Print parts PR Frame.stp": "f8995942b59229d2adf116f7ff98e4a66a4a5e85bcb0727ecbda4afe069f5e2a",
+    "CAD/STP/MYND Print parts Port housing.stp": "1ccd92bc5c13fd78a7e2519a31fbc0df2c7119186038dc8362162f7c178eda58",
+    "CAD/STP/MYND Print parts HMI cover.stp": "ba5bec4717ab452821d6395232b77b397824b841c80b23f8caf0645a199cc7e6",
+    "CAD/STP/MYND Print parts Rubber HMI pad.stp": "3f906f8d25e060b0388aad07ddb59dbb682fc1fef65a6e7b5ed8721d7614ad03"
+  }
+}

@@ -2,6 +2,7 @@
 import type { MultiPolygon, Pair } from "polygon-clipping";
 import { defaultTint } from "./acrylic-material";
 import { defaultSheetMaterials, normalizeSheetThicknesses, sheetThickness, sheetMaterialExport, sheetMaterialAttributes, type SheetMaterialConfiguration } from "./sheet-materials";
+import { speakerFasteners, speakerBoardPlacements } from "./speaker-hardware";
 import { standPathData } from "./synth-stand";
 
 export const myndSource = "https://github.com/teufelaudio/mynd-hardware";
@@ -91,13 +92,13 @@ export function createSpeaker(input: SpeakerConfiguration) {
 }
 export type Speaker = ReturnType<typeof createSpeaker>;
 export const speakerBuildNotes = [
-  "Reuse the MYND woofer, both tweeters, both passive radiators, original amplifier, main and Bluetooth boards, battery, UI, USB-C/AUX assemblies and wiring. Electronics in the preview are placement references, not detailed component or cable models.",
-  "Bond the baffle, top, base and side sheets into a sealed shell. Four M3 corner tie rods retain a gasketed removable rear; use spacers and load-spreading washers. Mount the grille on separate spacers at those same centres. Seal penetrations and retain service access.",
+  "Reuse the MYND woofer, both tweeters, both passive radiators, original amplifier, main and Bluetooth boards, battery, UI, USB-C/AUX assemblies and wiring. The preview uses nine original PCB layouts with 788 referenced component models, plus the released radiator frames, port housing and HMI parts. Driver diaphragms, baskets, battery pack and cable routes are reconstructions; assembly placements in this new shell are provisional.",
+  "Bond the baffle, top, base and side sheets into a sealed shell. Four M3 corner tie rods retain a gasketed removable rear with nuts and load-spreading washers. The preview includes these fasteners, driver screws and board standoffs. Mount the grille on separate spacers at those same centres. Seal penetrations and retain service access.",
   "Baffle centres and woofer/radiator screw centres come from Teufel’s STEP files. The 86 mm woofer and 39.4 mm tweeter openings reference CAD seating circles. Radiator windows are simplified 50 × 100 mm profiles. Verify seating, screw sizes, gaskets and adapter/clamp rings on the donor hardware; the original moulded recesses and tweeter clips are not reproduced in flat sheet.",
   "The side opening is based on the port-housing envelope; the top control opening is a proposed adapter opening. Fit and seal the original pods with custom adapters. PCB standoffs, battery restraint, tweeter retainers and pod adapters require donor measurements and are not included in the acrylic cutting patterns.",
   "The dot grille sits outside the acoustic chamber. Keep both passive radiators free to move. Gross internal volume excludes drivers, boards, battery and bracing; it is not the stock acoustic volume. Prototype sealing, panel resonance, radiator travel and DSP tuning. The replacement enclosure has no validated acoustic or IP rating.",
 ];
-export const speakerHardware = ["MYND donor: 1 woofer, 2 tweeters, 2 passive radiators; retain original gaskets and frames", "Original MYND electronics, protected battery pack, controls, USB-C/AUX pods and wiring", "4 M3 corner tie rods, nuts, grille spacers and load-spreading washers; size to the chosen depth", "Rear perimeter gasket, acrylic-compatible bonding system and sealed pod adapters", "Measured PCB standoffs, battery restraint and driver mounting adapters / retainers"];
+export const speakerHardware = ["MYND donor: 1 woofer, 2 tweeters, 2 passive radiators; retain original gaskets and frames", "Original MYND electronics, protected battery pack, controls, USB-C/AUX pods and wiring", "4 M3 corner tie rods, 4 rear nuts, 4 threaded grille spacers, 4 grille screws and 16 corner washers; size to the chosen depth", "20 illustrative M3 driver/radiator screws and washers; verify thread and engagement against the donor", "Rear perimeter gasket, acrylic-compatible bonding system and sealed pod adapters", "Measured PCB standoffs, battery restraint and driver mounting adapters / retainers"];
 export function speakerSheetLayout(speaker: Speaker) {
   let x=10,y=10,rowHeight=0,right=0;
   const parts=speaker.parts.map(part=>{
@@ -111,6 +112,7 @@ export function speakerExport(speaker: Speaker) {
   return { product:"Acryl508",mode:"speaker",version:1,units:"mm",status:"unvalidated-prototype",configuration:speaker.config,
     source:{repository:myndSource,revision:myndRevision,license:"CC-BY-SA-4.0",changes:"Flat acrylic enclosure, simplified seating apertures, service openings and perforated grille; not a Teufel product or validated replacement."},
     dimensions:{width:speaker.config.width,height:speaker.config.height,bodyDepth:speaker.config.depth,totalDepth:speaker.totalDepth,grossVolumeLitres:speaker.grossVolumeLitres},
+    previewHardware:{modelManifest:"/models/mynd/manifest.json",fasteners:speakerFasteners(speaker),boardPlacements:speakerBoardPlacements(speaker),status:"Source PCB/component/mechanical meshes; reconstructed drivers and battery; provisional placement and cable routing"},
     grille:{holes:speaker.dots.length,openAreaPercent:speaker.openArea},drivers:myndDrivers,parts:speaker.parts,sheetMaterials:sheetMaterialExport(speaker.config,speaker.parts),hardware:speakerHardware,notes:speakerBuildNotes,
     coordinates:"Millimetres. Sheet X right, Y up, thickness centred on local Z. Apply XYZ Euler rotation (radians) then position for assembly. Scene Z points forward. Explode vectors are preview-only offsets.",
   };
