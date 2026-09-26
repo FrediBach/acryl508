@@ -35,10 +35,21 @@ Source files under `CAD/STP/`:
   source screw centres: `|X| = 63,101` at `Z = 22.5,121.5`, and
   `|X| = 52.95,111.05` at `Z = 55,89`. The chosen 3.4 mm through holes are a new
   clearance-hole design, not the donor's pilot-bore diameter.
-- `MYND Print parts Port housing.stp`: vertex bounds are approximately
-  `X = −114.501…−88.5`, `Y = 27.86…83.86`, `Z = 33.03…70.03` mm.
-  The default side window uses the 56 × 37 mm envelope at height 51.28 mm
-  above the new body's base. An adapter and gasket are still needed.
+- `MYND Print parts Port housing.stp`: the flange spans 56 mm across source Y.
+  The side-sheet cut now follows its **central access wire at source X = −114.5**,
+  sampled with 0.03 mm chord tolerance, rather than cutting out the flange envelope.
+  Its bounds are approximately **40.991 × 20.089 mm**. Source Y/Z mounting axes
+  are `(31.36,51.28)`, `(80.86,51.28)`, `(54.36,37.03)`, `(54.36,66.03)`.
+  The side bores are Ø2.6 through a 2 mm flange; the recessed top/bottom bores
+  are Ø3.5 through source X = −107.5…−105.5 (7 mm recess, 9 mm total depth).
+  New sheet cuts are Ø2.8 for M2.5 and Ø3.4 for M3. The preview proposes through
+  screws, backing washers/nuts and two 7 mm sleeves in the recessed mounts.
+  The flange sits against the inner sheet face; the opening, holes and housing
+  share their source datum even with mixed sheet thicknesses and exploded view.
+  `scripts/extract-mynd-port.py` reproduces `lib/mynd-port.ts` from that STEP.
+  Old adjustable rectangular port dimensions normalize to the fixed donor profile.
+  These are proposed flat-sheet fasteners, not a verified donor fastening method;
+  verify access, sealing, tolerances and nut clearance on the physical assembly.
 - `MYND Print parts HMI cover.stp` has approximately 145 mm span in X.
   The **148 × 24 mm top opening is a proposed adapter**, not a direct projection
   of that cover. It is adjustable independently of the case dimensions.

@@ -6,7 +6,8 @@ import { Euler, Quaternion, Vector3 } from "three";
 import polygonClipping from "polygon-clipping";
 const { myndBoardMounts } = await loadTypescript("../lib/mynd-mounts.ts");
 const { createSpeaker, defaultSpeakerConfiguration } = await loadTypescript("../lib/speaker.ts");
-const { speakerFasteners, speakerBoardPlacements } = await loadTypescript("../lib/speaker-hardware.ts");
+const { speakerFasteners, speakerBoardPlacements, speakerPortPlacement } = await loadTypescript("../lib/speaker-hardware.ts");
+const { myndPort, myndPortOpening, myndPortMounts } = await loadTypescript("../lib/mynd-port.ts");
 const manifest = JSON.parse(readFileSync(new URL("../public/models/mynd/manifest.json", import.meta.url)));
 const close = (a,b) => assert.ok(Math.abs(a-b)<1e-8, `${a} ≈ ${b}`);
 
@@ -15,7 +16,7 @@ test("every corner spacer fills the physical gap between the two washers", () =>
     const s=createSpeaker({...defaultSpeakerConfiguration,grilleGap,depth,thickness});
     const f=speakerFasteners(s);
     assert.equal(f.filter(p=>p.kind === "spacer" && p.id.startsWith("corner-")).length,4);
-    assert.equal(f.filter(p=>p.kind === "screw").length,59);
+    assert.equal(f.filter(p=>p.kind === "screw").length,63);
     for(let i=1;i<=4;i++) {
       const get=suffix=>f.find(p=>p.id === `corner-${i}-${suffix}`);
       const spacer=get("spacer"), back=get("baffle-washer"), front=get("grille-inner-washer");
@@ -36,7 +37,7 @@ test("source mounts, sheet cuts and screw axes coincide across sizes and mixed t
     const s=createSpeaker({...defaultSpeakerConfiguration,depth,height,thickness,controlDepth:35,
       individualSheetMaterials:true,sheetThicknesses:{baffle:3,rear:8,top:8,bottom:3}});
     const fasteners=speakerFasteners(s);
-    assert.deepEqual(Object.fromEntries(["top","bottom","rear","baffle"].map(id=>[id,s.panelMounts.filter(m=>m.parent===id).length])),{top:8,bottom:6,rear:10,baffle:3});
+    assert.deepEqual(Object.fromEntries(["top","bottom","rear","baffle","left"].map(id=>[id,s.panelMounts.filter(m=>m.parent===id).length])),{top:8,bottom:6,rear:10,baffle:3,left:4});
     for (const mount of s.panelMounts) {
       const panel=s.parts.find(p=>p.id===mount.parent);
       const inverse=new Quaternion().setFromEuler(new Euler(...panel.rotation)).invert();
@@ -70,6 +71,40 @@ test("source mounts, sheet cuts and screw axes coincide across sizes and mixed t
       close(support.position[1]-support.length/2,height/2-8-11.6);
       assert.ok(outer.position[1]-outer.length>inner.position[1]+inner.length,"Opposing top screw tips stay apart");
     }
+  }
+});
+
+test("port sheet uses the source access wire and all four housing axes, including legacy projects", () => {
+  assert.deepEqual(myndPortMounts.map(m=>[m.y,m.z]),[[31.36,51.28],[80.86,51.28],[54.36,37.03],[54.36,66.03]]);
+  assert.ok(myndPortOpening.length>50,"Curved and notched source wire is retained");
+  close(myndPort.width,40.99132);close(myndPort.openingHeight,20.08888);
+  for(const width of [280,420]) for(const height of [190,300]) for(const thickness of [3,8]) {
+    const s=createSpeaker({...defaultSpeakerConfiguration,width,height,portWidth:65,portHeight:45,
+      individualSheetMaterials:true,sheetThicknesses:{left:thickness,baffle:8,rear:3,top:3,bottom:8}});
+    const panel=s.parts.find(p=>p.id==="left"),fasteners=speakerFasteners(s);
+    assert.equal(panel.polygons[0].length,6,"One access wire and four independent screw holes");
+    assert.equal(s.config.portWidth,myndPort.width);assert.equal(s.config.portHeight,myndPort.openingHeight);
+    const sourceToWorld=p=>new Vector3(...p).applyEuler(new Euler(-Math.PI/2,0,0)).add(new Vector3(...speakerPortPlacement(s.config)));
+    const toWorld=p=>new Vector3(...p,0).applyEuler(new Euler(...panel.rotation)).add(new Vector3(...panel.position));
+    for(const [i,point] of [...panel.polygons[0][1]].reverse().entries()) {
+      const actual=toWorld(point),[u,v]=myndPortOpening[i];
+      const expected=sourceToWorld([myndPort.sourceFace,u+myndPort.depthOrigin,v+myndPort.height]);
+      close(actual.y,expected.y);close(actual.z,expected.z);
+      close(expected.x-actual.x,thickness/2,"Housing flange meets inner sheet");
+    }
+    myndPortMounts.forEach((mount,i)=>{
+      const axis=sourceToWorld([myndPort.sourceFace,mount.y,mount.z]);
+      const screw=fasteners.find(f=>f.id===`port-${i}-sheet-screw`),nut=fasteners.find(f=>f.id===`port-${i}-housing-nut`);
+      close(screw.position[1],axis.y);close(screw.position[2],axis.z);
+      close(screw.position[0],-width/2-0.5);close(screw.shaftRadius,mount.shaftRadius);
+      close(nut.position[0],axis.x+mount.clampDepth+1.7);
+      assert.ok(screw.position[0]+screw.length>nut.position[0]+nut.length/2,"Screw engages backing nut");
+      if(mount.seatDepth) {
+        const sleeve=fasteners.find(f=>f.id===`port-${i}-support`);
+        close(sleeve.position[0]-sleeve.length/2,axis.x);
+        close(sleeve.position[0]+sleeve.length/2,axis.x+7);
+      }
+    });
   }
 });
 

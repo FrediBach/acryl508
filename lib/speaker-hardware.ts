@@ -1,13 +1,14 @@
 import { sheetThickness } from "./sheet-materials";
 import { Euler, Quaternion, Vector3 } from "three";
 import { myndBoardMounts, myndControlMounts } from "./mynd-mounts";
+import { myndPort, myndPortMounts } from "./mynd-port";
 import type { Speaker, SpeakerConfiguration, SpeakerPart } from "./speaker";
 
 export type HardwarePoint = [number, number, number];
 export type SpeakerFastener = {
   id: string; kind: "rod" | "spacer" | "washer" | "screw" | "nut";
   position: HardwarePoint; length: number; radius: number; bore: number;
-  direction: 1 | -1; parent: string; rotation?: HardwarePoint;
+  direction: 1 | -1; parent: string; rotation?: HardwarePoint; shaftRadius?: number;
 };
 /** Millimetres, Z along the fastener axis. Attached items travel with their
  * panel during disassembly; a spacer never stretches to fill an exploded gap. */
@@ -40,15 +41,25 @@ export function speakerFasteners(speaker: Speaker, exploded = false): SpeakerFas
   });
   for (const mount of speaker.panelMounts) {
     const panel = speaker.parts.find(p => p.id === mount.parent)!;
-    const rotation: HardwarePoint = panel.id === "top" ? [-Math.PI / 2, 0, 0] : panel.id === "bottom" ? [Math.PI / 2, 0, 0] : panel.id === "rear" ? [0, Math.PI, 0] : [0, 0, 0];
+    const rotation: HardwarePoint = panel.id === "left" ? [0, -Math.PI / 2, 0] : panel.id === "top" ? [-Math.PI / 2, 0, 0] : panel.id === "bottom" ? [Math.PI / 2, 0, 0] : panel.id === "rear" ? [0, Math.PI, 0] : [0, 0, 0];
     const normal = new Vector3(0, 0, 1).applyEuler(new Euler(...rotation));
     const centre = new Vector3(...mount.position, 0).applyEuler(new Euler(...panel.rotation)).add(new Vector3(...panel.position));
     if (exploded) centre.add(new Vector3(...panel.explode));
     const addMount = (suffix: string, kind: SpeakerFastener["kind"], distance: number, length: number, radius: number, bore: number, inward = false) => {
       const position = centre.clone().addScaledVector(normal, panel.thickness / 2 + distance).toArray() as HardwarePoint;
       items.push({ id: `${mount.id}-${suffix}`, kind, position, length, radius, bore, parent: panel.id, direction: 1,
-        rotation: inward ? [Math.PI / 2, 0, 0] : rotation });
+        rotation: inward ? [Math.PI / 2, 0, 0] : rotation, ...(mount.port ? { shaftRadius: mount.port.shaftRadius } : {}) });
     };
+    if (mount.port) {
+      const { shaftRadius, clampDepth, seatDepth } = mount.port;
+      const washerRadius = shaftRadius === 1.25 ? 2.8 : 3.5;
+      addMount("sheet-washer", "washer", 0.25, 0.5, washerRadius, shaftRadius + 0.2);
+      addMount("sheet-screw", "screw", 0.5, panel.thickness + clampDepth + 4.5, shaftRadius + 1, 0);
+      addMount("housing-washer", "washer", -panel.thickness-clampDepth-0.25, 0.5, washerRadius, shaftRadius+0.2);
+      addMount("housing-nut", "nut", -panel.thickness-clampDepth-1.7, 2.4, shaftRadius+1.7, shaftRadius);
+      if (seatDepth) addMount("support", "spacer", -panel.thickness-seatDepth/2, seatDepth, 2.75, shaftRadius+0.2);
+      continue;
+    }
     addMount("sheet-washer", "washer", 0.25, 0.5, 3.5, 1.7);
     addMount("sheet-screw", "screw", 0.5, panel.thickness + 3, 2.75, 0);
     if (mount.parent === "top") {
@@ -80,7 +91,7 @@ export function speakerBoardPlacements(speaker: { config: SpeakerConfiguration; 
   return boards.map(board => ({ ...board, position: board.position.map((value, i) => value + (exploded ? speaker.parts.find(p => p.id === board.parent)!.explode[i] : 0)) as HardwarePoint }));
 }
 
-export type SpeakerPanelMount = { id: string; parent: string; position: [number, number]; diameter: number };
+export type SpeakerPanelMount = { id: string; parent: string; position: [number, number]; diameter: number; port?: { shaftRadius: number; clampDepth: number; seatDepth: number } };
 /** Project source mounting axes into each sheet's own cutting coordinates. */
 export function speakerPanelMounts(speaker: { config: SpeakerConfiguration; parts: SpeakerPart[] }): SpeakerPanelMount[] {
   const mounts: SpeakerPanelMount[] = [];
@@ -95,5 +106,11 @@ export function speakerPanelMounts(speaker: { config: SpeakerConfiguration; part
   }
   const top = speaker.parts.find(p => p.id === "top")!;
   myndControlMounts.forEach(([x, z], i) => mounts.push({ id: `hmi-${i}`, parent: "top", position: [x, z - top.position[2]], diameter: 3.5 }));
+  const left = speaker.parts.find(p => p.id === "left")!;
+  myndPortMounts.forEach(({ y, z, diameter, ...port }, i) => mounts.push({ id: `port-${i}`, parent: "left", position: [y-myndPort.depthOrigin+left.position[2], z-speaker.config.height/2-left.position[1]], diameter, port }));
   return mounts;
+}
+
+export function speakerPortPlacement(config: SpeakerConfiguration): HardwarePoint {
+  return [-config.width/2+sheetThickness(config,"left")-myndPort.sourceFace, -config.height/2, myndPort.depthOrigin];
 }

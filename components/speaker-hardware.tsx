@@ -4,7 +4,7 @@ import { useGLTF, RoundedBox, Line } from "@react-three/drei";
 import { CatmullRomCurve3, DoubleSide, Path, Shape, Vector2, Vector3 } from "three";
 import { myndDrivers, speakerRoundedRect, type Speaker } from "@/lib/speaker";
 import { sheetThickness } from "@/lib/sheet-materials";
-import { speakerBoardPlacements, speakerFasteners, type HardwarePoint, type SpeakerFastener } from "@/lib/speaker-hardware";
+import { speakerBoardPlacements, speakerFasteners, speakerPortPlacement, type HardwarePoint, type SpeakerFastener } from "@/lib/speaker-hardware";
 import manifest from "@/public/models/mynd/manifest.json";
 import { myndBoardMounts } from "@/lib/mynd-mounts";
 import { ModelStatusReporter, SpeakerModelBoundary, type ModelStatusChange } from "./speaker-model-status";
@@ -29,16 +29,16 @@ function Annulus({ radius, bore, length, hex = false, color = "#a7adb3" }: { rad
   }, [radius, bore, hex]);
   return <mesh position={[0, 0, -length / 2]}><extrudeGeometry args={[shape, { depth: length, bevelEnabled: false, curveSegments: 16 }]} /><meshStandardMaterial color={color} metalness={0.8} roughness={0.28} /></mesh>;
 }
-function Screw({ length, radius = 2.75 }: { length: number; radius?: number }) {
+function Screw({ length, radius = 2.75, shaftRadius = 1.5 }: { length: number; radius?: number; shaftRadius?: number }) {
   return <group>
-    <mesh position={[0, 0, -length / 2]} rotation={[Math.PI / 2, 0, 0]}><cylinderGeometry args={[1.5, 1.5, length, 12]} /><meshStandardMaterial color="#83888d" metalness={0.8} roughness={0.3} /></mesh>
+    <mesh position={[0, 0, -length / 2]} rotation={[Math.PI / 2, 0, 0]}><cylinderGeometry args={[shaftRadius, shaftRadius, length, 12]} /><meshStandardMaterial color="#83888d" metalness={0.8} roughness={0.3} /></mesh>
     <mesh position={[0, 0, 1.5]} rotation={[Math.PI / 2, 0, 0]}><cylinderGeometry args={[radius, radius, 3, 24]} /><meshStandardMaterial color="#4b5156" metalness={0.8} roughness={0.28} /></mesh>
     <mesh position={[0, 0, 3.01]}><circleGeometry args={[1.3, 6]} /><meshStandardMaterial color="#090c10" roughness={0.85} /></mesh>
   </group>;
 }
 function Fastener({ item }: { item: SpeakerFastener }) {
   return <group name={item.id} position={item.position} rotation={item.rotation ?? [0, item.direction < 0 ? Math.PI : 0, 0]}>
-    {item.kind === "screw" ? <Screw length={item.length} radius={item.radius} /> : item.kind === "rod" ? <mesh rotation={[Math.PI / 2, 0, 0]}><cylinderGeometry args={[item.radius, item.radius, item.length, 12]} /><meshStandardMaterial color="#777d83" metalness={0.85} roughness={0.3} /></mesh> : <Annulus radius={item.radius} bore={item.bore} length={item.length} hex={item.kind === "nut" || item.kind === "spacer"} />}
+    {item.kind === "screw" ? <Screw length={item.length} radius={item.radius} shaftRadius={item.shaftRadius} /> : item.kind === "rod" ? <mesh rotation={[Math.PI / 2, 0, 0]}><cylinderGeometry args={[item.radius, item.radius, item.length, 12]} /><meshStandardMaterial color="#777d83" metalness={0.85} roughness={0.3} /></mesh> : <Annulus radius={item.radius} bore={item.bore} length={item.length} hex={item.kind === "nut" || item.kind === "spacer"} />}
   </group>;
 }
 function Profile({ points, color, metalness = 0 }: { points: number[][]; color: string; metalness?: number }) {
@@ -81,7 +81,7 @@ function Cable({ points, color, radius = 0.65 }: { points: HardwarePoint[]; colo
 function SourceAssemblies({ speaker, exploded }: { speaker: Speaker; exploded: boolean }) {
   const c = speaker.config, t = (id: string) => sheetThickness(c, id);
   const offset = (id: string): HardwarePoint => exploded ? speaker.parts.find(p => p.id === id)!.explode : [0, 0, 0];
-  const front = c.depth / 2 - t("baffle"), top = c.height / 2 - t("top"), left = -c.width / 2 + t("left");
+  const front = c.depth / 2 - t("baffle"), top = c.height / 2 - t("top");
   const boards = speakerBoardPlacements(speaker, exploded);
   return <>
     {boards.map(board => {
@@ -96,7 +96,7 @@ function SourceAssemblies({ speaker, exploded }: { speaker: Speaker; exploded: b
       </group>;
     })}
     <group position={offset("baffle")}><group rotation={[-Math.PI / 2, 0, 0]} position={[0, -90, front + 17.8]}><SourceModel asset="radiator-frames" /></group></group>
-    <group position={offset("left")}><group rotation={[-Math.PI / 2, 0, 0]} position={[left + 114.5, -c.height / 2, 55.86]}><SourceModel asset="port-housing" /></group></group>
+    <group position={offset("left")}><group rotation={[-Math.PI / 2, 0, 0]} position={speakerPortPlacement(c)}><SourceModel asset="port-housing" /></group></group>
     <group position={offset("top")}><group rotation={[-Math.PI / 2, 0, 0]} position={[0, top - 170.5, 57.17]}><SourceModel asset="hmi-cover" /><SourceModel asset="hmi-pad" /></group></group>
   </>;
 }
