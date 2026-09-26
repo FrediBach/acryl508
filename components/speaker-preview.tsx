@@ -32,13 +32,15 @@ function Sheet({ part, speaker, exploded }: { part: SpeakerPart; speaker: Speake
 function Camera({ speaker,view,resetKey,exploded }: Omit<Props,"dark"|"hardware">) {
   const controls=useRef<OrbitControlsImpl>(null),{camera,size,invalidate}=useThree();
   const {width,height,depth}=speaker.config;
+  const totalHeight=speaker.totalHeight, footHeight=totalHeight-height;
   useEffect(()=>{
     const aspect=size.width/Math.max(1,size.height);
-    const distance=Math.max((width+(exploded ? 100 : 0))/100/aspect,(height+(exploded ? 100 : 0))/100,(depth+100)/100)*2.25;
+    const distance=Math.max((width+(exploded ? 100 : 0))/100/aspect,(totalHeight+(exploded ? 100 : 0))/100,(depth+100)/100)*2.25;
     const direction=view === "front" ? new Vector3(0,0,1) : view === "rear" ? new Vector3(0,0,-1) : new Vector3(0.85,0.5,1.3).normalize();
-    camera.position.copy(direction.multiplyScalar(distance));camera.lookAt(0,0,0);
-    if(controls.current){controls.current.target.set(0,0,0);controls.current.update();}invalidate();
-  },[camera,size.width,size.height,width,height,depth,exploded,view,resetKey,invalidate]);
+    const target=new Vector3(0,-footHeight/200,0);
+    camera.position.copy(direction.multiplyScalar(distance).add(target));camera.lookAt(target);
+    if(controls.current){controls.current.target.copy(target);controls.current.update();}invalidate();
+  },[camera,size.width,size.height,width,totalHeight,footHeight,depth,exploded,view,resetKey,invalidate]);
   return <OrbitControls ref={controls} makeDefault enablePan={false} minDistance={1} maxDistance={30} />;
 }
 export function SpeakerPreview(props: Props) {
@@ -49,7 +51,7 @@ export function SpeakerPreview(props: Props) {
     <Suspense fallback={null}><Environment resolution={128} frames={1}><Lightformer position={[0,5,-3]} rotation={[Math.PI/2,0,0]} scale={[10,8,1]} intensity={3} /><Lightformer position={[-5,2,1]} rotation={[0,Math.PI/2,0]} scale={[6,3,1]} intensity={4} /></Environment>
       {speaker.parts.map(part=><Sheet key={part.id} part={part} speaker={speaker} exploded={exploded} />)}
       <SpeakerHardware speaker={speaker} exploded={exploded} donorVisible={hardware} onStatusChange={setModelStatus} />
-      <ContactShadows key={JSON.stringify([speaker.config,exploded,hardware])} position={[0,-speaker.config.height/200-(exploded ? 0.4 : 0.03),0]} opacity={dark ? 0.45 : 0.25} scale={15} blur={2.4} far={5} resolution={512} frames={1} color="#24231e" />
+      <ContactShadows key={JSON.stringify([speaker.config,exploded,hardware])} position={[0,Math.min(speaker.floorY,-speaker.config.height/2-(exploded ? 35 : 0))/100-0.03,0]} opacity={dark ? 0.45 : 0.25} scale={15} blur={2.4} far={5} resolution={512} frames={1} color="#24231e" />
     </Suspense><Camera {...props} />
   </Canvas><SpeakerModelMessage status={hardware ? modelStatus : null} /></PreviewBoundary>;
 }

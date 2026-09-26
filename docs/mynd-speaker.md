@@ -184,3 +184,18 @@ Projects store the editable speaker configuration independently, including
 per-sheet materials. Older version-1 projects gain speaker defaults. Design
 JSON includes source provenance and construction notes; both direct SVG and
 fabrication-stock SVG retain upstream attribution and prototype limitations.
+
+## Optional integral feet
+
+Speaker feet are off by default. The enclosure controls offer the same **Pads,
+Arch and Runners** profiles as the Eurorack case, with 8–30 mm height (15 mm by
+default). Both sides reuse `flatFeetBottomEdge`; no extra parts or screws are
+added. Feet grow below the body, preserving all driver, PCB, joint and port
+positions. Enabled sides extend to the exterior base, and the base width fits
+between their inner faces to avoid overlapping solid acrylic. Disabling feet
+restores the original bottom and side cuts. Curved outlines are sampled into
+shared polygons, so preview, SVG and fabrication packing use the same geometry.
+
+Overall height includes the feet; the stated body height and chamber volume do
+not. The floor shadow and camera framing follow the foot height. Settings persist
+in speaker/project JSON, with older designs retaining their original flat base.
