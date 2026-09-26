@@ -94,7 +94,7 @@
         "PCB_Schematics/KiCad/Main/ALTIUM_EMBEDDED_MODELS/pin_header_a-sl254-eg-g03mr1.stp"
       ],
       "file": "pcb-main.glb",
-      "bytes": 6867900,
+      "bytes": 7270136,
       "triangles": 278048,
       "bounds": [
         [
@@ -166,7 +166,7 @@
         "PCB_Schematics/KiCad/Amp/ALTIUM_EMBEDDED_MODELS/User Library-RESC3216X___.step"
       ],
       "file": "pcb-amp.glb",
-      "bytes": 2109140,
+      "bytes": 2231032,
       "triangles": 85427,
       "bounds": [
         [
@@ -238,7 +238,7 @@
         "PCB_Schematics/KiCad/Bluetooth/ALTIUM_EMBEDDED_MODELS/pin_header_a-sl254-eg-g03mr1.stp"
       ],
       "file": "pcb-bluetooth.glb",
-      "bytes": 1514832,
+      "bytes": 1621964,
       "triangles": 61029,
       "bounds": [
         [
@@ -283,7 +283,7 @@
         "PCB_Schematics/KiCad/UI/ALTIUM_EMBEDDED_MODELS/WB200AL-12.stp"
       ],
       "file": "pcb-ui.glb",
-      "bytes": 904884,
+      "bytes": 953960,
       "triangles": 36331,
       "bounds": [
         [
@@ -326,7 +326,7 @@
         "PCB_Schematics/KiCad/Jack_USB/ALTIUM_EMBEDDED_MODELS/User Library-SOD-123FL CASE 498.STEP"
       ],
       "file": "pcb-jack-usb.glb",
-      "bytes": 430432,
+      "bytes": 454884,
       "triangles": 17146,
       "bounds": [
         [
@@ -366,7 +366,7 @@
         "PCB_Schematics/KiCad/Jack_Line_In/ALTIUM_EMBEDDED_MODELS/phb-row-st-smt-2-3p_asm.stp"
       ],
       "file": "pcb-jack-line-in.glb",
-      "bytes": 203688,
+      "bytes": 215584,
       "triangles": 8028,
       "bounds": [
         [
@@ -412,7 +412,7 @@
         "PCB_Schematics/KiCad/Conn_Bat/ALTIUM_EMBEDDED_MODELS/TSB1.step"
       ],
       "file": "pcb-conn-bat.glb",
-      "bytes": 227280,
+      "bytes": 265968,
       "triangles": 10492,
       "bounds": [
         [
@@ -447,7 +447,7 @@
         "PCB_Schematics/KiCad/Conn_Amp/ALTIUM_EMBEDDED_MODELS/tsb0-0128d-00xxa_asm__sw0001.stp"
       ],
       "file": "pcb-conn-amp.glb",
-      "bytes": 146592,
+      "bytes": 159160,
       "triangles": 5772,
       "bounds": [
         [
@@ -498,7 +498,7 @@
         "PCB_Schematics/KiCad/Conn_Baffle/ALTIUM_EMBEDDED_MODELS/TSB1.step"
       ],
       "file": "pcb-conn-baffle.glb",
-      "bytes": 170728,
+      "bytes": 202172,
       "triangles": 8198,
       "bounds": [
         [

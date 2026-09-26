@@ -94,8 +94,11 @@ def extrude(rings, thickness, z=0):
         for i in range(len(ring)):
             a = start+i; b = start+(i+1)%len(ring); sides.extend([[a,b,b+n],[a,b+n,a+n]])
         start += len(ring)
-    faces.append(np.array(sides))
-    return trimesh.Trimesh(vertices, np.concatenate(faces), process=False)
+    # Caps and walls meet at a hard edge. Give the walls their own vertices so
+    # export's angle-weighted normals cannot blend side lighting into the flat
+    # PCB/pad faces. Wall vertices remain shared around curved outlines/holes.
+    faces.append(np.array(sides)+2*n)
+    return trimesh.Trimesh(np.concatenate([vertices, vertices]), np.concatenate(faces), process=False)
 
 
 def circle(center, radius, count=24):

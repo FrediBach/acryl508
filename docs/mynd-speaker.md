@@ -92,6 +92,8 @@ and baffle connector. Together they contain **788 referenced component instances
 with no missing model references. Board outlines, mounting holes, pads and line
 silkscreen come from the PCB files. Component STEP surfaces are tessellated and
 simplified for browser rendering, with display materials assigned for readability.
+PCB and pad faces use separate vertices from their edge walls, keeping the flat
+surfaces evenly shaded while curved outlines and holes retain smooth side normals.
 The original radiator frames, port housing, HMI cover and rubber HMI pad are also
 tessellated from the released STEP files. Source geometry is kept at 1:1 mm scale.
 

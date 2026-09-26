@@ -213,6 +213,34 @@ test("all shipped GLBs are complete, finite, locally referenced and have valid i
   }
 });
 
+test("PCB faces and pads keep planar normals separate from their edge walls", async () => {
+  for (const asset of Object.values(manifest.assets).filter(a => a.kind === "source-pcb")) {
+    const bytes = readFileSync(new URL(`../public/models/mynd/${asset.file}`, import.meta.url));
+    const { scene } = await new GLTFLoader().parseAsync(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength), "");
+    let caps = 0, walls = 0;
+    scene.traverse(node => {
+      if (!node.isMesh || !["pcb", "pads"].includes(node.material.name)) return;
+      const { position, normal } = node.geometry.attributes, indices = node.geometry.index;
+      for (let i = 0; i < indices.count; i += 3) {
+        const ids = [0, 1, 2].map(corner => indices.getX(i + corner));
+        const [a, b, c] = ids.map(id => new Vector3().fromBufferAttribute(position, id));
+        const face = b.sub(a).cross(c.sub(a));
+        if (face.lengthSq() < 1e-16) continue;
+        face.normalize();
+        const cap = Math.abs(face.z) > 0.99999;
+        if (cap) caps++; else walls++;
+        for (const id of ids) {
+          const n = new Vector3().fromBufferAttribute(normal, id);
+          assert.ok(Math.abs(n.length() - 1) < 1e-5, `${asset.file}: unit normal`);
+          if (cap) assert.ok(n.distanceTo(face) < 1e-5, `${asset.file}: flat ${node.material.name} face must not inherit edge lighting`);
+          else assert.ok(Math.abs(n.z) < 1e-5, `${asset.file}: edge normals must stay in the board plane`);
+        }
+      }
+    });
+    assert.ok(caps > 0 && walls > 0, `${asset.file}: checks both faces and walls`);
+  }
+});
+
 test("the bridge header enters the amplifier socket and its upper contact meets the baffle board", async () => {
   const scenes={};
   for(const id of ["Amp","Conn_Amp","Conn_Baffle"]) {
