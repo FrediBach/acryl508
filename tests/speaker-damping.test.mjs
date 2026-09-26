@@ -16,7 +16,7 @@ test("gaskets remain narrow connected frames with four bolt holes, clear of dono
   for (const [width, height] of [[280, 210], [420, 300]]) for (const thickness of [3, 8]) for (const mixed of [false, true]) {
     const s = createSpeaker({ ...defaults, width, height, thickness, damping: true, individualSheetMaterials: mixed,
       sheetThicknesses: { left: 3, right: 8, top: 7, bottom: 4, baffle: 6, rear: 3 } });
-    assert.equal(s.parts.length, 9);
+    assert.equal(s.parts.length, 10);
     assert.equal(s.dampingParts.length, 2);
     for (const gasket of s.dampingParts) {
       assert.equal(gasket.polygons.length, 1, "One connected, cuttable frame");
@@ -57,13 +57,13 @@ test("gasket thickness fills each interface, updates tie rods and preserves the 
     close(s.innerDepth, off.innerDepth + 2 * dampingThickness);
     close(s.grossVolumeLitres, s.innerWidth * s.innerHeight * s.innerDepth / 1e6);
     close(parts.grille.position[2] - parts.grille.thickness / 2 - parts.baffle.position[2] - parts.baffle.thickness / 2, config.grilleGap);
-    for (const part of off.parts.filter(p => !["baffle", "rear", "grille"].includes(p.id))) assert.deepEqual(parts[part.id], part);
+    for (const part of off.parts.filter(p => !["baffle", "rear", "grille", "rear-cover"].includes(p.id))) assert.deepEqual(parts[part.id], part);
     assert.deepEqual(speakerBoardPlacements(s), speakerBoardPlacements(off));
     const fasteners = speakerFasteners(s), previous = speakerFasteners(off);
     for (const f of fasteners) {
       const old = previous.find(p => p.id === f.id);
       if (f.kind === "rod") { close(f.length, old.length + 2 * dampingThickness); close(f.position[2], old.position[2]); }
-      else if (["baffle", "grille", "rear"].includes(f.parent)) close(f.position[2], old.position[2] + (f.parent === "rear" ? -1 : 1) * dampingThickness);
+      else if (["baffle", "grille", "rear", "rear-cover"].includes(f.parent)) close(f.position[2], old.position[2] + (["rear", "rear-cover"].includes(f.parent) ? -1 : 1) * dampingThickness);
       else assert.deepEqual(f, old);
     }
     assert.ok(front.explode[2] > 0 && front.explode[2] < parts.baffle.explode[2]);
@@ -87,13 +87,13 @@ test("damping settings persist and cutting exports separate the two soft sheets 
   assert.equal(createSpeaker({ ...defaults, dampingThickness: -1 }).config.dampingThickness, 0.25);
   assert.equal(createSpeaker({ ...defaults, dampingThickness: 20 }).config.dampingThickness, 2);
   const f = speakerFabrication(s), packed = packSheets(f.parts, 1000, 600, 10, true);
-  assert.equal(f.parts.length, 11); assert.deepEqual(packed.unplaced, []);
+  assert.equal(f.parts.length, 12); assert.deepEqual(packed.unplaced, []);
   const softSheets = packed.sheets.filter(sheet => sheet.material === "Dark damping sheet");
   assert.equal(softSheets.flatMap(sheet => sheet.parts).length, 2);
   for (const sheet of softSheets) { assert.equal(sheet.thickness, 0.75); assert.ok(sheet.parts.every(p => p.id.startsWith("damping-"))); }
-  assert.equal(speakerSheetLayout(s).parts.length, 11);
+  assert.equal(speakerSheetLayout(s).parts.length, 12);
   const dom = new JSDOM(speakerSvg(s), { contentType: "image/svg+xml" });
-  assert.equal(dom.window.document.querySelectorAll('path[data-operation="cut"]').length, 11);
+  assert.equal(dom.window.document.querySelectorAll('path[data-operation="cut"]').length, 12);
   for (const id of ["damping-baffle", "damping-rear"]) {
     const group = dom.window.document.getElementById(id);
     assert.equal(group.getAttribute("data-material"), "Dark damping sheet");

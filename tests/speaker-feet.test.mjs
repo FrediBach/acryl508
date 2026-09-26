@@ -15,7 +15,7 @@ test("integral speaker feet share a level floor, preserve mounts and fit the ins
     const config={...defaults,flatFeet:true,flatFootStyle,flatFootHeight,individualSheetMaterials:true,
       sheetThicknesses:{left:3,right:8,top:8,bottom:3,rear:8,baffle:3}};
     const s=createSpeaker(config),off=createSpeaker({...config,flatFeet:false});
-    assert.equal(s.parts.length,9);assert.equal(s.grossVolumeLitres,off.grossVolumeLitres);
+    assert.equal(s.parts.length,10);assert.equal(s.grossVolumeLitres,off.grossVolumeLitres);
     assert.equal(s.totalHeight,defaults.height+flatFootHeight);
     assert.deepEqual(speakerBoardPlacements(s),speakerBoardPlacements(off));
     assert.deepEqual(s.carrierJoints,off.carrierJoints);
@@ -55,7 +55,7 @@ test("feet settings and cutting dimensions export, while old designs default to 
     assert.deepEqual(restored,s.config);
     assert.equal(data.feet.contactCount,flatFootStyle==="runners"?2:4);
     assert.equal(data.feet.additionalParts,0);assert.equal(data.dimensions.totalHeight,defaults.height+24);
-    assert.match(speakerSvg(s),/9 sheets/);
+    assert.match(speakerSvg(s),/10 sheets/);
     const legacy=structuredClone(data);
     for(const key of ["flatFeet","flatFootStyle","flatFootHeight"])delete legacy.configuration[key];
     assert.equal(parseProject(JSON.stringify(legacy)).designs.speaker.flatFeet,false);

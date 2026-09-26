@@ -1,12 +1,18 @@
 "use client";
 import { useRef, useState, type ChangeEvent } from "react";
 import { AlertTriangle, Copy, Plus, Trash2, Upload } from "lucide-react";
-import type { CaseConfiguration } from "@/lib/configurator";
 import type { CasePanels } from "@/lib/case-panels";
 import { cutoutSides, maxCutouts, outlinePath, placedCutout, polygonBounds, type CustomCutout, type CutoutAction, type CutoutSide } from "@/lib/custom-cutouts";
 import { builtinFonts, importSvg, loadBuiltinFont, textOutlines } from "@/lib/cutout-sources";
 
-type Props = { config: CaseConfiguration; panels: CasePanels; onAction: (action: CutoutAction) => void; operation?: "cut" | "engrave" };
+type CutoutFace = Pick<CasePanels["faces"]["front"], "original" | "polygons"> & Partial<Pick<CasePanels["faces"]["front"], "engraving">>;
+type Props = {
+  config: { cutouts: CustomCutout[]; engravings?: CustomCutout[] };
+  panels: { faces: Partial<Record<CutoutSide, CutoutFace>>; reports: CasePanels["reports"] };
+  onAction: (action: CutoutAction) => void; operation?: "cut" | "engrave";
+  sides?: readonly { value: CutoutSide; label: string }[];
+  description?: string;
+};
 export type { FontOption } from "@/lib/project-fonts";
 import { addProjectFont, type FontOption } from "@/lib/project-fonts";
 import { useProjectFonts } from "./use-project-fonts";
@@ -55,9 +61,9 @@ export function TextEditor({ cutout, fonts, onImport, onUpdate }: { cutout: Cust
   </div>;
 }
 
-export function CutoutControls({ config, panels, onAction, operation = "cut" }: Props) {
+export function CutoutControls({ config, panels, onAction, operation = "cut", sides = cutoutSides, description }: Props) {
   const engraving = operation === "engrave";
-  const items = engraving ? config.engravings : config.cutouts;
+  const items = engraving ? config.engravings ?? [] : config.cutouts;
   const noun = engraving ? "engraving" : "cutout";
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -71,8 +77,10 @@ export function CutoutControls({ config, panels, onAction, operation = "cut" }: 
   const warnings = engraving ? [] : panels.reports.filter(report => report.removedParts || report.empty || report.error || report.outside.length || report.clipped.length);
   function update(patch: Partial<CustomCutout>) { if (selected) onAction({ type: "update", id: selected.id, patch }); }
   function add(polygons: CustomCutout["polygons"], source: CustomCutout["source"], name: string) {
-    const side = selected?.side ?? "front";
-    const panelBounds = polygonBounds(panels.faces[side].original);
+    const side = selected?.side ?? sides[0].value;
+    const panel = panels.faces[side];
+    if (!panel) return;
+    const panelBounds = polygonBounds(panel.original);
     const ratio = polygonBounds(polygons).height;
     const cutout: CustomCutout = { id: crypto.randomUUID(), name, source, polygons, side, width: Math.max(1, round(Math.min(80, panelBounds.width * 0.5, panelBounds.height * 0.5 / ratio))), x: 0, y: 0, rotation: 0 };
     onAction({ type: "add", cutout }); setSelectedId(cutout.id);
@@ -102,7 +110,7 @@ export function CutoutControls({ config, panels, onAction, operation = "cut" }: 
     update({ x: round(Math.max(bounds.left, Math.min(bounds.right, point.x))), y: round(Math.max(bounds.bottom, Math.min(bounds.top, -point.y))) });
   }
   return <>
-    <p className="control-note">{engraving ? "Etch SVG artwork or text into the outside surface of any sheet. Frosted marks keep the acrylic intact, including letter centres." : "Cut through any enclosure panel. Filled SVG paths or font outlines; each cutout has its own size and position."}</p>
+    <p className="control-note">{description ?? (engraving ? "Etch SVG artwork or text into the outside surface of any sheet. Frosted marks keep the acrylic intact, including letter centres." : "Cut through any enclosure panel. Filled SVG paths or font outlines; each cutout has its own size and position.")}</p>
     <div className="cutout-actions"><button className="cutout-button" disabled={busy || limitReached} onClick={() => input.current?.click()}><Upload size={13} />Import SVG</button><button className="cutout-button" disabled={busy || limitReached} onClick={addText}><Plus size={13} />{busy ? "Preparing…" : "Add text"}</button></div>
     <input ref={input} type="file" accept=".svg,image/svg+xml" hidden aria-label={`Import SVG ${noun}`} onChange={uploadSvg} />
     <p className="control-note">SVG up to 1 MB. Convert strokes to filled paths first. {limitReached && `Limit reached: 20 ${noun}s.`}</p>
@@ -114,7 +122,7 @@ export function CutoutControls({ config, panels, onAction, operation = "cut" }: 
     </div>)}</div>}
     {selected && face && bounds && <div className="cutout-editor" key={selected.id}>
       {selected.source.kind === "text" && <TextEditor key={selected.source.kind === "text" ? `${selected.id}-${selected.source.fontId}-${selected.source.text}` : selected.id} cutout={selected} fonts={fonts} onImport={uploadFont} onUpdate={patch => onAction({ type: "update", id: selected.id, patch })} />}
-      <label className="cutout-field">Panel side<select value={selected.side} onChange={event => update({ side: event.target.value as CutoutSide })}>{cutoutSides.map(side => <option key={side.value} value={side.value}>{side.label}</option>)}</select></label>
+      {sides.length > 1 && <label className="cutout-field">Panel side<select value={selected.side} onChange={event => update({ side: event.target.value as CutoutSide })}>{sides.map(side => <option key={side.value} value={side.value}>{side.label}</option>)}</select></label>}
       <div className="cutout-numbers">
         <NumberControl label="Scale · width (mm)" value={selected.width} min={1} max={1000} onChange={width => update({ width })} />
         <NumberControl label="Rotation (°)" value={selected.rotation} min={-180} max={180} onChange={rotation => update({ rotation })} />
@@ -125,7 +133,7 @@ export function CutoutControls({ config, panels, onAction, operation = "cut" }: 
       <svg className="cutout-layout" role="img" aria-label={`${selected.side} panel. Click or drag to position the selected ${noun}.`} viewBox={`${bounds.left - 5} ${-bounds.top - 5} ${bounds.width + 10} ${bounds.height + 10}`} onPointerDown={event => { event.currentTarget.setPointerCapture(event.pointerId); place(event); }} onPointerMove={event => { if (event.currentTarget.hasPointerCapture(event.pointerId)) place(event); }} onPointerUp={event => event.currentTarget.releasePointerCapture(event.pointerId)}>
         <path d={outlinePath(face.original)} className="cutout-original" fillRule="evenodd" />
         <path d={outlinePath(face.polygons)} className="cutout-material" fillRule="evenodd" />
-        {engraving && <path d={outlinePath(face.engraving.polygons)} className="engraving-fill" fillRule="evenodd" />}
+        {engraving && face.engraving && <path d={outlinePath(face.engraving.polygons)} className="engraving-fill" fillRule="evenodd" />}
         <path d={outlinePath(placedCutout(selected))} className="cutout-outline" vectorEffect="non-scaling-stroke" />
       </svg>
       <p className="control-note">Click or drag to place. Solid areas show retained acrylic. Position is measured from the panel centre: +X right, +Y up. Proportions stay locked.{selected.side === "bottom" && " Rear edge is at the top."}</p>
@@ -140,7 +148,7 @@ export function CutoutControls({ config, panels, onAction, operation = "cut" }: 
       </div>
     </div>)}</div>
     {engraving ? <>
-      {Object.entries(panels.faces).map(([side, panel]) => panel.engraving.outside.length || panel.engraving.clipped.length || panel.engraving.error ? <p key={side} className="cutout-warning" role="status">{side}: {panel.engraving.error || `${panel.engraving.outside.length} outside the acrylic; ${panel.engraving.clipped.length} clipped at an edge or opening.`}</p> : null)}
+      {Object.entries(panels.faces).map(([side, panel]) => panel.engraving && (panel.engraving.outside.length || panel.engraving.clipped.length || panel.engraving.error) ? <p key={side} className="cutout-warning" role="status">{side}: {panel.engraving.error || `${panel.engraving.outside.length} outside the acrylic; ${panel.engraving.clipped.length} clipped at an edge or opening.`}</p> : null)}
       <p className="control-note">Engravings are clipped to the remaining acrylic. Blue filled paths export as a separate engraving operation; cut paths stay separate.</p>
     </> : <p className="control-note">Loose acrylic is removed automatically after all cuts, including enclosed letter centres. Use a stencil font to keep those centres connected.</p>}
   </>;

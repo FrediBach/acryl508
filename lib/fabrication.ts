@@ -54,7 +54,13 @@ export function artFabrication(art: Art): Fabrication {
     hardware: ["No screws or adhesive. Assemble B slots-up and A slots-down, then form the leaves and insert leaf shelves inward, perpendicular to the bent parent leaves, into their matching slots."], thickness: art.config.thickness, clearance: art.config.clearance, blocked: false };
 }
 export function speakerFabrication(speaker: Speaker): Fabrication {
-  return { parts: [...speaker.parts.map(part => ({ id: part.id, label: part.label, polygons: down(part.polygons), thickness: part.thickness, material: materialLabel(sheetMaterial(speaker.config, part.id).tint, sheetMaterial(speaker.config, part.id).transparency) })), ...speaker.dampingParts.map(part => ({ id: part.id, label: part.label, polygons: down(part.polygons), thickness: part.thickness, material: speakerDampingMaterial }))], warnings: [...speakerBuildNotes, ...speakerBendNotes(speaker.parts), `Adapted from Teufel MYND hardware ${myndSource} revision ${myndRevision}, CC-BY-SA-4.0. Changes: flat acrylic shell, simplified apertures and dot grille.`], hardware: speakerHardware, thickness: speaker.config.thickness, clearance: 0, blocked: false };
+  return { parts: [...speaker.parts.map(part => ({ id: part.id, label: part.label, polygons: down(part.polygons), thickness: part.thickness, material: materialLabel(sheetMaterial(speaker.config, part.id).tint, sheetMaterial(speaker.config, part.id).transparency) })), ...speaker.dampingParts.map(part => ({ id: part.id, label: part.label, polygons: down(part.polygons), thickness: part.thickness, material: speakerDampingMaterial }))], warnings: [...speaker.cutoutPanels.reports.flatMap(report => [
+    ...(report.empty ? ["Outer rear panel: no acrylic remains."] : []),
+    ...(report.error ? [`Outer rear panel: ${report.error}`] : []),
+    ...(report.removedParts ? [`Outer rear panel: ${report.removedParts} loose part(s) removed.`] : []),
+    ...(report.clipped.length ? [`Outer rear panel: ${report.clipped.length} cutout(s) extend beyond the sheet.`] : []),
+    ...(report.outside.length ? [`Outer rear panel: ${report.outside.length} cutout(s) do not intersect acrylic.`] : []),
+  ]), ...speakerBuildNotes, ...speakerBendNotes(speaker.parts), `Adapted from Teufel MYND hardware ${myndSource} revision ${myndRevision}, CC-BY-SA-4.0. Changes: flat acrylic shell, simplified apertures and dot grille.`], hardware: speakerHardware, thickness: speaker.config.thickness, clearance: 0, blocked: !speaker.canExport };
 }
 export function panelFabrication(panel: DesignedPanel): Fabrication {
   return { parts: [{ id: "panel", label: "Panel", polygons: down(panel.polygons), engraving: down(panel.engraving.polygons), material: materialLabel(panel.config.tint, panel.config.transparency) }],

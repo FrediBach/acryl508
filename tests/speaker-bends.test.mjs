@@ -101,7 +101,7 @@ test("angle settings, flat cut patterns and forming instructions survive export 
   }
   assert.ok(f.warnings.some(n => n.includes("45° outward")));
   const dom = new JSDOM(speakerSvg(s), { contentType: "image/svg+xml" });
-  assert.equal(dom.window.document.querySelectorAll('[data-operation="cut"]').length, 9);
+  assert.equal(dom.window.document.querySelectorAll('[data-operation="cut"]').length, 10);
   assert.equal(dom.window.document.querySelectorAll('[data-operation="bend-guide"]').length, 2);
   dom.window.close();
   const packed = packSheets(f.parts, 1000, 600, 10, true);

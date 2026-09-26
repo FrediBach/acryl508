@@ -26,8 +26,8 @@ export function speakerFasteners(speaker: Speaker, exploded = false): SpeakerFas
   };
   speaker.mounts.forEach(([x, y], i) => {
     const id = `corner-${i + 1}`;
-    // Tie rod passes both panels, with rear nut engagement and a threaded
-    // female spacer at the front. Grille screw enters the spacer from outside.
+    // Tie rod passes both sealed panels and engages threaded spacers at each
+    // end. Outer-cover screws enter the spacers from outside.
     const rodStart = rear - 3.6, rodEnd = baffle + 3;
     add(`${id}-tie`, "rod", x, y, (rodStart + rodEnd) / 2, rodEnd - rodStart, 1.5, 0, "baffle");
     add(`${id}-baffle-washer`, "washer", x, y, baffle + 0.25, 0.5, 3.5, 1.7, "baffle");
@@ -36,7 +36,11 @@ export function speakerFasteners(speaker: Speaker, exploded = false): SpeakerFas
     add(`${id}-grille-outer-washer`, "washer", x, y, grille + t("grille") + 0.25, 0.5, 3.5, 1.7, "grille");
     add(`${id}-grille-screw`, "screw", x, y, grille + t("grille") + 0.5, t("grille") + 3.5, 2.75, 0, "grille");
     add(`${id}-rear-washer`, "washer", x, y, rear - 0.25, 0.5, 3.5, 1.7, "rear");
-    add(`${id}-rear-nut`, "nut", x, y, rear - 1.7, 2.4, 3.2, 1.5, "rear", -1);
+    const cover = rear-config.grilleGap;
+    add(`${id}-rear-spacer`, "spacer", x, y, rear-config.grilleGap/2, config.grilleGap-1, 3.5, 1.5, "rear", -1);
+    add(`${id}-rear-cover-inner-washer`, "washer", x, y, cover+0.25, 0.5, 3.5, 1.7, "rear-cover", -1);
+    add(`${id}-rear-cover-outer-washer`, "washer", x, y, cover-t("rear-cover")-0.25, 0.5, 3.5, 1.7, "rear-cover", -1);
+    add(`${id}-rear-cover-screw`, "screw", x, y, cover-t("rear-cover")-0.5, t("rear-cover")+3.5, 2.75, 0, "rear-cover", -1);
   });
   speaker.driverMounts.forEach(([x, y], i) => {
     add(`driver-${i}-washer`, "washer", x, y, baffle + 0.25, 0.5, 3.1, 1.7, "baffle");

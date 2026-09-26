@@ -65,8 +65,8 @@ test("every corner spacer fills the physical gap between the two washers", () =>
   for (const grilleGap of [8,12,25]) for (const depth of [110,220]) for (const thickness of [3,8]) {
     const s=createSpeaker({...defaultSpeakerConfiguration,grilleGap,depth,thickness});
     const f=speakerFasteners(s);
-    assert.equal(f.filter(p=>p.kind === "spacer" && p.id.startsWith("corner-")).length,4);
-    assert.equal(f.filter(p=>p.kind === "screw").length,63);
+    assert.equal(f.filter(p=>p.kind === "spacer" && p.id.startsWith("corner-")).length,8);
+    assert.equal(f.filter(p=>p.kind === "screw").length,67);
     for(let i=1;i<=4;i++) {
       const get=suffix=>f.find(p=>p.id === `corner-${i}-${suffix}`);
       const spacer=get("spacer"), back=get("baffle-washer"), front=get("grille-inner-washer");
@@ -76,7 +76,7 @@ test("every corner spacer fills the physical gap between the two washers", () =>
       const screw=get("grille-screw"), rod=get("tie");
       close(screw.position[2],depth/2+grilleGap+thickness+0.5);
       assert.ok(screw.position[2]-screw.length > rod.position[2]+rod.length/2, "Opposing threads do not overlap in the spacer");
-      assert.ok(rod.position[2]-rod.length/2 < -depth/2-3, "Rod engages the rear nut");
+      assert.ok(rod.position[2]-rod.length/2 < -depth/2-3, "Rod engages the rear spacer");
     }
   }
 });

@@ -17,7 +17,7 @@ test("integral handles stay connected, preserve donor alignment and meet the ins
       individualSheetMaterials:true,sheetThicknesses:{left:3,right:8,top:8,bottom:3,rear:8,baffle:3}};
     const s=createSpeaker(config),off=createSpeaker({...config,handle:false}),top=s.parts.find(p=>p.id==="top");
     assert.equal(s.config.handleWidth,handleWidth);
-    assert.equal(s.parts.length,9);assert.equal(s.grossVolumeLitres,off.grossVolumeLitres);
+    assert.equal(s.parts.length,10);assert.equal(s.grossVolumeLitres,off.grossVolumeLitres);
     assert.equal(s.totalHeight,defaults.height+handleHeight+(style?30:0));
     assert.deepEqual(speakerBoardPlacements(s),speakerBoardPlacements(off));
     assert.deepEqual(s.carrierJoints,off.carrierJoints);
@@ -71,7 +71,7 @@ test("full handle envelope feeds cutting, fabrication, saved settings and legacy
   const data=speakerExport(s);
   assert.deepEqual(parseProject(JSON.stringify(data)).designs.speaker,s.config);
   assert.deepEqual(data.handles.sides,["left","right"]);assert.equal(data.handles.additionalParts,0);
-  assert.equal(data.dimensions.overallDepth,240);assert.match(speakerSvg(s),/9 sheets/);
+  assert.equal(data.dimensions.overallDepth,240);assert.match(speakerSvg(s),/10 sheets/);
   const legacy=structuredClone(data);
   for(const key of ["handle","handleMode","handleWidth","handleHeight"])delete legacy.configuration[key];
   assert.equal(parseProject(JSON.stringify(legacy)).designs.speaker.handle,false);

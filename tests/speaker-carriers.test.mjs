@@ -86,11 +86,11 @@ test("eight rectangular joints exactly match carrier tabs and remain flush at bo
   }
 });
 
-test("carrier material overrides, joint metadata and all nine parts survive project export",()=>{
+test("carrier material overrides, joint metadata and all ten parts survive project export",()=>{
   const s=createSpeaker({...defaults,individualSheetMaterials:true,sheetThicknesses:{"pcb-floor":3,"pcb-rear":8}});
   const data=speakerExport(s),project=parseProject(JSON.stringify(data));
   assert.deepEqual(project.designs.speaker,s.config);
-  assert.equal(data.parts.length,9);assert.equal(data.carrierJoints.length,8);
+  assert.equal(data.parts.length,10);assert.equal(data.carrierJoints.length,8);
   assert.equal(data.sheetMaterials.find(p=>p.id==="pcb-floor").thickness,3);
   assert.equal(data.sheetMaterials.find(p=>p.id==="pcb-rear").thickness,8);
 });

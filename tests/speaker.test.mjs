@@ -10,7 +10,7 @@ const area = ring => Math.abs(ring.reduce((sum,p,i) => { const q=ring[(i+1)%ring
 
 test("MYND baffle keeps source driver centres, two radiators and mounting holes", () => {
   const speaker=createSpeaker(defaults), baffle=speaker.parts[0];
-  assert.equal(speaker.parts.length,9);
+  assert.equal(speaker.parts.length,10);
   assert.equal(myndDrivers.filter(d=>d.kind === "radiator").length,2);
   assert.deepEqual(myndDrivers.map(d=>[d.x,d.y]),[[0,-24],[-93,53.3],[93,53.3],[-82,-18],[82,-18]]);
   assert.equal(speaker.driverMounts.length,20);
@@ -56,7 +56,7 @@ test("mixed sheet thicknesses meet at butt joints without changing the body enve
   assert.equal(p.baffle.position[2]-p.baffle.thickness/2,p.top.position[2]+p.top.height/2);
   assert.equal(p.rear.position[2]+p.rear.thickness/2,p.top.position[2]-p.top.height/2);
   assert.equal(s.grossVolumeLitres,(280-11)*(210-11)*(120-9)/1e6);
-  assert.equal(s.totalDepth,135);
+  assert.equal(s.totalDepth,152);
 });
 
 test("speaker JSON round trips, older projects acquire defaults and malformed imports fail", () => {
@@ -79,11 +79,11 @@ test("SVG and fabrication preserve all sheets, apertures, units and source attri
   const s=createSpeaker(defaults),svg=speakerSvg(s);
   const dom=new JSDOM(svg,{contentType:"image/svg+xml"});
   assert.match(dom.window.document.documentElement.getAttribute("width"),/mm$/);
-  assert.equal(dom.window.document.querySelectorAll('path[data-operation="cut"]').length,9);
+  assert.equal(dom.window.document.querySelectorAll('path[data-operation="cut"]').length,10);
   assert.match(svg,/CC-BY-SA-4.0/);assert.match(svg,/unvalidated|Prototype/);
   const f=speakerFabrication(s),stock=packSheets(f.parts,1000,600,10,true);
   assert.deepEqual(stock.unplaced,[]);
-  assert.equal(stock.sheets.flatMap(s=>s.parts).length,9);
+  assert.equal(stock.sheets.flatMap(s=>s.parts).length,10);
   assert.ok(f.warnings.some(w=>w.includes("not included")));
   assert.match(stockSvg(stock.sheets[0],1000,600,f.warnings),/CC-BY-SA-4.0/);
   assert.equal(f.parts.find(p=>p.id === "grille").polygons[0].length,1+s.dots.length+4);

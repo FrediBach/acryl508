@@ -149,7 +149,7 @@ export function ConfiguratorShell() {
   }
   function exportSheets() {
     const { speaker, art, panel, panels, stand, protector } = exportModels();
-    if (mode === "speaker") { download(speakerSvg(speaker), "image/svg+xml", "acryl508-mynd-speaker-sheets.svg"); showExported("SVG"); return; }
+    if (mode === "speaker") { if (!speaker.canExport) return; download(speakerSvg(speaker), "image/svg+xml", "acryl508-mynd-speaker-sheets.svg"); showExported("SVG"); return; }
     if (mode === "art") { download(artSvg(art), "image/svg+xml", `acryl508-art-${art.config.seed}-sheets.svg`); showExported("SVG"); return; }
     if (mode === "panel") {
       if (!panel.canExport) return;

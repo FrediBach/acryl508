@@ -1,9 +1,9 @@
 # MYND acrylic enclosure reference
 
-Speaker case is a nine-sheet prototype: baffle, removable rear, top, base,
-left, right, an independently spaced dot grille, and two internal PCB carriers.
-Default body dimensions are **280 × 210 × 120 mm** (W × H × D), with 5 mm sheet, a 12 mm grille gap,
-3 mm dots and a 5 mm staggered pitch. Total depth includes the grille and gap.
+Speaker case is a ten-sheet prototype: baffle, removable rear, top, base,
+left, right, a spaced dot grille, a matching outer rear panel, and two internal PCB carriers.
+Default body dimensions are **280 × 210 × 120 mm** (W × H × D), with 5 mm sheet, matching 12 mm front/rear gaps,
+3 mm dots and a 5 mm staggered pitch. Total depth is 154 mm, including both outer sheets and their gaps.
 The body is a new design; these are not Teufel's stock enclosure dimensions.
 
 ## Live dimensions and sound comparison
@@ -33,13 +33,29 @@ displacement, subtracted equally from current and reference gross volumes.
 Zero explicitly uses gross volume; no measured donor displacement is assumed.
 This setting is saved with the design. JSON exports include the calculated
 comparison against the default acrylic case, its assumptions and source links.
-The pin is a temporary view setting. Feet, handles and the external grille do
+The pin is a temporary view setting. Feet, handles and the external front/rear panels do
 not affect this model. Gaskets affect nominal depth only; panel vibration,
 gasket damping, absorption, diffraction and leakage are not simulated.
 
 A measured frequency-response prediction would require verified driver
 parameters, passive-radiator mass/compliance, net air volume and DSP settings,
 followed by prototype measurements.
+
+## Outer rear panel and custom cutouts
+
+The outer rear panel shares the front grille's **Front & rear standoff** setting
+(8–25 mm). It has its own acrylic material and thickness. The sealed removable
+rear remains at the chamber boundary, so artwork leaves chamber volume and donor
+positions unchanged. Eight threaded spacers retain the two outer sheets on the
+four tie-rod axes, with eight screws and 24 load-spreading washers.
+
+**Rear panel cutouts** reuses the Eurorack editor: import filled SVG artwork or
+add text using built-in or imported fonts, then scale, rotate and position it.
+Up to 20 cuts are allowed. The editor, rear preview and cutting layout all show
+lettering from outside. Loose islands are removed with a warning; keep all four
+corner mounts intact. Empty panels or failed cut calculations block cutting
+exports. JSON and project saves preserve editable artwork, while SVG and
+Fabrication use the finished profile. Older projects start with no custom cuts.
 
 ## Optional joint damping
 
@@ -52,7 +68,7 @@ tie-rod centres. The large centre stays open and clears the donor apertures.
 
 The bonded shell and electronics retain their dimensions and positions. Each end
 panel moves outward by one gasket thickness, the grille and drivers follow the
-baffle, and the tie rods grow by twice that thickness. Body depth, overall depth
+baffle, the outer rear panel follows the sealed rear, and the tie rods grow by twice that thickness. Body depth, overall depth
 and gross chamber volume include the nominal gasket spacing. With damping
 enabled, clamp the front baffle against its gasket instead of bonding it to the
 shell; the sides, top, base and internal carrier joints remain bonded.
@@ -179,8 +195,8 @@ parts follow the baffle during explosion. Neither enclosure fit nor cable routin
 has been physically validated. The control and port openings now follow the donor geometry; sealing and
 physical fastening still require validation.
 
-The assembly preview includes four M3 tie rods, four threaded hex grille spacers,
-four grille screws, rear nuts, corner washers, twenty driver/radiator screws and
+The assembly preview includes four M3 tie rods, eight threaded hex front/rear spacers,
+eight outer-panel screws, corner washers, twenty driver/radiator screws and
 washers, and PCB standoffs/screws at the source mounting centres. Profiles are
 illustrative M3 hardware, not a specified supplier part. Spacers fill the chosen
 gap less two 0.5 mm washers; rod reach and screw lengths follow the actual sheets.
@@ -227,7 +243,7 @@ The top has eight Ø3.5 mm HMI-cover mounting holes at X = −66, −22, 22, 66 
 scene Z = ±22 mm. Source seating faces are Z = 156.4 / 158.9 mm; the proposed
 supports span 7.1 mm to the inner top face. The shell, two carriers, fasteners,
 exploded view, individual material settings and exports share these dimensions.
-All nine sheets are included in SVG and fabrication packing. Placement, cable
+All ten sheets are included in SVG and fabrication packing. Placement, cable
 reach, battery restraint, sealing and physical clearance remain prototype checks.
 
 The manufacturer's [MYND specifications](https://hr.teufelaudio.com/mynd-107002004)
