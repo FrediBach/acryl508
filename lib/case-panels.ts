@@ -1,3 +1,4 @@
+import { ledSlot, resolveEngravings } from "./engravings";
 import { Path, type Shape } from "three";
 import clipping, { type MultiPolygon } from "polygon-clipping";
 import { accessoryBendAngles, caseDimensions, caseThicknesses, handleSides, handleDimensions, rackEnvelope, rackRowLayout, rackRowPoint, sidePanelMargin, type CaseConfiguration } from "./configurator";
@@ -46,6 +47,8 @@ export function createCasePanels(config: CaseConfiguration) {
   const mountingRadius = (definition?.board.holeDiameter ?? 0) / 200;
   const exclusions: VentBounds[] = (config.cutouts ?? []).filter(cutout => cutout.side === "bottom").flatMap(cutout => placedCutout(cutout).map(polygon =>
     polygonBounds(mapPolygons([polygon], (x, y) => [-x / 100, y / 100]))));
+  const bottomLed = ledSlot(mapPolygons(shapesToPolygons([base]), (x, y) => [-x * 100, y * 100]), config.ledStrips?.bottom, mm.bottom, "bottom");
+  if (bottomLed && !bottomLed.error) exclusions.push(polygonBounds(mapPolygons(bottomLed.polygons, (x, y) => [-x / 100, y / 100])));
   const mountingConflicts = mountingHoles.filter(({ x, y }) => exclusions.some(box =>
     x / 100 + mountingRadius + t > box.left && x / 100 - mountingRadius - t < box.right &&
     y / 100 + mountingRadius + t > box.bottom && y / 100 - mountingRadius - t < box.top)).length;
@@ -97,7 +100,11 @@ export function createCasePanels(config: CaseConfiguration) {
     const centerY = value === "bottom" ? 0 : (value === "front" ? frontHeight : h) / 2;
     const original = mapPolygons(shapesToPolygons([originals[value]]), (x, y) => [direction * x * 100, (y - centerY) * 100]);
     const cuts = (config.cutouts ?? []).filter(cutout => cutout.side === value);
-    const result = subtractCutouts(original, cuts, value);
+    const customResult = subtractCutouts(original, cuts, value);
+    const led = ledSlot(customResult.polygons, config.ledStrips?.[value], mm[value], value);
+    if (led && !led.error) cuts.push(led.cutout);
+    const result = led && !led.error ? subtractCutouts(original, cuts, value) : customResult;
+    if (led?.error) result.report.error = led.error;
     if (value === inlet?.side && inlet.fits && cuts.length) {
       const reserved = mapPolygons(inlet.reserved, (x, y) => [-x * 100, (y - centerY) * 100]);
       if (cuts.some(cut => clipping.intersection(reserved, placedCutout(cut)).length)) {
@@ -121,8 +128,11 @@ export function createCasePanels(config: CaseConfiguration) {
         result.report.error = "Unable to verify accessory bend clearance. Move or remove custom cutouts before exporting.";
       }
     }
-    return [value, { ...result, original, shapes }];
-  })) as Record<CutoutSide, ReturnType<typeof subtractCutouts> & { original: ReturnType<typeof shapesToPolygons>; shapes: Shape[] }>;
+    const engraving = resolveEngravings(result.polygons, (config.engravings ?? []).filter(item => item.side === value));
+    if (engraving.error) result.report.error = engraving.error;
+    if (led && result.report.error) led.error ||= result.report.error;
+    return [value, { ...result, original, shapes, engraving, led, direction, centerY }];
+  })) as Record<CutoutSide, ReturnType<typeof subtractCutouts> & { original: ReturnType<typeof shapesToPolygons>; shapes: Shape[]; engraving: ReturnType<typeof resolveEngravings>; led: ReturnType<typeof ledSlot>; direction: number; centerY: number }>;
   return { faces, bends, layout: panels.layout, ventilation, powerBoard, inlet, mountingHoles, mountingConflicts, reports: cutoutSides.map(({ value }) => faces[value].report) };
 }
 export type CasePanels = ReturnType<typeof createCasePanels>;

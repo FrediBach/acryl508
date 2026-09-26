@@ -1,15 +1,13 @@
 "use client";
-import { Suspense, useEffect, useMemo, useRef } from "react";
+import { Suspense, useEffect, useRef } from "react";
 import { Canvas, useThree } from "@react-three/fiber";
 import { Environment, Lightformer, OrbitControls } from "@react-three/drei";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
-import { DoubleSide } from "three";
+import { EngravingSurface, LedStripPreview } from "./engraving-preview";
 import { PreviewBoundary, Sheet } from "@/components/stand-preview";
-import { mapPolygons, polygonsToShapes } from "@/lib/custom-cutouts";
 import type { DesignedPanel } from "@/lib/panel-designer";
 function Engraving({ panel }: { panel: DesignedPanel }) {
-  const shapes = useMemo(() => panel.engravings.flatMap(a => polygonsToShapes(mapPolygons(a.polygons, (x, y) => [x / 100, y / 100]))), [panel.engravings]);
-  return shapes.length ? <mesh position={[0, 0, panel.config.thickness / 100 + 0.0002]}><shapeGeometry args={[shapes]} /><meshBasicMaterial color={panel.config.tint.id === "black" ? "#eee8d7" : "#353b47"} side={DoubleSide} /></mesh> : null;
+  return <><EngravingSurface polygons={panel.engraving.polygons} thickness={panel.config.thickness} tint={panel.config.tint.color} transparency={panel.config.transparency} led={panel.led} /><LedStripPreview led={panel.led} thickness={panel.config.thickness} /></>;
 }
 function Camera({ panel }: { panel: DesignedPanel }) {
   const { camera, size, invalidate } = useThree(), controls = useRef<OrbitControlsImpl>(null);

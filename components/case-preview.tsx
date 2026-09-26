@@ -19,6 +19,19 @@ import { SinusodaPreview } from "@/components/sinusoda-preview";
 import { CompactPwrPreview } from "@/components/compactpwr-preview";
 import { CompactPwrInletPreview } from "@/components/compactpwr-inlet-preview";
 
+import { EngravingSurface, LedStripPreview } from "./engraving-preview";
+import { mapPolygons, type CutoutSide } from "@/lib/custom-cutouts";
+
+function SheetEngraving({ side, panels, config }: { side: CutoutSide; panels: CasePanels; config: CaseConfiguration }) {
+  const face = panels.faces[side];
+  const polygons = useMemo(() => mapPolygons(face.engraving.polygons, (x, y) => [face.direction * x, y + face.centerY * 100]), [face]);
+  const led = useMemo(() => face.led ? { ...face.led, y: face.led.y + face.centerY * 100 } : null, [face]);
+  return <>
+    <EngravingSurface polygons={polygons} thickness={panelThickness(config, side)} back={face.direction < 0} bends={panels.bends[side]} direction={face.direction} transparency={panelTransparency(config, side)} tint={panelTint(config, side).color} led={led} />
+    <LedStripPreview led={led} thickness={panelThickness(config, side)} />
+  </>;
+}
+
 export type CameraView = "perspective" | "front" | "top";
 type Props = { panels: CasePanels; config: CaseConfiguration; dark: boolean; view: CameraView; resetKey: number; exploded: boolean; modules: boolean };
 const unit = 0.01;
@@ -97,10 +110,10 @@ function AcrylicCase({ config, panels, exploded, modules }: Pick<Props, "config"
   const frontArgs = useMemo(() => [panels.faces.front.shapes, { depth: t.front, bevelEnabled: false }] as const, [panels, t.front]);
   return <group>
     <group rotation={[a, 0, 0]} position={[0, lift, 0]}>
-      <mesh position={[0, baseBottom - explode, 0]} rotation={[-Math.PI / 2, 0, 0]}><meshPhysicalMaterial {...acrylicMaterial(tints.bottom, t.bottom, panelTransparency(config, "bottom"))} /><PanelSheet args={baseArgs} color={tints.bottom.color} opacity={acrylicEdgeOpacity(panelTransparency(config, "bottom"))} threshold={35} /></mesh>
+      <mesh position={[0, baseBottom - explode, 0]} rotation={[-Math.PI / 2, 0, 0]}><meshPhysicalMaterial {...acrylicMaterial(tints.bottom, t.bottom, panelTransparency(config, "bottom"))} /><PanelSheet args={baseArgs} color={tints.bottom.color} opacity={acrylicEdgeOpacity(panelTransparency(config, "bottom"))} threshold={35} /><SheetEngraving side="bottom" panels={panels} config={config} /></mesh>
       {[-1, 1].map(side => <group key={side}>
-        <mesh position={[side === -1 ? -innerWidth / 2 - t.left - explode : innerWidth / 2 + explode, 0, 0]} rotation={[0, Math.PI / 2, 0]}><meshPhysicalMaterial {...acrylicMaterial(side === -1 ? tints.left : tints.right, side === -1 ? t.left : t.right, panelTransparency(config, side === -1 ? "left" : "right"))} /><PanelSheet args={side === -1 ? leftArgs : rightArgs} bends={side === -1 ? panels.bends.left : panels.bends.right} direction={side} color={side === -1 ? tints.left.color : tints.right.color} opacity={acrylicEdgeOpacity(panelTransparency(config, side === -1 ? "left" : "right"))} threshold={35} /></mesh>
-        <mesh position={[0, 0, side === -1 ? -innerLength / 2 - t.rear - explode : innerLength / 2 + explode]}><meshPhysicalMaterial {...acrylicMaterial(side === -1 ? tints.rear : tints.front, side === -1 ? t.rear : t.front, panelTransparency(config, side === -1 ? "rear" : "front"))} /><PanelSheet args={side === -1 ? rearArgs : frontArgs} bends={side === -1 ? panels.bends.rear : panels.bends.front} direction={side} color={side === -1 ? tints.rear.color : tints.front.color} opacity={acrylicEdgeOpacity(panelTransparency(config, side === -1 ? "rear" : "front"))} /></mesh>
+        <mesh position={[side === -1 ? -innerWidth / 2 - t.left - explode : innerWidth / 2 + explode, 0, 0]} rotation={[0, Math.PI / 2, 0]}><meshPhysicalMaterial {...acrylicMaterial(side === -1 ? tints.left : tints.right, side === -1 ? t.left : t.right, panelTransparency(config, side === -1 ? "left" : "right"))} /><PanelSheet args={side === -1 ? leftArgs : rightArgs} bends={side === -1 ? panels.bends.left : panels.bends.right} direction={side} color={side === -1 ? tints.left.color : tints.right.color} opacity={acrylicEdgeOpacity(panelTransparency(config, side === -1 ? "left" : "right"))} threshold={35} /><SheetEngraving side={side === -1 ? "left" : "right"} panels={panels} config={config} /></mesh>
+        <mesh position={[0, 0, side === -1 ? -innerLength / 2 - t.rear - explode : innerLength / 2 + explode]}><meshPhysicalMaterial {...acrylicMaterial(side === -1 ? tints.rear : tints.front, side === -1 ? t.rear : t.front, panelTransparency(config, side === -1 ? "rear" : "front"))} /><PanelSheet args={side === -1 ? rearArgs : frontArgs} bends={side === -1 ? panels.bends.rear : panels.bends.front} direction={side} color={side === -1 ? tints.rear.color : tints.front.color} opacity={acrylicEdgeOpacity(panelTransparency(config, side === -1 ? "rear" : "front"))} /><SheetEngraving side={side === -1 ? "rear" : "front"} panels={panels} config={config} /></mesh>
       </group>)}
       {rackRowLayout(config).map(row => {
         const z = row.center * unit, railOffset = row.railOffset * unit, length = row.length * unit;

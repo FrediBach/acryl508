@@ -119,7 +119,7 @@ export function ConfiguratorShell() {
       showExported("JSON");
       return;
     }
-    const resolvedPanels = Object.fromEntries(Object.entries(panels.faces).filter(([side]) => config.cutouts.some(cutout => cutout.side === side)).map(([side, face]) => [side, face.polygons]));
+    const resolvedPanels = Object.fromEntries(Object.entries(panels.faces).filter(([side]) => config.cutouts.some(cutout => cutout.side === side) || config.ledStrips[side as keyof typeof config.ledStrips]?.enabled).map(([side, face]) => [side, face.polygons]));
     download(JSON.stringify(configurationExport(config, panels.reports, resolvedPanels), null, 2), "application/json", `acryl508-${rackRows(config).map(units => `${units}u`).join("-")}-${config.hp}hp.json`);
     showExported("JSON");
   }

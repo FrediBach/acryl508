@@ -20,6 +20,10 @@ export function caseFabrication(config: CaseConfiguration, panels: CasePanels): 
     ...(report.clipped.length ? [`${report.side}: ${report.clipped.length} cutout(s) extend beyond the sheet.`] : []),
     ...(report.outside.length ? [`${report.side}: ${report.outside.length} cutout(s) do not intersect acrylic.`] : []),
   ]);
+  for (const [side, face] of Object.entries(panels.faces)) {
+    if (face.engraving.outside.length || face.engraving.clipped.length) warnings.push(`${side}: ${face.engraving.outside.length} engravings outside the acrylic; ${face.engraving.clipped.length} clipped at edges or openings.`);
+    if (face.led) warnings.push(`${side}: LED strip ${face.led.strip.length} mm long, ${face.led.strip.slotHeight} mm slot height. Verify strip profile, LED direction, wiring and retention. Slot is a through-cut, not a milled recess.`);
+  }
   for (const bend of accessoryBendSpecification(config)) warnings.push(`${bend.side} ${bend.accessory}: form ${bend.angleDegrees}° outward with ${bend.innerRadiusMm} mm inside radius. Flat sheet includes ${bend.addedFlatLengthMm.toFixed(1)} mm for clearance and bend allowance; validate on a sample.`);
   if (config.busboard !== "none") {
     warnings.push("Power-board mounting coordinates are estimates. Verify against your physical board.");
@@ -28,9 +32,9 @@ export function caseFabrication(config: CaseConfiguration, panels: CasePanels): 
   }
   if (config.vents && panels.ventilation.omitted) warnings.push(`${panels.ventilation.omitted} vents omitted near cutouts or mounting points.`);
   if (config.vents && panels.ventilation.limited) warnings.push("Vent sizes or density were limited to preserve material between openings.");
-  return { parts: caseSheetLayout(panels).parts.map(({ item }) => ({ id: item.id, label: item.label, polygons: item.polygons, thickness: panelThickness(config, item.id), material: materialLabel(panelTint(config, item.id), panelTransparency(config, item.id)) })),
+  return { parts: caseSheetLayout(panels).parts.map(({ item }) => ({ id: item.id, label: item.label, polygons: item.polygons, engraving: item.engraving, thickness: panelThickness(config, item.id), material: materialLabel(panelTint(config, item.id), panelTransparency(config, item.id)) })),
     warnings, thickness: config.thickness, clearance: 0, blocked: !caseCanExport(panels),
-    hardware: [`${rackRows(config).length * 2} rails cut to ${config.hp} HP`, `${rackRows(config).length * 4} rail-end screws and load-spreading washers; confirm thread and engagement`, ...(panels.mountingHoles.length ? [`${panels.mountingHoles.length} board mounting holes; verify standoffs and required fasteners with the board maker`] : [])],
+    hardware: [...Object.entries(panels.faces).filter(([, face]) => face.led && !face.led.error).map(([side, face]) => `${side}: ${face.led!.strip.length} mm LED strip plus suitable supply, wiring and retention`), `${rackRows(config).length * 2} rails cut to ${config.hp} HP`, `${rackRows(config).length * 4} rail-end screws and load-spreading washers; confirm thread and engagement`, ...(panels.mountingHoles.length ? [`${panels.mountingHoles.length} board mounting holes; verify standoffs and required fasteners with the board maker`] : [])],
   };
 }
 export function standFabrication(stand: SynthStand, error?: string, busy?: boolean): Fabrication {
@@ -47,8 +51,8 @@ export function artFabrication(art: Art): Fabrication {
     hardware: ["No screws or adhesive. Assemble B slots-up and A slots-down, then form the leaves and insert leaf shelves inward, perpendicular to the bent parent leaves, into their matching slots."], thickness: art.config.thickness, clearance: art.config.clearance, blocked: false };
 }
 export function panelFabrication(panel: DesignedPanel): Fabrication {
-  return { parts: [{ id: "panel", label: "Panel", polygons: down(panel.polygons), engraving: down(panel.engravings.flatMap(item => item.polygons)), material: materialLabel(panel.config.tint, panel.config.transparency) }],
-    warnings: panel.warnings, hardware: [`${panel.mounts.length} mounting screws; verify washers and thread engagement`], thickness: panel.config.thickness, clearance: 0, blocked: !panel.canExport };
+  return { parts: [{ id: "panel", label: "Panel", polygons: down(panel.polygons), engraving: down(panel.engraving.polygons), material: materialLabel(panel.config.tint, panel.config.transparency) }],
+    warnings: panel.warnings, hardware: [...(panel.led && !panel.led.error ? [`${panel.led.strip.length} mm edge-facing LED strip; confirm profile, supply, wiring and retention`] : []), `${panel.mounts.length} mounting screws; verify washers and thread engagement`], thickness: panel.config.thickness, clearance: 0, blocked: !panel.canExport };
 }
 export type PackedPart = FabricationPart & { x: number; y: number; width: number; height: number; rotated: boolean };
 export type StockSheet = { material: string; thickness?: number; parts: PackedPart[] };

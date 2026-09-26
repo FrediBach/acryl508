@@ -6,7 +6,7 @@ import type { CasePanels } from "@/lib/case-panels";
 import { cutoutSides, maxCutouts, outlinePath, placedCutout, polygonBounds, type CustomCutout, type CutoutAction, type CutoutSide } from "@/lib/custom-cutouts";
 import { builtinFonts, importSvg, loadBuiltinFont, textOutlines } from "@/lib/cutout-sources";
 
-type Props = { config: CaseConfiguration; panels: CasePanels; onAction: (action: CutoutAction) => void };
+type Props = { config: CaseConfiguration; panels: CasePanels; onAction: (action: CutoutAction) => void; operation?: "cut" | "engrave" };
 export type { FontOption } from "@/lib/project-fonts";
 import { addProjectFont, type FontOption } from "@/lib/project-fonts";
 import { useProjectFonts } from "./use-project-fonts";
@@ -55,17 +55,20 @@ export function TextEditor({ cutout, fonts, onImport, onUpdate }: { cutout: Cust
   </div>;
 }
 
-export function CutoutControls({ config, panels, onAction }: Props) {
+export function CutoutControls({ config, panels, onAction, operation = "cut" }: Props) {
+  const engraving = operation === "engrave";
+  const items = engraving ? config.engravings : config.cutouts;
+  const noun = engraving ? "engraving" : "cutout";
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const fonts = useProjectFonts();
   const input = useRef<HTMLInputElement>(null);
-  const selected = config.cutouts.find(cutout => cutout.id === selectedId) ?? config.cutouts[0];
+  const selected = items.find(cutout => cutout.id === selectedId) ?? items[0];
   const face = selected ? panels.faces[selected.side] : null;
   const bounds = face ? polygonBounds(face.original) : null;
-  const limitReached = config.cutouts.length >= maxCutouts;
-  const warnings = panels.reports.filter(report => report.removedParts || report.empty || report.error || report.outside.length || report.clipped.length);
+  const limitReached = items.length >= maxCutouts;
+  const warnings = engraving ? [] : panels.reports.filter(report => report.removedParts || report.empty || report.error || report.outside.length || report.clipped.length);
   function update(patch: Partial<CustomCutout>) { if (selected) onAction({ type: "update", id: selected.id, patch }); }
   function add(polygons: CustomCutout["polygons"], source: CustomCutout["source"], name: string) {
     const side = selected?.side ?? "front";
@@ -99,12 +102,12 @@ export function CutoutControls({ config, panels, onAction }: Props) {
     update({ x: round(Math.max(bounds.left, Math.min(bounds.right, point.x))), y: round(Math.max(bounds.bottom, Math.min(bounds.top, -point.y))) });
   }
   return <>
-    <p className="control-note">Cut through any enclosure panel. Filled SVG paths or font outlines; each cutout has its own size and position.</p>
+    <p className="control-note">{engraving ? "Etch SVG artwork or text into the outside surface of any sheet. Frosted marks keep the acrylic intact, including letter centres." : "Cut through any enclosure panel. Filled SVG paths or font outlines; each cutout has its own size and position."}</p>
     <div className="cutout-actions"><button className="cutout-button" disabled={busy || limitReached} onClick={() => input.current?.click()}><Upload size={13} />Import SVG</button><button className="cutout-button" disabled={busy || limitReached} onClick={addText}><Plus size={13} />{busy ? "Preparing…" : "Add text"}</button></div>
-    <input ref={input} type="file" accept=".svg,image/svg+xml" hidden aria-label="Import SVG cutout" onChange={uploadSvg} />
-    <p className="control-note">SVG up to 1 MB. Convert strokes to filled paths first. {limitReached && "Limit reached: 20 cutouts."}</p>
+    <input ref={input} type="file" accept=".svg,image/svg+xml" hidden aria-label={`Import SVG ${noun}`} onChange={uploadSvg} />
+    <p className="control-note">SVG up to 1 MB. Convert strokes to filled paths first. {limitReached && `Limit reached: 20 ${noun}s.`}</p>
     {error && <p className="cutout-warning" role="alert">{error}</p>}
-    {config.cutouts.length > 0 && <div className="cutout-list" aria-label="Custom cutouts">{config.cutouts.map(cutout => <div className="cutout-list-row" key={cutout.id}>
+    {items.length > 0 && <div className="cutout-list" aria-label={`Custom ${noun}s`}>{items.map(cutout => <div className="cutout-list-row" key={cutout.id}>
       <button className={`cutout-choice ${cutout.id === selected?.id ? "cutout-selected" : ""}`} aria-pressed={cutout.id === selected?.id} onClick={() => setSelectedId(cutout.id)}><span>{cutout.name}</span><small>{cutoutSides.find(side => side.value === cutout.side)?.label}</small></button>
       <button className="icon-button" aria-label={`Duplicate ${cutout.name}`} disabled={limitReached} onClick={() => { const copy = { ...cutout, id: crypto.randomUUID(), name: `${cutout.name} copy` }; onAction({ type: "add", cutout: copy }); setSelectedId(copy.id); }}><Copy size={13} /></button>
       <button className="icon-button" aria-label={`Remove ${cutout.name}`} onClick={() => onAction({ type: "remove", id: cutout.id })}><Trash2 size={13} /></button>
@@ -119,9 +122,10 @@ export function CutoutControls({ config, panels, onAction }: Props) {
         <NumberControl label="Vertical (mm)" value={selected.y} min={-1000} max={1000} onChange={y => update({ y })} />
       </div>
       <div className="cutout-layout-heading"><span>OUTSIDE VIEW · {selected.side.toUpperCase()}</span><button onClick={() => update({ x: 0, y: 0 })}>Centre</button></div>
-      <svg className="cutout-layout" role="img" aria-label={`${selected.side} panel after cuts. Click or drag to position the selected cutout.`} viewBox={`${bounds.left - 5} ${-bounds.top - 5} ${bounds.width + 10} ${bounds.height + 10}`} onPointerDown={event => { event.currentTarget.setPointerCapture(event.pointerId); place(event); }} onPointerMove={event => { if (event.currentTarget.hasPointerCapture(event.pointerId)) place(event); }} onPointerUp={event => event.currentTarget.releasePointerCapture(event.pointerId)}>
+      <svg className="cutout-layout" role="img" aria-label={`${selected.side} panel. Click or drag to position the selected ${noun}.`} viewBox={`${bounds.left - 5} ${-bounds.top - 5} ${bounds.width + 10} ${bounds.height + 10}`} onPointerDown={event => { event.currentTarget.setPointerCapture(event.pointerId); place(event); }} onPointerMove={event => { if (event.currentTarget.hasPointerCapture(event.pointerId)) place(event); }} onPointerUp={event => event.currentTarget.releasePointerCapture(event.pointerId)}>
         <path d={outlinePath(face.original)} className="cutout-original" fillRule="evenodd" />
         <path d={outlinePath(face.polygons)} className="cutout-material" fillRule="evenodd" />
+        {engraving && <path d={outlinePath(face.engraving.polygons)} className="engraving-fill" fillRule="evenodd" />}
         <path d={outlinePath(placedCutout(selected))} className="cutout-outline" vectorEffect="non-scaling-stroke" />
       </svg>
       <p className="control-note">Click or drag to place. Solid areas show retained acrylic. Position is measured from the panel centre: +X right, +Y up. Proportions stay locked.{selected.side === "bottom" && " Rear edge is at the top."}</p>
@@ -135,6 +139,9 @@ export function CutoutControls({ config, panels, onAction }: Props) {
         {report.error && <p>{report.error}</p>}
       </div>
     </div>)}</div>
-    <p className="control-note">Loose acrylic is removed automatically after all cuts, including enclosed letter centres. Use a stencil font to keep those centres connected.</p>
+    {engraving ? <>
+      {Object.entries(panels.faces).map(([side, panel]) => panel.engraving.outside.length || panel.engraving.clipped.length || panel.engraving.error ? <p key={side} className="cutout-warning" role="status">{side}: {panel.engraving.error || `${panel.engraving.outside.length} outside the acrylic; ${panel.engraving.clipped.length} clipped at an edge or opening.`}</p> : null)}
+      <p className="control-note">Engravings are clipped to the remaining acrylic. Blue filled paths export as a separate engraving operation; cut paths stay separate.</p>
+    </> : <p className="control-note">Loose acrylic is removed automatically after all cuts, including enclosed letter centres. Use a stencil font to keep those centres connected.</p>}
   </>;
 }

@@ -3,6 +3,7 @@ import { defaultConfiguration, type CaseConfiguration } from "./configurator";
 import { defaultStandConfiguration, normalizeStandConfiguration, type StandConfiguration } from "./synth-stand";
 import { defaultProtectorConfiguration, type ProtectorConfiguration } from "./synth-protector";
 import { defaultPanelConfiguration, normalizePanelConfiguration, type PanelConfiguration } from "./panel-designer";
+import { defaultLedStrip, type LedStrip } from "./engravings";
 import { type CustomCutout } from "./custom-cutouts";
 import { validateObjectVertices, type StandObject } from "./stand-object";
 import { normalizeVentDesign } from "./vent-design";
@@ -95,6 +96,11 @@ function object(input: unknown): StandObject | undefined {
   return { name: text(data.name, "model filename"), vertices,
     units: choice(data.units, ["mm", "cm", "m", "in"], "model units"), up: choice(data.up, ["x", "-x", "y", "-y", "z", "-z"], "model up axis"), turn: number(data.turn, "Model rotation", 0, 270) };
 }
+function readLedStrip(input: unknown): LedStrip {
+  const strip = base(input, defaultLedStrip);
+  if (!/^#[0-9a-f]{6}$/i.test(strip.color)) throw new Error("Invalid LED color.");
+  return { enabled: strip.enabled, color: strip.color, length: number(strip.length, "LED length", 10, 1000), slotHeight: number(strip.slotHeight, "LED slot height", 1, 10), inset: number(strip.inset, "LED bottom offset", 3, 200), intensity: number(strip.intensity, "LED brightness", 0, 3) };
+}
 export function readCase(input: unknown): CaseConfiguration {
   const data = record(input, "Case"), config = material(base(input, defaultConfiguration));
   config.hp = number(config.hp, "Case HP", 20, 168);
@@ -123,6 +129,8 @@ export function readCase(input: unknown): CaseConfiguration {
   config.ventMix = choice(config.ventMix, ["checkerboard", "rows", "columns"], "vent alternation");
   config.ventDesign = normalizeVentDesign(record(config.ventDesign, "Vent design"));
   config.cutouts = cutouts(config.cutouts);
+  config.engravings = cutouts(config.engravings);
+  config.ledStrips = Object.fromEntries(Object.entries(record(config.ledStrips, "LED strips")).map(([side, strip]) => [choice(side, ["front", "rear", "left", "right", "bottom"], "LED sheet"), readLedStrip(strip)]));
   config.individualPanelTints = data.individualPanelTints === true;
   config.panelTints = {}; config.panelTransparencies = {}; config.panelThicknesses = {};
   for (const side of ["front", "rear", "left", "right", "bottom"] as const) {
@@ -143,6 +151,7 @@ export function readProtector(input: unknown): ProtectorConfiguration {
 }
 export function readPanel(input: unknown): PanelConfiguration {
   const config = material(base(input, defaultPanelConfiguration));
+  config.ledStrip = readLedStrip(config.ledStrip);
   config.format = choice(config.format, ["3u", "intellijel-1u", "pulp-logic-1u"], "panel format");
   config.mounting = choice(config.mounting, ["holes", "slots"], "mounting");
   config.mountingCount = choice(config.mountingCount, ["auto", "two", "four"], "mounting count");

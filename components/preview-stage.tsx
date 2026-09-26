@@ -16,6 +16,7 @@ function CuttingLayout({ panels, config }: { panels: CasePanels; config: CaseCon
     {layout.parts.map(({ item, x, y }) => <g key={item.id} data-part={item.id} transform={`translate(${x} ${y})`}>
       <title>{`${item.label}: ${item.bounds.width.toFixed(1)} × ${item.bounds.height.toFixed(1)} mm · ${panelThickness(config, item.id)} mm thick${item.polygons.length ? "" : " — fully removed"}`}</title>
       {item.polygons.length > 0 && <path d={casePathData(item.polygons)} fill={panelTint(config, item.id).color} fillOpacity={0.4} stroke="currentColor" strokeWidth={1} vectorEffect="non-scaling-stroke" fillRule="evenodd" />}
+      {!!item.engraving?.length && <path data-operation="engrave" d={casePathData(item.engraving)} fill="#2563eb" fillOpacity={0.85} fillRule="evenodd" />}
     </g>)}
   </svg><p>{5 - removed} sheets{removed > 0 ? ` · ${removed} fully removed by cutouts` : ""} · {layout.width.toFixed(0)} × {layout.height.toFixed(0)} mm layout · arrange to fit your stock sheet</p></div>;
 }

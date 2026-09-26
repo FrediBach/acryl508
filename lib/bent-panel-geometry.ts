@@ -3,8 +3,9 @@ import { bendPoint, bendSlices, type AccessoryBend } from "./accessory-bends";
 
 // Split the flat extrusion at every bend sample before deforming. Merely moving
 // the original vertices would turn large face triangles into sharp chords.
-export function bentPanelGeometry(shapes: Shape[], depth: number, bends: AccessoryBend[], direction: number, curveSegments = 12) {
+export function bentPanelGeometry(shapes: Shape[], depth: number, bends: AccessoryBend[], direction: number, curveSegments = 12, surface?: { offset: number; depth: number }) {
   const source = new ExtrudeGeometry(shapes, { depth, bevelEnabled: false, curveSegments });
+  if (surface) source.translate(0, 0, surface.offset);
   if (!bends.length) return source;
   const positions = source.getAttribute("position"), normals = source.getAttribute("normal");
   const output: number[] = [], outputNormals: number[] = [];
@@ -26,7 +27,7 @@ export function bentPanelGeometry(shapes: Shape[], depth: number, bends: Accesso
   };
   const emit = (polygon: Vertex[]) => {
     for (let i = 1; i < polygon.length - 1; i++) for (const v of [polygon[0], polygon[i], polygon[i + 1]]) {
-      const p = bendPoint(v[0], v[1], v[2], depth, bends, direction);
+      const p = bendPoint(v[0], v[1], v[2], surface?.depth ?? depth, bends, direction);
       output.push(p.x, p.y, p.z);
       const c = Math.cos(p.angle), s = Math.sin(p.angle);
       outputNormals.push(v[3], c * v[4] - s * v[5], s * v[4] + c * v[5]);

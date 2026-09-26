@@ -1,5 +1,6 @@
 import { caseThicknesses, panelThickness, jointThickness, type SheetThicknessConfiguration } from "./sheet-thickness";
 export { caseThicknesses, panelThickness, panelThicknessesFrom, caseThicknessLabel, jointThickness, type SheetThicknessConfiguration } from "./sheet-thickness";
+import type { LedStrip } from "./engravings";
 import { cutoutSides, type CustomCutout, type CutoutReport, type CutoutSide } from "./custom-cutouts";
 import type { MultiPolygon } from "polygon-clipping";
 import { defaultVentDesign, normalizeVentDesign, type VentDesign } from "./vent-design";
@@ -36,6 +37,8 @@ export type CaseConfiguration = {
   patchBoard?: boolean; patchBoardSide?: "left" | "right" | "both"; patchBoardWidth?: number; patchBoardHeight?: number; patchBoardSpacing?: number; patchBoardBendAngle?: number;
   cableHolder?: boolean; cableHolderHeight?: number; cableHolderSlitWidth?: number; cableHolderBendAngle?: number;
   cutouts: CustomCutout[];
+  engravings: CustomCutout[];
+  ledStrips: Partial<Record<PanelSide, LedStrip>>;
 };
 export function panelTintsFrom(tint: AcrylicTint): Record<PanelSide, AcrylicTint> {
   return Object.fromEntries(panelSides.map(({ value }) => [value, tint])) as Record<PanelSide, AcrylicTint>;
@@ -80,7 +83,7 @@ export const ventDensities: { value: VentDensity; label: string }[] = [
 ];
 export const defaultConfiguration: CaseConfiguration = {
   hp: 84, rows: 1, rowUnits: [3], depth: 75, thickness: 5, sideMarginRatio: 2, tint: defaultTint, transparency: defaultTransparency, angle: 0, vents: true, busboard: "none",
-  handle: false, handleMode: "auto", handleWidth: 160, handleHeight: 70, handleBendAngle: 0, footShape: "wedge", cutouts: [], ventStyle: "long-slits", ventDensity: "medium",
+  handle: false, handleMode: "auto", handleWidth: 160, handleHeight: 70, handleBendAngle: 0, footShape: "wedge", cutouts: [], engravings: [], ledStrips: {}, ventStyle: "long-slits", ventDensity: "medium",
   ventDesign: defaultVentDesign,
   compactPwrInletSide: "left",
   ventLayout: "aligned", ventCoverage: "bands", ventMix: "checkerboard",
@@ -251,6 +254,11 @@ export function configurationExport(config: CaseConfiguration, cutoutReports: Cu
       inputModule: `Barrel/switch inlet clearance window and mounting holes on the ${config.compactPwrInletSide === "rear" ? "rear panel" : "left side"} when the full plate fits clear of panel joints and rail holes. Omitted if there is insufficient room. Rear component clearance and cable routing require hardware verification.`,
       inlet: { ...compactPwrInlet, side: config.compactPwrInletSide ?? "left" },
     } : null,
+    customEngravings: {
+      placement: "Outside face; same centred millimetre coordinates and transforms as cutouts. Clip to retained acrylic, preserve counters, merge overlaps.",
+      operation: "Surface engraving, separate from through-cut outlines. Export engraved sheets outside-face up.",
+      lighting: "Per-sheet edge-facing LED strip in a narrow through-slot near the lower edge. One sheet thickness of clear material required around the slot. Colour and brightness are preview approximations; confirm profile, wiring and retention with actual hardware.",
+    },
     customCutouts: {
       placement: "Viewed from outside each panel; x/y in mm from panel centre, x right, y up; rotation in degrees counterclockwise; width uniformly scales the normalized outlines. Bottom is viewed from below with rear at the top.",
       loosePartPolicy: "After all cutouts and existing holes are subtracted, retain only the largest connected acrylic region sharing an edge with the original panel perimeter. Remove all other regions, including enclosed letter centres even when larger than the remaining frame.",

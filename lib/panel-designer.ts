@@ -1,3 +1,4 @@
+import { defaultLedStrip, ledSlot, resolveEngravings, type LedStrip } from "./engravings";
 import clipping, { type MultiPolygon } from "polygon-clipping";
 import { defaultTint, defaultTransparency, type AcrylicTint, type AcrylicTransparency } from "./acrylic-material";
 import { geometryArea, mapPolygons, outlinePath, placedCutout, polygonBounds, subtractCutouts, type CustomCutout } from "./custom-cutouts";
@@ -21,6 +22,7 @@ export type PanelConfiguration = {
   tint: AcrylicTint; transparency: AcrylicTransparency;
   mounting: "holes" | "slots"; mountingCount: "auto" | "two" | "four"; slotTravel: number;
   components: PanelComponent[]; artwork: PanelArtwork[];
+  ledStrip: LedStrip;
   vents: { enabled: boolean; shape: "circles" | "slots" | "hexagons"; staggered: boolean; pitch: number; size: number; margin: number; design: VentDesign };
 };
 export const maxPanelComponents = 64;
@@ -28,7 +30,7 @@ export const maxPanelArtwork = 20;
 export const defaultPanelConfiguration: PanelConfiguration = {
   format: "3u", hp: 12, widthClearance: 0.3, thickness: 3, tint: defaultTint, transparency: defaultTransparency,
   mounting: "holes", mountingCount: "auto", slotTravel: 2,
-  components: [], artwork: [],
+  components: [], artwork: [], ledStrip: { ...defaultLedStrip, length: 40, inset: 12 },
   vents: { enabled: false, shape: "circles", staggered: true, pitch: 9, size: 4, margin: 8, design: defaultVentDesign },
 };
 const bounded = (value: number, fallback: number, min: number, max: number) => Number.isFinite(value) ? Math.max(min, Math.min(max, value)) : fallback;
@@ -37,7 +39,7 @@ export function normalizePanelConfiguration(input: PanelConfiguration): PanelCon
   const format = panelFormats[input.format] ? input.format : "3u";
   const hp = bounded(input.hp, 12, format === "pulp-logic-1u" ? 6 : 2, 84);
   return {
-    ...input, format, hp: format === "pulp-logic-1u" ? Math.round(hp / 6) * 6 : Math.round(hp),
+    ...input, ledStrip: { ...defaultPanelConfiguration.ledStrip, ...input.ledStrip }, format, hp: format === "pulp-logic-1u" ? Math.round(hp / 6) * 6 : Math.round(hp),
     thickness: bounded(input.thickness, 3, 1.5, 6), widthClearance: bounded(input.widthClearance, 0.3, 0.1, 0.5),
     slotTravel: bounded(input.slotTravel, 2, 0, 4),
     components: input.components.slice(0, maxPanelComponents).map(c => ({ ...c,
@@ -109,7 +111,9 @@ export function createPanel(input: PanelConfiguration) {
     if (!within(b, width, height, 0) || b.top > height / 2 - 8 || b.bottom < -height / 2 + 8) warnings.push(`${c.name}: body clearance reaches an edge or the 8 mm rail reserve. Verify the actual hardware and rail profile.`);
     if (c.maxPanelThickness > 0 && config.thickness > c.maxPanelThickness) warnings.push(`${c.name}: ${config.thickness} mm acrylic exceeds the specified ${c.maxPanelThickness} mm maximum panel thickness.`);
   }
+  const plannedLed = ledSlot(original, config.ledStrip, config.thickness);
   const reserved = [...components.map(c => polygonBounds(c.body)), ...artworks.map(a => polygonBounds(a.placed)), ...mounts.map(m => polygonBounds(m.polygons))];
+  if (plannedLed && !plannedLed.error) reserved.push(polygonBounds(plannedLed.polygons));
   const vents: MultiPolygon[] = [];
   const margin = Math.max(config.vents.margin, 2 * config.thickness);
   let pitch = Math.max(config.vents.pitch, config.vents.size + web);
@@ -134,7 +138,14 @@ export function createPanel(input: PanelConfiguration) {
     if (!vents.length) warnings.push("No ventilation openings fit the available space. Reduce the margin or opening size, or widen the panel.");
   }
   const cuts = [...mounts.map((m, i) => asCutout(`mount-${i + 1}`, m.polygons)), ...components.map(c => asCutout(c.id, c.polygons)), ...vents.map((p, i) => asCutout(`vent-${i + 1}`, p)), ...config.artwork.filter(a => a.operation === "cut")];
-  const result = subtractCutouts(original, cuts, "front");
+  const customResult = subtractCutouts(original, cuts, "front");
+  const led = ledSlot(customResult.polygons, config.ledStrip, config.thickness);
+  if (led && !led.error) {
+    const bounds = polygonBounds(led.polygons);
+    if (bounds.bottom < -height / 2 + 8 || components.some(c => boundsOverlap(bounds, polygonBounds(c.body), web))) led.error = "Move the LED slot clear of component bodies and the 8 mm rail reserve.";
+  }
+  const result = led && !led.error ? subtractCutouts(original, [...cuts, led.cutout], "front") : customResult;
+  if (led?.error) result.report.error = led.error;
   const { report, polygons } = result;
   if (report.removedParts) warnings.push(`${report.removedParts} loose part(s) removed, including enclosed letter centres. Use stencil artwork for cut-through lettering.`);
   if (report.outside.length) warnings.push(`${report.outside.length} cutout(s) lie outside the panel and do not cut any acrylic.`);
@@ -156,7 +167,9 @@ export function createPanel(input: PanelConfiguration) {
       return { id: a.id, name: a.name, polygons: engraved };
     } catch { engravingError = true; warnings.push(`${a.name}: engraving could not be resolved. Simplify the artwork before exporting.`); return { id: a.id, name: a.name, polygons: [] as MultiPolygon }; }
   });
-  return { config, width, height, original, polygons, mounts, components, engravings, vents, ventPitch: pitch, ventMargin: margin, warnings: [...new Set(warnings)], report, canExport: !report.empty && !report.error && !engravingError };
+  const engraving = resolveEngravings(polygons, config.artwork.filter(a => a.operation === "engrave"));
+  if (engraving.error) { engravingError = true; warnings.push(engraving.error); }
+  return { config, width, height, original, polygons, mounts, components, engravings, engraving, led, vents, ventPitch: pitch, ventMargin: margin, warnings: [...new Set(warnings)], report, canExport: !report.empty && !report.error && !engravingError };
 }
 export type DesignedPanel = ReturnType<typeof createPanel>;
 export type PanelAlignment = "column" | "row" | "distribute-x" | "distribute-y" | "center-x" | "center-y";

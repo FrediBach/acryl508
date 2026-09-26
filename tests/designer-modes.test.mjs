@@ -149,6 +149,28 @@ test("mode switching preserves independent designs and routes material choices a
     for (const part of caseLayout().querySelectorAll("g[data-part]")) {
       assert.equal(part.querySelector("path").getAttribute("d"), exportedLayout.querySelector(`[data-part="${part.dataset.part}"] path`).getAttribute("d"));
     }
+    const engravingSection = [...document.querySelectorAll(".config-section")].find(el => el.querySelector("h3").textContent === "Custom engravings");
+    await React.act(async () => engravingSection.querySelector("summary").click());
+    const engravingInput = engravingSection.querySelector('input[aria-label="Import SVG engraving"]');
+    const svgFile = { name: "etched-mark.svg", size: 120, text: async () => '<svg xmlns="http://www.w3.org/2000/svg"><path d="M0 0H20V20H0Z M5 5V15H15V5Z" fill-rule="evenodd" /></svg>' };
+    Object.defineProperty(engravingInput, "files", { configurable: true, value: [svgFile] });
+    await React.act(async () => engravingInput.dispatchEvent(new dom.window.Event("change", { bubbles: true })));
+    assert.equal(engravingSection.querySelectorAll(".cutout-list-row").length, 1);
+    assert.ok(caseLayout().querySelector('[data-operation="engrave"]'), "Flat preview displays engravings");
+    assert.equal(caseLayout().querySelector('[data-part="bottom"] path').getAttribute("d"), originalBottomPath);
+    await click("Duplicate etched-mark");
+    assert.equal(engravingSection.querySelectorAll(".cutout-list-row").length, 2);
+    await click("Remove etched-mark copy");
+    await click("Undo design change");
+    assert.equal(engravingSection.querySelectorAll(".cutout-list-row").length, 2);
+    await click("Redo design change");
+    await click("Remove etched-mark");
+    assert.equal(caseLayout().querySelector('[data-operation="engrave"]'), null);
+    const frontBeforeLed = caseLayout().querySelector('[data-part="front"] path').getAttribute("d");
+    await React.act(async () => engravingSection.querySelector('input[aria-label="LED strip · Front sheet"]').click());
+    assert.notEqual(caseLayout().querySelector('[data-part="front"] path').getAttribute("d"), frontBeforeLed);
+    await click("Undo design change");
+    assert.equal(caseLayout().querySelector('[data-part="front"] path').getAttribute("d"), frontBeforeLed);
     await click("Front");
     assert.equal(caseLayout(), null);
     assert.equal(button("Front").getAttribute("aria-pressed"), "true");

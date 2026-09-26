@@ -5,6 +5,9 @@ import { accessoryBendAngles, acrylicTints, busboards, footShapes, handleCount, 
 import { materialLabel, type AcrylicTransparency } from "@/lib/acrylic-material";
 import { ColorChooser, TransparencyChooser, MaterialPreviewNote } from "@/components/material-controls";
 import { ConfigSection } from "@/components/config-section";
+import { LedStripControls } from "@/components/led-strip-controls";
+import { defaultLedStrip } from "@/lib/engravings";
+import { maxCutouts } from "@/lib/custom-cutouts";
 import { CutoutControls } from "@/components/cutout-controls";
 import { VentControls } from "@/components/vent-controls";
 import { flatFeetLayout, flatFootStyles, flatFootHeightLimits } from "@/lib/flat-feet";
@@ -218,6 +221,14 @@ export function ConfigurationPanel({ config, panels, onChange, onCutoutAction }:
     </ConfigSection>
     <ConfigSection number="07" title="Custom cutouts" summary={config.cutouts.length ? `${config.cutouts.length} ${config.cutouts.length === 1 ? "cutout" : "cutouts"} added` : "No cutouts · Import SVG or add text"}>
       <CutoutControls config={config} panels={panels} onAction={onCutoutAction} />
+    </ConfigSection>
+    <ConfigSection number="08" title="Custom engravings" summary={config.engravings.length ? `${config.engravings.length} engravings · ${Object.values(config.ledStrips).filter(strip => strip?.enabled).length} LED strips` : "Frosted artwork · Optional LED lighting"}>
+      <CutoutControls config={config} panels={panels} operation="engrave" onAction={action => onChange({ engravings: action.type === "add" ? config.engravings.length < maxCutouts ? [...config.engravings, action.cutout] : config.engravings : action.type === "remove" ? config.engravings.filter(item => item.id !== action.id) : config.engravings.map(item => item.id === action.id ? { ...item, ...action.patch } : item) })} />
+      <div className="engraving-lighting">
+        <p className="control-label">BOTTOM LED LIGHTING</p>
+        {panelSides.map(({ value, label }) => <LedStripControls key={value} label={`${label} sheet`} strip={config.ledStrips[value] ?? defaultLedStrip} onChange={strip => onChange({ ledStrips: { ...config.ledStrips, [value]: strip } })} error={panels.faces[value].led?.error} />)}
+        <p className="control-note">The strip sits edge-on in a thin through-slot near the sheet’s lower edge. Use LEDs facing the acrylic. Enter your strip’s actual length and profile height; allow for its wiring and fixings. Clear and translucent acrylic carry the glow best; opaque sheets show very little light.</p>
+      </div>
     </ConfigSection>
   </aside>;
 }

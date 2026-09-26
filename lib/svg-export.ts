@@ -10,6 +10,7 @@ type SvgPart = {
   id: PanelSide;
   label: string;
   polygons: MultiPolygon;
+  engraving?: MultiPolygon;
   bounds: ReturnType<typeof polygonBounds>;
 };
 
@@ -48,7 +49,15 @@ function caseParts(panels: CasePanels) {
     part("left", "Left side", panels.faces.left.shapes, panels.faces.left.original),
     part("right", "Right side", panels.faces.right.shapes, panels.faces.right.original),
   ];
-  return parts;
+  return parts.map(item => {
+    const face = panels.faces[item.id];
+    if (!face.engraving.polygons.length) return item;
+    // Lay engraved sheets outside-face up. Reflect the whole cutting profile
+    // alongside the artwork so rear, left and underside lettering stays readable.
+    const polygons = mapPolygons(item.polygons, (x, y) => [face.direction * x, y]);
+    const engraving = mapPolygons(face.engraving.polygons, (x, y) => [x, -y - face.centerY * 100]);
+    return { ...item, polygons, engraving, bounds: polygonBounds(polygons) };
+  });
 }
 
 export function caseSheetLayout(panels: CasePanels) {
@@ -84,12 +93,13 @@ export function configurationSvg(config: CaseConfiguration, panels: CasePanels) 
   const { parts: placed, width, height } = caseSheetLayout(panels);
   const groups = placed.map(({ item, x: translateX, y: translateY }) => {
     const path = casePathData(item.polygons);
-    return `  <g id="panel-${item.id}" data-part="${item.id}" data-thickness-mm="${panelThickness(config, item.id)}" data-color="${escapeXml(panelTint(config, item.id).label)}" data-transparency="${panelTransparency(config, item.id)}"${path ? "" : ' data-empty="true"'} transform="translate(${number(translateX)} ${number(translateY)})">\n    <title>${escapeXml(item.label)} · ${panelThickness(config, item.id)} mm</title>${path ? `\n    <path d="${path}" />` : ""}\n  </g>`;
+    const engraving = item.engraving?.length ? `\n    <g id="engrave-${item.id}" data-operation="engrave" fill="#2563eb" fill-rule="evenodd" stroke="none"><path d="${casePathData(item.engraving)}" /></g>` : "";
+    return `  <g id="panel-${item.id}" data-part="${item.id}" data-thickness-mm="${panelThickness(config, item.id)}" data-color="${escapeXml(panelTint(config, item.id).label)}" data-transparency="${panelTransparency(config, item.id)}"${path ? "" : ' data-empty="true"'} transform="translate(${number(translateX)} ${number(translateY)})">\n    <title>${escapeXml(item.label)} · ${panelThickness(config, item.id)} mm</title>${path ? `\n    <path d="${path}" data-operation="cut" />` : ""}${engraving}\n  </g>`;
   }).join("\n");
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${number(width)}mm" height="${number(height)}mm" viewBox="0 0 ${number(width)} ${number(height)}" fill="none" stroke="#000000" stroke-width="0.2" stroke-linecap="round" stroke-linejoin="round" data-units="mm">
   <title>Acryl508 ${escapeXml(rackFormatLabel(config))} / ${config.hp}HP panel layout</title>
-  <desc>Full-size concept vectors in millimetres. Verify kerf, tolerances, corner relief, rail fit and hardware clearances before fabrication.${escapeXml(boardNote + mountingNote + (bendNote ? " Flat, unbent cutting profiles. Bend allowance uses the mid-sheet neutral axis; validate on a sample." + bendNote : ""))}</desc>
+  <desc>Full-size concept vectors in millimetres. Black outlines: cut through, including LED slots. Blue filled paths: surface engrave. Engraved sheets are laid outside-face up. Assign operations separately in CAM. Verify kerf, tolerances, corner relief, rail fit and hardware clearances before fabrication.${escapeXml(boardNote + mountingNote + (bendNote ? " Flat, unbent cutting profiles. Bend allowance uses the mid-sheet neutral axis; validate on a sample." + bendNote : ""))}</desc>
 ${groups}
 </svg>
 `;

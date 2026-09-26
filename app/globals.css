@@ -633,3 +633,11 @@ body:has(.fabrication-dialog[open]) { overflow:hidden; }
   .toggle, .segmented-control, .view-control { border: 1px solid ButtonText; }
   .toggle-on, .segment-active, .rack-size-active, .view-active, .mode-active { outline: 2px solid Highlight; outline-offset: -2px; }
 }
+
+.engraving-fill { fill: #78b8d7; fill-opacity: .75; stroke: none; }
+.engraving-lighting { margin-top: 20px; border-top: 1px solid var(--border); padding-top: 16px; }
+.led-strip-controls { padding: 10px 0; border-bottom: 1px solid var(--border); }
+.led-strip-toggle { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 12px; padding: 4px 0; }
+.led-strip-toggle input[type="checkbox"] { accent-color: #78b8d7; width: 16px; height: 16px; }
+.led-strip-toggle input[type="color"] { width: 36px; height: 26px; padding: 2px; border: 1px solid var(--border); border-radius: 4px; background: transparent; }
+.led-strip-controls .cutout-numbers { margin: 12px 0; }

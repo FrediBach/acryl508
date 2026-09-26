@@ -276,6 +276,35 @@ the settings and calculated spacing. Turning it off preserves its settings,
 and older configurations leave it disabled. Enclosure dimensions exclude the
 holder extension. Cable fit and loaded finger strength need prototype validation.
 
+## Custom engravings and LED lighting
+
+The case designer’s **Custom engravings** section accepts the same filled SVGs,
+text and imported fonts as cutouts, with independent size, rotation, position,
+duplication and removal on all five sheets. Engravings mark the outside surface,
+keep letter counters, merge overlapping marks, and clip to retained acrylic.
+The preview uses a granular, rough frosted finish with a shallow surface relief.
+The panel designer uses the same finish for its engraving artwork.
+
+Each case sheet and the panel designer can carry a bottom LED strip. Length,
+slot height, bottom offset, light colour and brightness are adjustable. The
+strip creates an actual thin through-slot; it is not a depth-controlled groove.
+The preview shows the strip seated edge-on, with LEDs facing into the acrylic,
+and the engraving emission fades with distance from it. Glow follows the
+sheet colour and transparency; opaque sheets transmit very little. These are
+appearance approximations, not a photometric or electrical model.
+
+Slots require one sheet thickness of surrounding material and must avoid
+existing holes, cuts and accessory bends. Bottom vents reserve space for the
+strip. Panel strips also avoid component bodies and the rail reserve. Invalid
+slots block fabrication with a correction message. Confirm the chosen strip’s
+profile, LED direction, fixings, wiring and power supply against real hardware.
+
+Designs, autosaves and project files preserve both engraving and LED settings;
+older files default to neither. Case SVGs export black through-cut outlines and
+blue filled engraving groups, with engraved sheets outside-face up so lettering
+is readable on rear, left and underside sheets. Packed stock SVGs retain the
+separate red cut and blue engrave operations. Assign both operations in CAM.
+
 ## Custom cutouts
 
 Section 05 accepts filled SVG outlines (up to 1 MB), or text from the bundled
