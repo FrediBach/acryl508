@@ -143,6 +143,56 @@
 .eyebrow { display: flex; align-items: center; gap: 10px; font-size: 11px; letter-spacing: 1.15px; color: var(--muted-foreground); line-height: 13.5px; }
 .configurator-grid { height: 100%; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 336px; border: 1px solid var(--strong-border); border-radius: 4px; overflow: hidden; }
 .preview-column { min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+.speaker-acoustics { margin: 18px 0; padding: 16px 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); font-size: 12px; line-height: 1.5; }
+.acoustic-heading, .acoustic-figure figcaption, .acoustic-mode-label { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.acoustic-heading h3, .acoustic-modes h4 { margin: 0; font-size: 12px; font-weight: 600; }
+.acoustic-heading > span { font-size: 11px; color: var(--muted-foreground); }
+.acoustic-volume { margin: 12px 0; color: var(--muted-foreground); }
+.acoustic-volume > strong { font-family: var(--font-geist-mono), monospace; color: var(--foreground); font-size: 20px; font-weight: 500; }
+.acoustic-volume > span { display: block; }
+.acoustic-figure { margin: 0; }
+.acoustic-figure figcaption strong { font-weight: 500; font-variant-numeric: tabular-nums; }
+.acoustic-chart { display: block; width: 100%; height: auto; overflow: visible; margin-top: 8px; }
+.acoustic-chart text { fill: var(--muted-foreground); font-size: 14.5px; }
+.acoustic-grid { stroke: var(--border); stroke-width: 1; }
+.acoustic-reference { stroke: var(--muted-foreground); stroke-width: 1; stroke-dasharray: 3 4; }
+.acoustic-curve { stroke: var(--signal); stroke-width: 2; fill: none; }
+.acoustic-current-point { fill: var(--signal); stroke: var(--background); stroke-width: 1.5; }
+.acoustic-reference-point { fill: var(--background); stroke: var(--foreground); stroke-width: 1.5; }
+.acoustic-legend, .acoustic-reference-controls { display: flex; flex-wrap: wrap; gap: 6px 14px; }
+.acoustic-legend { font-size: 11px; color: var(--muted-foreground); margin: 8px 0; }
+.acoustic-legend > span { display: inline-flex; align-items: center; gap: 5px; }
+.acoustic-key-current, .acoustic-key-reference { display: inline-block; width: 8px; height: 8px; flex-shrink: 0; }
+.acoustic-key-current { border-radius: 50%; background: var(--signal); }
+.acoustic-key-reference { border: 1px solid var(--foreground); }
+.acoustic-takeaway { margin: 10px 0; }
+.acoustic-reference-controls { gap: 6px; }
+.acoustic-reference-caption { font-size: 11px; color: var(--muted-foreground); margin: 6px 0 16px; }
+.acoustic-modes { margin-top: 16px; }
+.acoustic-mode { margin-top: 10px; }
+.acoustic-mode-label { font-size: 11px; color: var(--muted-foreground); }
+.acoustic-mode-label strong { color: var(--foreground); font-weight: 500; }
+.acoustic-mode-track { position: relative; margin: 7px 5px 0; height: 12px; }
+.acoustic-mode-track::before { content: ""; position: absolute; left: 0; right: 0; top: 5px; height: 1px; background: var(--strong-border); }
+.acoustic-mode-reference, .acoustic-mode-current { position: absolute; top: 1px; width: 9px; height: 9px; transform: translateX(-50%); }
+.acoustic-mode-reference { border: 1px solid var(--foreground); background: var(--background); }
+.acoustic-mode-current { border-radius: 50%; background: var(--signal); }
+.acoustic-mode-scale { position: relative; height: 20px; margin: 2px 5px 0; font-size: 11px; color: var(--muted-foreground); }
+.acoustic-mode-scale > span { position: absolute; left: 0; }
+.acoustic-mode-scale > span:nth-child(2) { left: 60.2%; transform: translateX(-50%); }
+.acoustic-mode-scale > span:last-child { left: auto; right: 0; }
+.acoustic-modes > p, .acoustic-assumptions p { margin: 8px 0; font-size: 11px; color: var(--muted-foreground); }
+.acoustic-assumptions { margin-top: 12px; }
+.acoustic-assumptions > summary { cursor: pointer; font-size: 12px; }
+.acoustic-displacement-label { display: block; margin-top: 10px; font-size: 11px; }
+.acoustic-displacement { display: flex; align-items: center; gap: 12px; margin-top: 6px; }
+.acoustic-displacement input[type="number"] { width: 64px; flex-shrink: 0; padding: 5px; background: var(--background); border: 1px solid var(--border); border-radius: 2px; }
+.acoustic-displacement .range-input { min-width: 0; margin: 0; flex: 1; }
+.acoustic-assumptions a { text-decoration: underline; }
+@media (prefers-reduced-motion: no-preference) {
+  .acoustic-current-point { transition: cx 120ms linear, cy 120ms linear; }
+  .acoustic-mode-current { transition: left 120ms linear; }
+}
 .preview-stage { position: relative; flex: 1; min-height: 0; background-color: var(--stage); background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px), radial-gradient(ellipse at 50% 42%, var(--stage-center), transparent 70%); background-size: 32px 32px, 32px 32px, 100% 100%; overflow: hidden; isolation: isolate; }
 .preview-expanded { position: fixed; inset: 16px; z-index: 80; border: 1px solid var(--strong-border); border-radius: 4px; min-height: 0; box-shadow: 0 0 0 30px var(--background); }
 .stage-topline { position: absolute; z-index: 2; inset: 26px 26px auto; display: flex; align-items: center; justify-content: space-between; pointer-events: none; gap: 15px; }

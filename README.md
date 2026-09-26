@@ -23,6 +23,7 @@ This starter does not use `wrangler.jsonc`.
 - responsive configurator shell under `app/`
 - top-bar Case designer / Synth stand / Synth protector / Panel designer / Speaker case / Art modes with independent configurations, local autosave, and portable project files
 - MYND speaker cases with nine acrylic sheets, optional slim front/rear damping gaskets, CAD-derived driver positions, two passive radiators, adjustable dot grilles, donor-electronics references and JSON/SVG exports (see [source dimensions and prototype limitations](docs/mynd-speaker.md))
+- live speaker volume / bass-tuning tendency and internal-resonance comparisons, with a pinnable reference and optional hardware-displacement estimate; clearly labeled geometry models rather than measured sound response
 - Eurorack blank and DIY panels with component openings, SVG/font artwork, separate cut/engrave exports, alignment and ventilation
 - automatic slotted acrylic synth stands with solid ribs, three cross braces, 3D and cutting layouts, and JSON/SVG export
 - optional local STL/OBJ fitting for stands and protectors, with units, orientation and angle controls; protectors use a level cover above the posed model and individual contour-fitted feet with broad locating lips

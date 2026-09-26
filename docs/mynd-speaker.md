@@ -6,6 +6,41 @@ Default body dimensions are **280 × 210 × 120 mm** (W × H × D), with 5 mm sh
 3 mm dots and a 5 mm staggered pitch. Total depth includes the grille and gap.
 The body is a new design; these are not Teufel's stock enclosure dimensions.
 
+## Live dimensions and sound comparison
+
+Under **Enclosure**, **Dimensions & sound** updates directly with width, height,
+depth, sheet thickness and gasket spacing. The reference starts at the default
+acrylic case: 270 × 200 × 110 mm inside, or 5.94 L gross. It is not the original
+MYND cabinet. **Use current as reference** pins a comparison for the current
+view; **Use default** restores the default. Pinning does not change the design.
+
+The bass chart shows the relative resonance of an ideal fixed mass on the
+enclosure air spring: `f / f_ref = sqrt(V_ref / V)`. This follows from acoustic
+compliance `C = V / (rho * c²)` and the constant-mass oscillator relation. It
+omits passive-radiator suspension and losses, driver coupling and DSP, so the
+index is an air-spring tendency, not the MYND tuning frequency, F3, SPL or an
+on-axis frequency response. See [COMSOL's volume-compliance model](https://doc.comsol.com/6.3/doc/com.comsol.help.aco/aco_ug_pressure.05.031.html).
+
+Three separate markers show the first axial standing-wave frequency across
+each internal dimension: `f = 343 / (2 * length_in_metres)`. This assumes an
+empty rectangular enclosure with rigid walls. It predicts locations rather than
+peak amplitudes; carriers and hardware are omitted. Equal-volume enclosures can
+therefore have the same bass index and different standing-wave markers. See
+[COMSOL's rectangular-cavity analytic comparison](https://doc.comsol.com/6.4/doc/com.comsol.help.models.mph.eigenmodes_of_room/eigenmodes_of_room.html).
+
+**Assumptions & air volume** accepts 0–4 L of estimated hardware/bracing
+displacement, subtracted equally from current and reference gross volumes.
+Zero explicitly uses gross volume; no measured donor displacement is assumed.
+This setting is saved with the design. JSON exports include the calculated
+comparison against the default acrylic case, its assumptions and source links.
+The pin is a temporary view setting. Feet, handles and the external grille do
+not affect this model. Gaskets affect nominal depth only; panel vibration,
+gasket damping, absorption, diffraction and leakage are not simulated.
+
+A measured frequency-response prediction would require verified driver
+parameters, passive-radiator mass/compliance, net air volume and DSP settings,
+followed by prototype measurements.
+
 ## Optional joint damping
 
 The **Joint damping** control adds two dark, one-piece frames between the shell

@@ -13,6 +13,7 @@ import { addSpeakerSideProfiles, speakerHandleSides } from "./speaker-side-profi
 import { handleSizeLimits } from "./configurator";
 import { flatFeetLayout, flatFootHeightLimits, type FlatFootStyle } from "./flat-feet";
 import { speakerDampingParts, speakerDampingThickness, speakerDampingMaterial, speakerDampingNote } from "./speaker-damping";
+import { speakerAcousticChamber, speakerAcousticComparison, speakerAcousticSources } from "./speaker-acoustics";
 
 export const myndSource = "https://github.com/teufelaudio/mynd-hardware";
 export const myndRevision = "149d002334b0725fba03499079bdaf2e61c8ff36";
@@ -32,6 +33,7 @@ export type SpeakerConfiguration = SheetMaterialConfiguration & {
   flatFeet: boolean; flatFootStyle: FlatFootStyle; flatFootHeight: number;
   handle: boolean; handleMode: "left" | "right" | "pair"; handleWidth: number; handleHeight: number;
   damping: boolean; dampingThickness: number;
+  acousticDisplacementLitres: number;
 };
 export const speakerLimits = {
   width: { min: 280, max: 420 }, height: { min: 210, max: 300 }, depth: { min: 110, max: 220 },
@@ -41,6 +43,7 @@ export const speakerLimits = {
   controlWidth: { min: myndControls.width, max: myndControls.width }, controlDepth: { min: myndControls.depth, max: myndControls.depth },
   flatFootHeight: flatFootHeightLimits, handleWidth: { ...handleSizeLimits.width, min: 100 }, handleHeight: handleSizeLimits.height,
   dampingThickness: { min: 0.25, max: 2 },
+  acousticDisplacementLitres: { min: 0, max: 4 },
 };
 export const defaultSpeakerConfiguration: SpeakerConfiguration = {
   ...defaultSheetMaterials, width: 280, height: 210, depth: 120, thickness: 5,
@@ -50,6 +53,7 @@ export const defaultSpeakerConfiguration: SpeakerConfiguration = {
   flatFeet: false, flatFootStyle: "pads", flatFootHeight: 15,
   handle: false, handleMode: "pair", handleWidth: 160, handleHeight: 70,
   damping: false, dampingThickness: 1,
+  acousticDisplacementLitres: 0,
 };
 export function normalizeSpeakerConfiguration(input: SpeakerConfiguration): SpeakerConfiguration {
   const config = normalizeSheetThicknesses({ ...defaultSpeakerConfiguration, ...input }, 3, 8);
@@ -152,6 +156,8 @@ export function speakerExport(speaker: Speaker) {
     source:{repository:myndSource,revision:myndRevision,license:"CC-BY-SA-4.0",changes:"Flat acrylic enclosure, simplified seating apertures, service openings and perforated grille; not a Teufel product or validated replacement."},
     dimensions:{width:speaker.config.width,height:speaker.config.height,totalHeight:speaker.totalHeight,bodyDepth:speaker.bodyDepth,totalDepth:speaker.totalDepth,overallDepth:speaker.overallDepth,grossVolumeLitres:speaker.grossVolumeLitres},
     damping:{enabled:speaker.config.damping,thickness:speaker.config.dampingThickness,material:speakerDampingMaterial,parts:speaker.dampingParts,notes:speakerDampingNote},
+    acoustics:{model:"Air-spring-only relative trend and empty rigid-box first axial modes; not a frequency response or bass-cutoff prediction",reference:"Default acrylic case, not the original MYND enclosure",displacementLitres:speaker.config.acousticDisplacementLitres,
+      ...speakerAcousticComparison(speakerAcousticChamber(speaker.config),speakerAcousticChamber(defaultSpeakerConfiguration),speaker.config.acousticDisplacementLitres),sources:speakerAcousticSources},
     feet:{...speaker.feet,method:"Integral side-panel profiles",additionalParts:0,contactCount:speaker.feet.enabled ? speaker.feet.style === "runners" ? 2 : 4 : 0},
     handles:{...speaker.handles,method:"Integral side-panel grips",roundedRoots:true},
     previewHardware:{modelManifest:"/models/mynd/manifest.json",fasteners:speakerFasteners(speaker),boardPlacements:speakerBoardPlacements(speaker),status:"Source PCB/component/mechanical meshes; reconstructed drivers and battery; provisional placement and cable routing"},
