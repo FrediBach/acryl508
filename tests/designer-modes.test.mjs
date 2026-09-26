@@ -110,6 +110,17 @@ test("mode switching preserves independent designs and routes material choices a
     assert.equal(button("Pads").getAttribute("aria-pressed"),"true");
     await click("Redo design change");
     assert.equal(button("Arch").getAttribute("aria-pressed"),"true");
+    await click("Side-panel handles");
+    assert.equal(button("Both sides").getAttribute("aria-pressed"),"true");
+    await click("Right side");
+    await click("Export speaker design JSON");
+    const handledSpeaker=JSON.parse(await downloads.at(-1).blob.text());
+    assert.deepEqual(handledSpeaker.handles.sides,["right"]);
+    assert.equal(handledSpeaker.dimensions.totalHeight,handledSpeaker.configuration.height+15+70);
+    await click("Undo design change");
+    assert.equal(button("Both sides").getAttribute("aria-pressed"),"true");
+    await click("Redo design change");
+    assert.equal(button("Right side").getAttribute("aria-pressed"),"true");
     await click("Cutting layout");
     const speakerPaths = [...document.querySelectorAll(".stand-cutting-layout path")].map(p => p.getAttribute("d"));
     await click("Export speaker sheets as SVG");

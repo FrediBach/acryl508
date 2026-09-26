@@ -108,7 +108,7 @@ export function speakerPanelMounts(speaker: { config: SpeakerConfiguration; part
     });
   }
   const top = speaker.parts.find(p => p.id === "top")!;
-  myndControlMounts.forEach(([x, z], i) => mounts.push({ id: `hmi-${i}`, parent: "top", position: [x, z - top.position[2]], diameter: 3.5 }));
+  myndControlMounts.forEach(([x, z], i) => mounts.push({ id: `hmi-${i}`, parent: "top", position: [x - top.position[0], z - top.position[2]], diameter: 3.5 }));
   const left = speaker.parts.find(p => p.id === "left")!;
   myndPortMounts.forEach(({ y, z, diameter, ...port }, i) => mounts.push({ id: `port-${i}`, parent: "left", position: [y-myndPort.depthOrigin+left.position[2], z-speaker.config.height/2-left.position[1]], diameter, port }));
   return mounts;

@@ -31,16 +31,16 @@ function Sheet({ part, speaker, exploded }: { part: SpeakerPart; speaker: Speake
 }
 function Camera({ speaker,view,resetKey,exploded }: Omit<Props,"dark"|"hardware">) {
   const controls=useRef<OrbitControlsImpl>(null),{camera,size,invalidate}=useThree();
-  const {width,height,depth}=speaker.config;
-  const totalHeight=speaker.totalHeight, footHeight=totalHeight-height;
+  const {width}=speaker.config;
+  const {totalHeight,overallDepth,floorY,topY,rearZ,frontZ}=speaker;
   useEffect(()=>{
     const aspect=size.width/Math.max(1,size.height);
-    const distance=Math.max((width+(exploded ? 100 : 0))/100/aspect,(totalHeight+(exploded ? 100 : 0))/100,(depth+100)/100)*2.25;
+    const distance=Math.max((width+(exploded ? 100 : 0))/100/aspect,(totalHeight+(exploded ? 100 : 0))/100,(overallDepth+100)/100)*2.25;
     const direction=view === "front" ? new Vector3(0,0,1) : view === "rear" ? new Vector3(0,0,-1) : new Vector3(0.85,0.5,1.3).normalize();
-    const target=new Vector3(0,-footHeight/200,0);
+    const target=new Vector3(0,(topY+floorY)/200,(rearZ+frontZ)/200);
     camera.position.copy(direction.multiplyScalar(distance).add(target));camera.lookAt(target);
     if(controls.current){controls.current.target.copy(target);controls.current.update();}invalidate();
-  },[camera,size.width,size.height,width,totalHeight,footHeight,depth,exploded,view,resetKey,invalidate]);
+  },[camera,size.width,size.height,width,totalHeight,overallDepth,floorY,topY,rearZ,frontZ,exploded,view,resetKey,invalidate]);
   return <OrbitControls ref={controls} makeDefault enablePan={false} minDistance={1} maxDistance={30} />;
 }
 export function SpeakerPreview(props: Props) {

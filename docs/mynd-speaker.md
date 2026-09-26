@@ -199,3 +199,18 @@ shared polygons, so preview, SVG and fabrication packing use the same geometry.
 Overall height includes the feet; the stated body height and chamber volume do
 not. The floor shadow and camera framing follow the foot height. Settings persist
 in speaker/project JSON, with older designs retaining their original flat base.
+
+## Optional integral handles
+
+Handles default to off, with left, right or both sides available. Width is
+130–240 mm (default 160 mm) and rise is 50–110 mm (default 70 mm), matching
+the Eurorack case. `createSideProfile` supplies the same rounded roots, upper
+corners and grip opening, combined with the selected feet in one side sheet.
+The top nests inside each extended side; asymmetric layouts compensate the
+control cutouts and mounting holes to preserve their original world positions.
+Ports, PCB carriers and donor hardware do not move. No extra parts are added.
+
+Preview framing, cutting layout, stock packing and exports include the full
+handle envelope, including grips wider than the case depth. Body dimensions
+and chamber volume remain unchanged. Legacy projects retain handles off.
+Carrying strength and bonded joints still require physical prototype testing.
