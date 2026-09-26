@@ -21,7 +21,8 @@ This starter does not use `wrangler.jsonc`.
 ## Included
 
 - responsive configurator shell under `app/`
-- top-bar Case designer / Synth stand / Synth protector / Panel designer / Art modes with independent configurations, local autosave, and portable project files
+- top-bar Case designer / Synth stand / Synth protector / Panel designer / Speaker case / Art modes with independent configurations, local autosave, and portable project files
+- MYND speaker cases with seven acrylic sheets, CAD-derived driver positions, two passive radiators, adjustable dot grilles, donor-electronics references and JSON/SVG exports (see [source dimensions and prototype limitations](docs/mynd-speaker.md))
 - Eurorack blank and DIY panels with component openings, SVG/font artwork, separate cut/engrave exports, alignment and ventilation
 - automatic slotted acrylic synth stands with solid ribs, three cross braces, 3D and cutting layouts, and JSON/SVG export
 - optional local STL/OBJ fitting for stands and protectors, with units, orientation and angle controls; protectors use a level cover above the posed model and individual contour-fitted feet with broad locating lips
@@ -50,14 +51,14 @@ This starter does not use `wrangler.jsonc`.
 
 ## Projects, recovery and history
 
-The project toolbar names the workspace and autosaves all five designers in
+The project toolbar names the workspace and autosaves all six designers in
 IndexedDB after a short pause. Reloading restores the last autosave, including
 uploaded meshes and up to ten imported fonts. **Save copy** keeps a named
 snapshot; **Open** lists those copies. These saves belong to this browser and
 origin, not an account: clearing site data removes them, and another device or
 deployment URL has separate storage. Storage errors are shown explicitly.
 
-**Project → Download project** downloads a version 1 `.acryl508.json` file containing all five
+**Project → Download project** downloads a version 1 `.acryl508.json` file containing all six
 editable configurations, source meshes and font bytes. **Import JSON** opens
 these files or existing single-designer exports. Single-designer imports replace
 only their corresponding design. Legacy exports with custom text retain their

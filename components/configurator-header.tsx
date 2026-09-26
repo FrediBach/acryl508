@@ -13,6 +13,7 @@ export function ConfiguratorHeader({ mode, onModeChange, dark, onThemeChange, on
       <button aria-pressed={mode === "stand"} className={mode === "stand" ? "mode-active" : ""} onClick={() => onModeChange("stand")}>Synth stand</button>
       <button aria-pressed={mode === "protector"} className={mode === "protector" ? "mode-active" : ""} onClick={() => onModeChange("protector")}>Synth protector</button>
       <button aria-pressed={mode === "panel"} className={mode === "panel" ? "mode-active" : ""} onClick={() => onModeChange("panel")}>Panel designer</button>
+      <button aria-pressed={mode === "speaker"} className={mode === "speaker" ? "mode-active" : ""} onClick={() => onModeChange("speaker")}>Speaker case</button>
       <button aria-pressed={mode === "art"} className={mode === "art" ? "mode-active" : ""} onClick={() => onModeChange("art")}>Art mode</button>
     </div>
     <nav className="primary-nav" aria-label="Primary navigation">

@@ -1,3 +1,4 @@
+import { defaultSpeakerConfiguration, normalizeSpeakerConfiguration, type SpeakerConfiguration } from "./speaker";
 import { defaultArtConfiguration, normalizeArtConfiguration, type ArtConfiguration } from "./art";
 import { defaultConfiguration, type CaseConfiguration } from "./configurator";
 import { defaultStandConfiguration, normalizeStandConfiguration, type StandConfiguration } from "./synth-stand";
@@ -10,9 +11,9 @@ import { normalizeVentDesign } from "./vent-design";
 import { type FontAsset } from "./project-fonts";
 import type { SheetMaterialConfiguration } from "./sheet-materials";
 
-export type DesignerMode = "case" | "stand" | "protector" | "panel" | "art";
-export type Designs = { case: CaseConfiguration; stand: StandConfiguration; protector: ProtectorConfiguration; panel: PanelConfiguration; art: ArtConfiguration };
-export const initialDesigns: Designs = { case: defaultConfiguration, stand: defaultStandConfiguration, protector: defaultProtectorConfiguration, panel: defaultPanelConfiguration, art: defaultArtConfiguration };
+export type DesignerMode = "case" | "stand" | "protector" | "panel" | "art" | "speaker";
+export type Designs = { case: CaseConfiguration; stand: StandConfiguration; protector: ProtectorConfiguration; panel: PanelConfiguration; art: ArtConfiguration; speaker: SpeakerConfiguration };
+export const initialDesigns: Designs = { case: defaultConfiguration, stand: defaultStandConfiguration, protector: defaultProtectorConfiguration, panel: defaultPanelConfiguration, art: defaultArtConfiguration, speaker: defaultSpeakerConfiguration };
 export type Project = { format: "acryl508-project"; version: 1; name: string; mode: DesignerMode; designs: Designs; fonts: FontAsset[] };
 export const maxProjectBytes = 80 * 1024 * 1024;
 type RecordValue = Record<string, unknown>;
@@ -177,7 +178,10 @@ export function readArt(input: unknown): ArtConfiguration {
   }
   return normalizeArtConfiguration(config);
 }
-const readers = { case: readCase, stand: readStand, protector: readProtector, panel: readPanel, art: readArt };
+export function readSpeaker(input: unknown): SpeakerConfiguration {
+  return normalizeSpeakerConfiguration(sheetMaterials(material(base(input, defaultSpeakerConfiguration)), /^(baffle|rear|top|bottom|left|right|grille)$/, 3, 8));
+}
+const readers = { speaker: readSpeaker, case: readCase, stand: readStand, protector: readProtector, panel: readPanel, art: readArt };
 export function makeProject(name: string, mode: DesignerMode, designs: Designs, fonts: FontAsset[]): Project {
   return { format: "acryl508-project", version: 1, name: name.trim().slice(0, 100) || "Untitled project", mode, designs, fonts };
 }
@@ -187,17 +191,17 @@ export function parseProject(source: string, current: Designs = initialDesigns, 
   if (data.format === "acryl508-project") {
     if (data.version !== 1) throw new Error("This project version is not supported. Open it with the version of Acryl508 that saved it.");
     const configs = record(data.designs, "Designs");
-    const designs: Designs = { case: readCase(configs.case), stand: readStand(configs.stand), protector: readProtector(configs.protector), panel: readPanel(configs.panel), art: configs.art === undefined ? defaultArtConfiguration : readArt(configs.art) };
+    const designs: Designs = { case: readCase(configs.case), stand: readStand(configs.stand), protector: readProtector(configs.protector), panel: readPanel(configs.panel), art: configs.art === undefined ? defaultArtConfiguration : readArt(configs.art), speaker: configs.speaker === undefined ? defaultSpeakerConfiguration : readSpeaker(configs.speaker) };
     const fonts = list(data.fonts, "imported fonts", 10).map(value => {
       const font = record(value, "Font");
       return { id: text(font.id, "font ID"), name: text(font.name, "font name"), data: text(font.data, "font data", 6_666_668) };
     });
     if (fonts.some(font => ["helvetiker", "optimer"].includes(font.id)) || new Set(fonts.map(font => font.id)).size !== fonts.length) throw new Error("Duplicate font IDs in project.");
-    return makeProject(text(data.name, "project name", 100), choice(data.mode, ["case", "stand", "protector", "panel", "art"], "designer mode"), designs, fonts);
+    return makeProject(text(data.name, "project name", 100), choice(data.mode, ["case", "stand", "protector", "panel", "art", "speaker"], "designer mode"), designs, fonts);
   }
   // Existing single-designer JSON exports remain useful: import only that mode.
-  const mode = data.mode === "art" ? "art" : data.mode === "synth-stand" ? "stand" : data.mode === "synth-protector" ? "protector" : data.mode === "panel-designer" ? "panel" : data.product === "Acryl508" && !data.mode ? "case" : undefined;
+  const mode = data.mode === "speaker" ? "speaker" : data.mode === "art" ? "art" : data.mode === "synth-stand" ? "stand" : data.mode === "synth-protector" ? "protector" : data.mode === "panel-designer" ? "panel" : data.product === "Acryl508" && !data.mode ? "case" : undefined;
   if (!mode || data.units !== "mm") throw new Error("Choose an Acryl508 project or configuration JSON file.");
-  number(data.version, "Export version", 1, { case: 12, stand: 6, protector: 2, panel: 1, art: 1 }[mode]);
+  number(data.version, "Export version", 1, { case: 12, stand: 6, protector: 2, panel: 1, art: 1, speaker: 1 }[mode]);
   return makeProject("Imported design", mode, { ...current, [mode]: readers[mode](data.configuration) }, currentFonts);
 }

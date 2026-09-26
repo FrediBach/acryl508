@@ -24,6 +24,7 @@ test("mode switching preserves independent designs and routes material choices a
   // Test real controls and shell with only the WebGL renderers stubbed.
   function load(file) {
     if (cache.has(file)) return cache.get(file).exports;
+    if (file.endsWith("/speaker-preview.tsx")) return { SpeakerPreview: () => React.createElement("div", null, "Speaker preview") };
     if (file.endsWith("/art-preview.tsx")) return { ArtPreview: () => React.createElement("div", null, "Art preview") };
     if (file.endsWith("/panel-preview.tsx")) return { PanelPreview: () => React.createElement("div", null, "Panel preview") };
     if (file.endsWith("/case-preview.tsx")) return { CasePreview: () => React.createElement("div", null, "Case preview") };
@@ -59,7 +60,7 @@ test("mode switching preserves independent designs and routes material choices a
     await React.act(async () => { root.render(React.createElement(ConfiguratorShell)); });
     assert.equal(button("Case designer").getAttribute("aria-pressed"), "true");
     assert.equal(document.querySelector(".workspace .fabrication-workspace"), null, "Fabrication no longer extends the main workspace");
-    for (const [modeLabel, firstPart] of [["Case designer", "Bottom"], ["Synth stand", "Support rib 1"], ["Synth protector", "Protective top sheet"], ["Panel designer", "Panel"], ["Art mode", "Sheet A-1"]]) {
+    for (const [modeLabel, firstPart] of [["Speaker case", "Driver baffle"], ["Case designer", "Bottom"], ["Synth stand", "Support rib 1"], ["Synth protector", "Protective top sheet"], ["Panel designer", "Panel"], ["Art mode", "Sheet A-1"]]) {
       await click(modeLabel);
       const trigger = button("Fabrication workspace");
       assert.ok(trigger.closest(".summary-panel"), "Each mode opens fabrication from its specification section");
@@ -90,6 +91,25 @@ test("mode switching preserves independent designs and routes material choices a
       await React.act(async () => overlay.click());
       assert.equal(overlay.open, false, "Clicking the backdrop closes the overlay");
     }
+    await click("Speaker case");
+    await click("Staggered dots");
+    assert.equal(button("Staggered dots").getAttribute("aria-checked"), "false");
+    await click("Export speaker design JSON");
+    const speakerDesign = JSON.parse(await downloads.at(-1).blob.text());
+    assert.equal(speakerDesign.mode, "speaker");
+    assert.equal(speakerDesign.parts.length, 7);
+    assert.equal(speakerDesign.configuration.staggered, false);
+    await click("Cutting layout");
+    const speakerPaths = [...document.querySelectorAll(".stand-cutting-layout path")].map(p => p.getAttribute("d"));
+    await click("Export speaker sheets as SVG");
+    const speakerSvg = new dom.window.DOMParser().parseFromString(await downloads.at(-1).blob.text(), "image/svg+xml");
+    assert.deepEqual(speakerPaths, [...speakerSvg.querySelectorAll("path")].map(p => p.getAttribute("d")));
+    await click("Case designer");
+    await click("Speaker case");
+    assert.equal(button("Staggered dots").getAttribute("aria-checked"), "false");
+    await click("Build notes");
+    assert.match(document.querySelector(".info-dialog:not(.project-dialog)").textContent, /passive radiators/);
+    await click("Close notes");
     await click("Art mode");
     await click("Cutting layout");
     assert.equal(document.querySelector('svg[aria-label="Art cutting layout: 8 slotted sheets"]').querySelectorAll("g[data-part]").length, 8);
@@ -671,7 +691,7 @@ test("mode switching preserves independent designs and routes material choices a
     assert.match(document.querySelector(".info-dialog:not(.project-dialog)").textContent, /no load capacity or stability rating/);
     await click("Close notes");
     // Each multi-sheet designer exposes and persists the same optional material controls.
-    for (const [modeLabel, mode, materialSection, thickness] of [["Art mode", "art", "Grid & material", 5.5], ["Synth protector", "protector", "Material & construction", 8.5], ["Synth stand", "stand", "Material & fit", 9.5]]) {
+    for (const [modeLabel, mode, materialSection, thickness] of [["Speaker case", "speaker", "Acrylic sheets", 6.5], ["Art mode", "art", "Grid & material", 5.5], ["Synth protector", "protector", "Material & construction", 8.5], ["Synth stand", "stand", "Material & fit", 9.5]]) {
       await click(modeLabel);
       if (!section(materialSection).open) await toggleSection(materialSection);
       assert.equal(button("Use individual acrylic materials for each sheet").getAttribute("aria-checked"), "false");
@@ -716,7 +736,7 @@ test("mode switching preserves independent designs and routes material choices a
     const projectData = JSON.parse(projectBackup);
     assert.equal(projectData.designs.case.hp, 104);
     assert.equal(projectData.designs.panel.components.length, 4);
-    for (const mode of ["art", "stand", "protector"]) assert.equal(projectData.designs[mode].individualSheetMaterials, true);
+    for (const mode of ["speaker", "art", "stand", "protector"]) assert.equal(projectData.designs[mode].individualSheetMaterials, true);
     await click("Save copy");
     // IndexedDB commits asynchronously; wait for the operation, not a fixed UI state assumption.
     await React.act(async () => new Promise(resolve => setTimeout(resolve, 30)));
@@ -751,7 +771,7 @@ test("mode switching preserves independent designs and routes material choices a
     assert.equal(button("104").getAttribute("aria-pressed"), "true", "Autosave restores after remount");
     await click("Download project");
     const recoveredMaterials = JSON.parse(await downloads.at(-1).blob.text());
-    for (const mode of ["art", "stand", "protector"]) {
+    for (const mode of ["speaker", "art", "stand", "protector"]) {
       assert.deepEqual(recoveredMaterials.designs[mode].sheetTints, projectData.designs[mode].sheetTints);
       assert.deepEqual(recoveredMaterials.designs[mode].sheetTransparencies, projectData.designs[mode].sheetTransparencies);
       assert.deepEqual(recoveredMaterials.designs[mode].sheetThicknesses, projectData.designs[mode].sheetThicknesses);

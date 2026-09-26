@@ -641,3 +641,14 @@ body:has(.fabrication-dialog[open]) { overflow:hidden; }
 .led-strip-toggle input[type="checkbox"] { accent-color: #78b8d7; width: 16px; height: 16px; }
 .led-strip-toggle input[type="color"] { width: 36px; height: 26px; padding: 2px; border: 1px solid var(--border); border-radius: 4px; background: transparent; }
 .led-strip-controls .cutout-numbers { margin: 12px 0; }
+
+.speaker-designer .control-note a { text-decoration: underline; }
+.speaker-designer .spec-list dd { font-size: 12px; line-height: 16.5px; }
+@media (min-width: 451px) and (max-width: 700px) {
+  .designer-mode-switch { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); width: 100%; }
+}
+@media (min-width: 701px) and (max-width: 1000px) {
+  .app-header:has(.designer-mode-switch) { flex-wrap: wrap; flex-basis: auto; padding-block: 10px; }
+  .designer-mode-switch { order: 3; flex-basis: 100%; justify-content: center; }
+  .designer-mode-switch button { flex: 1; }
+}
