@@ -11,6 +11,7 @@ import { cableHolderLayout, cableHolderTopEdge } from "./cable-holder";
 import { sinusodaHoles, sinusodaJuice, sinusodaPlacement } from "./sinusoda";
 import { trolleyBus, trolleyMountingHoles, trolleyPlacement } from "./trolley";
 import { compactPwr, compactPwrHoles, compactPwrPlacement } from "./compactpwr";
+import { addCompactPwrInlet } from "./compactpwr-inlet";
 import { cutoutSides, mapPolygons, placedCutout, polygonBounds, polygonsToShapes, shapesToPolygons, subtractCutouts, type CutoutSide } from "./custom-cutouts";
 
 function hole(shape: Shape, x: number, y: number, radius: number) {
@@ -82,6 +83,9 @@ export function createCasePanels(config: CaseConfiguration) {
     return shape;
   };
   const left = sideProfile("left"), right = sideProfile("right");
+  const inlet = config.busboard === "compactpwr"
+    ? addCompactPwrInlet(left, innerLength, panels.layout.baseTop, h, thicknesses.left)
+    : null;
   const originals = { front: panels.end, rear: panels.rear, left, right, bottom: base };
   const faces = Object.fromEntries(cutoutSides.map(({ value }) => {
     // Each editor face is viewed from outside, centred in millimetres, Y up.
@@ -91,6 +95,12 @@ export function createCasePanels(config: CaseConfiguration) {
     const original = mapPolygons(shapesToPolygons([originals[value]]), (x, y) => [direction * x * 100, (y - centerY) * 100]);
     const cuts = (config.cutouts ?? []).filter(cutout => cutout.side === value);
     const result = subtractCutouts(original, cuts, value);
+    if (value === "left" && inlet?.fits && cuts.length) {
+      const reserved = mapPolygons(inlet.reserved, (x, y) => [-x * 100, (y - centerY) * 100]);
+      if (cuts.some(cut => clipping.intersection(reserved, placedCutout(cut)).length)) {
+        result.report.error = "Move custom cutouts clear of the CompactPWR inlet plate and mounting holes before exporting.";
+      }
+    }
     const shapes = cuts.length && !result.report.error
       ? polygonsToShapes(mapPolygons(result.polygons, (x, y) => [direction * x / 100, y / 100 + centerY]))
       : [originals[value]];
@@ -110,7 +120,7 @@ export function createCasePanels(config: CaseConfiguration) {
     }
     return [value, { ...result, original, shapes }];
   })) as Record<CutoutSide, ReturnType<typeof subtractCutouts> & { original: ReturnType<typeof shapesToPolygons>; shapes: Shape[] }>;
-  return { faces, bends, layout: panels.layout, ventilation, powerBoard, mountingHoles, mountingConflicts, reports: cutoutSides.map(({ value }) => faces[value].report) };
+  return { faces, bends, layout: panels.layout, ventilation, powerBoard, inlet, mountingHoles, mountingConflicts, reports: cutoutSides.map(({ value }) => faces[value].report) };
 }
 export type CasePanels = ReturnType<typeof createCasePanels>;
 

@@ -9,7 +9,7 @@ import { bendAngle, bendAllowance, bentHandleTrim } from "./accessory-bends";
 import { cableHolderLayout } from "./cable-holder";
 import { sinusodaHoles, sinusodaJuice, sinusodaPlacement } from "./sinusoda";
 import { trolleyBus, trolleyHoles, trolleyMountingHoles, trolleyPlacement } from "./trolley";
-import { compactPwr, compactPwrHoles, compactPwrPlacement } from "./compactpwr";
+import { compactPwr, compactPwrHoles, compactPwrPlacement, compactPwrInlet } from "./compactpwr";
 
 import { defaultTint, defaultTransparency, type AcrylicTint, type AcrylicTransparency } from "./acrylic-material";
 export { acrylicTints, type AcrylicTint } from "./acrylic-material";
@@ -246,7 +246,8 @@ export function configurationExport(config: CaseConfiguration, cutoutReports: Cu
       mountingHoleCentersMm: compactPwrHoles,
       coordinates: "Centred on base, viewed from above; X right, Y rear. Underside editor mirrors X. No automatic rotation or scaling.",
       bottomHolePolicy: "Four approximate corner screw holes when the board fits. Vents retain one sheet thickness around each hole. Review custom-cutout conflicts.",
-      inputModule: "Separate barrel/switch or USB-C inlet and cabling not modelled or reserved; no inlet cutout added.",
+      inputModule: "Barrel/switch inlet clearance window and mounting holes on the left side when the full plate fits clear of panel joints and rail holes. Omitted if there is insufficient room. Rear component clearance and cable routing require hardware verification.",
+      inlet: compactPwrInlet,
     } : null,
     customCutouts: {
       placement: "Viewed from outside each panel; x/y in mm from panel centre, x right, y up; rotation in degrees counterclockwise; width uniformly scales the normalized outlines. Bottom is viewed from below with rear at the top.",

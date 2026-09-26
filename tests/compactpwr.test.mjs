@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { loadTypescript } from "./load-typescript.mjs";
-const { busboards, defaultConfiguration, configurationExport } = await loadTypescript("../lib/configurator.ts");
-const { createCasePanels } = await loadTypescript("../lib/case-panels.ts");
+const { busboards, defaultConfiguration, configurationExport, caseDimensions } = await loadTypescript("../lib/configurator.ts");
+const { createCasePanels, caseCanExport } = await loadTypescript("../lib/case-panels.ts");
 const { configurationSvg } = await loadTypescript("../lib/svg-export.ts");
 const { compactPwr, compactPwrHoles, compactPwrHeaders } = await loadTypescript("../lib/compactpwr.ts");
 const config = { ...defaultConfiguration, busboard: "compactpwr", vents: false };
@@ -16,12 +16,55 @@ test("CompactPWR selection exports precise published dimensions and estimated mo
   assert.equal(data.powerBoard.geometryStatus, "photo-estimate");
   assert.match(data.powerBoard.accuracy, /estimated from the top photo/);
   assert.match(data.notes.join(" "), /CompactPWR.*photo-derived/);
-  assert.match(data.powerBoard.inputModule, /no inlet cutout added/);
+  assert.match(data.powerBoard.inputModule, /mounting holes on the left side/);
+  assert.equal(data.powerBoard.inlet.holePitch, 59);
+  assert.equal(data.powerBoard.inlet.holeDiameter, 3.5);
   assert.equal(data.powerBoard.placement.moduleClearance, 50);
   assert.equal(compactPwrHeaders.length, 20);
   assert.equal(compactPwrHeaders.filter(p => p.y > 0).length, 10);
   assert.equal(compactPwrHoles.length, 4);
   assert.equal(new Set(compactPwrHoles.map(p => `${p.x},${p.y}`)).size, 4);
+});
+
+test("supplied inlet adds its full-size clearance window and two screws only to the left panel", () => {
+  const panels = createCasePanels(config);
+  const bare = createCasePanels({ ...config, busboard: "none" });
+  assert.equal(panels.inlet.fits, true);
+  const left = panels.faces.left.shapes[0];
+  assert.equal(left.holes.length, bare.faces.left.shapes[0].holes.length + 3);
+  assert.equal(panels.faces.right.shapes[0].holes.length, bare.faces.right.shapes[0].holes.length);
+  const [window, a, b] = left.holes.slice(-3);
+  const points = window.getPoints();
+  near((Math.max(...points.map(p => p.x)) - Math.min(...points.map(p => p.x))) * 100, 45);
+  near((Math.max(...points.map(p => p.y)) - Math.min(...points.map(p => p.y))) * 100, 25);
+  near((b.curves[0].aX - a.curves[0].aX) * 100, 59);
+  near(a.curves[0].xRadius * 200, 3.5);
+  near(a.curves[0].aY, b.curves[0].aY);
+  const count = svg => (svg.match(/<g id="panel-left"[\s\S]*?<\/g>/)[0].match(/\bM/g) ?? []).length;
+  assert.equal(count(configurationSvg(config, panels)), count(configurationSvg({ ...config, busboard: "none" }, bare)) + 3);
+  for (const busboard of ["none", "sinusoda", "trolley"]) assert.equal(createCasePanels({ ...config, busboard }).inlet, null);
+});
+
+test("inlet fit respects shallow sides, sheet thickness and angled rows without scaling", () => {
+  const shallow = createCasePanels({ ...config, depth: 25 });
+  assert.equal(shallow.inlet.fits, false);
+  assert.match(configurationSvg({ ...config, depth: 25 }, shallow), /Inlet plate does not fit/);
+  for (const thickness of [3, 4, 5, 6]) for (const rowAngles of [[0, 0], [45, 0]]) {
+    const panels = createCasePanels({ ...config, thickness, rows: 2, rowUnits: [3, 3], rowAngles });
+    assert.equal(panels.inlet.fits, true);
+    assert.ok(panels.inlet.y - 20 >= panels.layout.baseTop * 100 + thickness - 1e-7);
+    assert.equal(caseCanExport(panels), true);
+  }
+});
+
+test("custom artwork cannot remove the inlet mounting web without blocking fabrication", () => {
+  const { inlet } = createCasePanels(config);
+  const cutout = { id: "inlet-overlap", name: "Square", side: "left", source: { kind: "svg", fileName: "square.svg" },
+    polygons: [[[[-0.5, -0.5], [0.5, -0.5], [0.5, 0.5], [-0.5, 0.5]]]], width: 10,
+    x: -inlet.x - 29.5, y: inlet.y - caseDimensions(config).height / 2, rotation: 0 };
+  const panels = createCasePanels({ ...config, cutouts: [cutout] });
+  assert.equal(caseCanExport(panels), false);
+  assert.match(panels.faces.left.report.error, /CompactPWR inlet/);
 });
 
 test("four bottom holes preserve the 166 × 69 mm estimated pitch at millimetre scale", () => {

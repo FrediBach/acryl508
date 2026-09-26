@@ -403,8 +403,18 @@ The preview shows the black PCB, 20 headers, converter blocks, red input choke,
 capacitors, trimmers and orange/grey input terminal. It stays at full size and
 requires at least 35 HP and 2U total. Preview and bottom holes are omitted when
 it cannot fit. Clearance above the board deducts its 20 mm height and assumed
-5 mm standoffs. The separate barrel/switch or USB-C inlet, its panel cutout and
-cable routing are not modelled or reserved.
+5 mm standoffs.
+
+Selecting CompactPWR also adds a 45 × 25 mm clearance window and two Ø3.5 mm
+screw holes at 59 mm pitch to the left side, low toward the rear. The
+[manufacturer inlet drawing](https://konstantlab.audio/shop/compactpwr-35w-eurorack-power-supply/?attachment_id=2502&download_file=5c8534a4f9f21)
+specifies the 70 × 40 mm barrel/switch faceplate and screw pattern. The clearance
+window is a design allowance, not a published cutout dimension; verify the rear
+component envelope against the assembled inlet before fabrication. The whole
+plate plus a sheet-thickness border must fit clear of joints and rail holes;
+otherwise inlet cuts are omitted with a notice. Custom artwork overlapping this
+reserved area blocks cutting export. Preview and SVG use the same inlet cuts.
+USB-C inlet geometry, internal component clearance and cable routing are not modelled.
 
 All four mounts share their coordinates with bottom geometry and exports.
 Vents retain a sheet-thickness web around the holes, and nearby custom cuts
