@@ -1,5 +1,5 @@
 "use client";
-import { useMemo, useState, type RefObject } from "react";
+import { memo, useMemo, useState, type RefObject } from "react";
 import { X } from "lucide-react";
 import type { DesignerMode } from "./configurator-header";
 import { polygonBounds } from "@/lib/custom-cutouts";
@@ -10,16 +10,18 @@ import { NumberControl } from "./cutout-controls";
 
 const modeLabels: Record<DesignerMode, string> = { case: "Case designer", stand: "Synth stand", protector: "Synth protector", panel: "Panel designer", art: "Art mode", speaker: "Speaker case" };
 
-export function FabricationWorkspace({ fabrication, mode, dialogRef }: { fabrication: Fabrication; mode: DesignerMode; dialogRef: RefObject<HTMLDialogElement | null> }) {
+export const FabricationWorkspace = memo(function FabricationWorkspace({ fabrication, mode, dialogRef, onClose }: { fabrication?: Fabrication; mode: DesignerMode; dialogRef: RefObject<HTMLDialogElement | null>; onClose: () => void }) {
   const [width, setWidth] = useState(1000), [height, setHeight] = useState(600), [gap, setGap] = useState(10), [rotate, setRotate] = useState(true);
-  const layout = useMemo(() => packSheets(fabrication.parts, width, height, gap, rotate), [fabrication.parts, width, height, gap, rotate]);
+  const layout = useMemo(() => fabrication ? packSheets(fabrication.parts, width, height, gap, rotate) : { sheets: [], unplaced: [] }, [fabrication, width, height, gap, rotate]);
+  const close = () => { dialogRef.current?.close(); onClose(); };
+  if (!fabrication) return <dialog ref={dialogRef} id="fabrication-dialog" className="fabrication-dialog" aria-labelledby="fabrication-title" />;
   const thicknesses = [...new Set(fabrication.parts.map(part => part.thickness ?? fabrication.thickness))].sort((a, b) => a - b);
   const blocked = fabrication.blocked || layout.unplaced.length > 0;
-  return <dialog ref={dialogRef} id="fabrication-dialog" className="fabrication-dialog" aria-labelledby="fabrication-title" aria-describedby="fabrication-description" onClick={event => { if (event.target === event.currentTarget) dialogRef.current?.close(); }}>
+  return <dialog ref={dialogRef} id="fabrication-dialog" className="fabrication-dialog" aria-labelledby="fabrication-title" aria-describedby="fabrication-description" onClose={onClose} onClick={event => { if (event.target === event.currentTarget) close(); }}>
     <div className="fabrication-dialog-body">
     <header className="fabrication-dialog-header">
       <div><h2 id="fabrication-title">Fabrication workspace</h2><p id="fabrication-description">{modeLabels[mode]} · {fabrication.blocked ? "Resolve geometry before SVG export" : `${fabrication.parts.length} parts · ${thicknesses.join(" / ")} mm acrylic`}</p></div>
-      <button type="button" className="icon-button" aria-label="Close fabrication workspace" onClick={() => dialogRef.current?.close()}><X size={20} /></button>
+      <button type="button" className="icon-button" aria-label="Close fabrication workspace" onClick={close}><X size={20} /></button>
     </header>
     <div className="fabrication-content">
       <div><h2>Parts & hardware</h2><div className="parts-table-wrap"><table className="parts-table"><thead><tr><th>Part</th><th>Size (mm)</th><th>Material</th></tr></thead><tbody>{fabrication.parts.map(part => { const bounds = polygonBounds(part.polygons); return <tr key={part.id}><td>{part.label}</td><td>{bounds.width.toFixed(1)} × {bounds.height.toFixed(1)}</td><td>{part.material} · {part.thickness ?? fabrication.thickness} mm</td></tr>; })}</tbody></table></div>
@@ -43,4 +45,4 @@ export function FabricationWorkspace({ fabrication, mode, dialogRef }: { fabrica
     </div>
     </div>
   </dialog>;
-}
+});

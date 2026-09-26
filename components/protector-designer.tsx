@@ -1,6 +1,6 @@
 "use client";
 import { FabricationButton } from "./fabrication-button";
-import { lazy, Suspense, useId, useState, type CSSProperties } from "react";
+import { memo, lazy, Suspense, useId, useState, type CSSProperties } from "react";
 import { ArrowDownToLine, Box, Check, Layers2, Maximize, Minimize, RotateCcw, SlidersHorizontal } from "lucide-react";
 import { StandObjectControls } from "@/components/stand-object-controls";
 import type { StandObject } from "@/lib/stand-object";
@@ -10,7 +10,7 @@ import { allSheetMaterials, sheetMaterial, sheetMaterialSummary, sheetThicknessL
 import { protectorLimits, protectorSupportLimits, protectorSheetLayout, type ProtectorConfiguration, type SynthProtector } from "@/lib/synth-protector";
 import { standPathData } from "@/lib/synth-stand";
 import type { StandView } from "@/components/stand-preview";
-const ProtectorPreview = lazy(() => import("@/components/protector-preview").then(module => ({ default: module.ProtectorPreview })));
+const ProtectorPreview = memo(lazy(() => import("@/components/protector-preview").then(module => ({ default: module.ProtectorPreview }))));
 
 function Dimension({ label, field, config, onChange, unit = "mm", step = 1 }: { label: string; field: keyof typeof protectorLimits; config: ProtectorConfiguration; onChange: (patch: Partial<ProtectorConfiguration>) => void; unit?: string; step?: number }) {
   const id = useId(), value = config[field], limits = protectorSupportLimits(config);
@@ -23,15 +23,15 @@ function Dimension({ label, field, config, onChange, unit = "mm", step = 1 }: { 
   }
   return <div className="range-field"><div className="field-heading"><label htmlFor={id}>{label}</label><div className="number-field"><input aria-label={`${label} in ${unit}`} type="number" min={min} max={max} step={step} value={draft ?? value} onFocus={() => setDraft(String(value))} onChange={event => { setDraft(event.target.value); const next = Number(event.target.value); if (event.target.value && Number.isFinite(next) && next >= min && next <= max) onChange({ [field]: next }); }} onBlur={commit} onKeyDown={event => { if (event.key === "Enter") event.currentTarget.blur(); }} /><span>{unit}</span></div></div><input id={id} className="range-input" type="range" min={min} max={max} step={step} value={value} style={{ "--range-progress": `${(value - min) / Math.max(1, max - min) * 100}%` } as CSSProperties} onChange={event => onChange({ [field]: event.currentTarget.valueAsNumber })} /><div className="range-labels"><span>{min} {unit}</span><span>{max} {unit}</span></div></div>;
 }
-function CuttingLayout({ protector }: { protector: SynthProtector }) {
+const CuttingLayout = memo(function CuttingLayout({ protector }: { protector: SynthProtector }) {
   const layout = protectorSheetLayout(protector);
   return <div className="stand-cutting-layout"><svg viewBox={`0 0 ${layout.width} ${layout.height}`} role="img" aria-label={`Cutting layout: one top sheet, ${protector.footCount} locating feet and ${protector.stripCount} retaining strips`}>
     {layout.parts.map(({ part, x, y }) => <g key={part.id} data-part={part.id} transform={`translate(${x} ${y})`}><title>{`${part.label}: ${part.width.toFixed(1)} × ${part.height.toFixed(1)} mm`}</title><path d={standPathData(part.polygons)} fill={sheetMaterial(protector.config, part.id).tint.color} fillOpacity={sheetMaterial(protector.config, part.id).transparency === "opaque" ? 1 : sheetMaterial(protector.config, part.id).transparency === "opal" ? 0.75 : 0.4} stroke="currentColor" strokeWidth={1} vectorEffect="non-scaling-stroke" fillRule="evenodd" /></g>)}
   </svg><p>All {protector.parts.length} parts · {layout.width.toFixed(0)} × {layout.height.toFixed(0)} mm layout · arrange to fit your stock sheet</p></div>;
-}
-type Props = { object?: StandObject; objectError?: string; busy?: boolean; protector: SynthProtector; dark: boolean; onChange: (patch: Partial<ProtectorConfiguration>) => void; onExportJson: () => void; onExportSvg: () => void; onOpenFabrication: () => void };
-export function ProtectorDesigner({ protector, object, objectError, busy, dark, onChange, onExportJson, onExportSvg, onOpenFabrication }: Props) {
-  const config = protector.config;
+});
+type Props = { config?: ProtectorConfiguration; object?: StandObject; objectError?: string; busy?: boolean; protector: SynthProtector; dark: boolean; onChange: (patch: Partial<ProtectorConfiguration>) => void; onExportJson: () => void; onExportSvg: () => void; onOpenFabrication: () => void };
+export function ProtectorDesigner({ config: liveConfig, protector, object, objectError, busy, dark, onChange, onExportJson, onExportSvg, onOpenFabrication }: Props) {
+  const config = liveConfig ? { ...liveConfig, ...(object ? { width: protector.config.width, depth: protector.config.depth, height: protector.config.height } : {}) } : protector.config;
   const [view, setView] = useState<StandView>("perspective");
   const [layout, setLayout] = useState(false), [exploded, setExploded] = useState(false), [instrument, setInstrument] = useState(true);
   const [expanded, setExpanded] = useState(false), [resetKey, setResetKey] = useState(0);

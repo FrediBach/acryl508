@@ -1,5 +1,5 @@
 "use client";
-import { lazy, Suspense, useId, useState, type CSSProperties } from "react";
+import { memo, lazy, Suspense, useId, useState, type CSSProperties } from "react";
 import { ArrowDownToLine, Box, Check, Layers2, Maximize, Minimize, RotateCcw } from "lucide-react";
 import { ConfigSection } from "./config-section";
 import { SheetMaterialControls, SheetMaterialSwatches } from "./sheet-material-controls";
@@ -9,18 +9,19 @@ import { myndSource, speakerLimits, speakerSheetLayout, type Speaker, type Speak
 import { standPathData } from "@/lib/synth-stand";
 import { flatFootStyles } from "@/lib/flat-feet";
 import type { SpeakerView } from "./speaker-preview";
-const SpeakerPreview=lazy(()=>import("./speaker-preview").then(module=>({default:module.SpeakerPreview})));
+const SpeakerPreview=memo(lazy(()=>import("./speaker-preview").then(module=>({default:module.SpeakerPreview}))));
 function Slider({label,value,min,max,step=1,onChange}: {label:string;value:number;min:number;max:number;step?:number;onChange:(value:number)=>void}) {
   const id=useId();
-  return <div className="range-field"><div className="field-heading"><label htmlFor={id}>{label}</label><div className="number-field"><input type="number" aria-label={`${label} in mm`} min={min} max={max} step={step} value={Number(value.toFixed(2))} onChange={event=>{const next=event.currentTarget.valueAsNumber;if(Number.isFinite(next))onChange(Math.max(min,Math.min(max,next)));}} /><span>mm</span></div></div><input id={id} className="range-input" type="range" min={min} max={max} step={step} value={value} style={{"--range-progress":`${(value-min)/(max-min)*100}%`} as CSSProperties} onChange={event=>onChange(event.currentTarget.valueAsNumber)} /><div className="range-labels"><span>{min} mm</span><span>{max} mm</span></div></div>;
+  const [draft, setDraft] = useState<string | null>(null);
+  return <div className="range-field"><div className="field-heading"><label htmlFor={id}>{label}</label><div className="number-field"><input type="number" aria-label={`${label} in mm`} min={min} max={max} step={step} value={draft ?? Number(value.toFixed(2))} onFocus={() => setDraft(String(value))} onBlur={() => { if (draft?.trim() && Number.isFinite(Number(draft))) onChange(Math.max(min,Math.min(max,Number(draft)))); setDraft(null); }} onKeyDown={event => { if (event.key === "Enter") event.currentTarget.blur(); }} onChange={event=>{setDraft(event.currentTarget.value); const next=event.currentTarget.valueAsNumber;if(Number.isFinite(next) && next >= min && next <= max)onChange(next);}} /><span>mm</span></div></div><input id={id} className="range-input" type="range" min={min} max={max} step={step} value={value} style={{"--range-progress":`${(value-min)/(max-min)*100}%`} as CSSProperties} onChange={event=>onChange(event.currentTarget.valueAsNumber)} /><div className="range-labels"><span>{min} mm</span><span>{max} mm</span></div></div>;
 }
-function CuttingLayout({speaker}: {speaker:Speaker}) {
+const CuttingLayout = memo(function CuttingLayout({speaker}: {speaker:Speaker}) {
   const layout=speakerSheetLayout(speaker);
   return <div className="stand-cutting-layout"><svg viewBox={`0 0 ${layout.width} ${layout.height}`} role="img" aria-label={`Speaker cutting layout: ${speaker.parts.length} acrylic sheets`}>{layout.parts.map(({part,x,y})=><g key={part.id} data-part={part.id} transform={`translate(${x} ${y})`}><title>{part.label} · {part.width.toFixed(1)} × {part.height.toFixed(1)} mm</title><path d={standPathData(part.polygons)} fill={sheetMaterial(speaker.config,part.id).tint.color} fillOpacity={sheetMaterial(speaker.config,part.id).transparency === "opaque" ? 1 : 0.4} stroke="currentColor" strokeWidth={0.5} vectorEffect="non-scaling-stroke" fillRule="evenodd" /></g>)}</svg><p>{speaker.parts.length} sheets · {layout.width.toFixed(0)} × {layout.height.toFixed(0)} mm · Prototype · verify donor fit</p></div>;
-}
-type Props={speaker:Speaker;dark:boolean;onChange:(patch:Partial<SpeakerConfiguration>)=>void;onExportJson:()=>void;onExportSvg:()=>void;onOpenFabrication:()=>void};
-export function SpeakerDesigner({speaker,dark,onChange,onExportJson,onExportSvg,onOpenFabrication}:Props) {
-  const config=speaker.config;
+});
+type Props={config?:SpeakerConfiguration;speaker:Speaker;dark:boolean;onChange:(patch:Partial<SpeakerConfiguration>)=>void;onExportJson:()=>void;onExportSvg:()=>void;onOpenFabrication:()=>void};
+export function SpeakerDesigner({config: liveConfig,speaker,dark,onChange,onExportJson,onExportSvg,onOpenFabrication}:Props) {
+  const config=liveConfig ?? speaker.config;
   const [view,setView]=useState<SpeakerView>("perspective"),[layout,setLayout]=useState(false),[exploded,setExploded]=useState(false),[expanded,setExpanded]=useState(false),[hardware,setHardware]=useState(true),[resetKey,setResetKey]=useState(0);
   const dimension=(label:string,field:keyof typeof speakerLimits,step=1)=><Slider label={label} value={config[field]} {...speakerLimits[field]} step={step} onChange={value=>onChange(field === "thickness" ? allSheetMaterials(config,{thickness:value}) : {[field]:value})} />;
   return <div className="configurator-grid speaker-designer"><div className="preview-column">

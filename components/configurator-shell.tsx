@@ -1,5 +1,7 @@
 "use client";
 import { useCallback, useEffect, useMemo, useRef, useState, type SetStateAction } from "react";
+import { flushSync } from "react-dom";
+import { usePreviewInput } from "./use-preview-input";
 import { Check, Layers3, X } from "lucide-react";
 import { SpeakerDesigner } from "./speaker-designer";
 import { createSpeaker, normalizeSpeakerConfiguration, speakerExport, speakerSvg, speakerBuildNotes } from "@/lib/speaker";
@@ -11,12 +13,12 @@ import { ConfigurationPanel } from "@/components/configuration-panel";
 import { ConfiguratorHeader, type DesignerMode } from "@/components/configurator-header";
 import { useSynthProtector } from "@/components/use-synth-protector";
 import { ProtectorDesigner } from "@/components/protector-designer";
-import { protectorBuildNotes, protectorExport, protectorSvg } from "@/lib/synth-protector";
+import { createSynthProtector, protectorBuildNotes, protectorExport, protectorSvg } from "@/lib/synth-protector";
 import { PanelDesigner } from "@/components/panel-designer";
 import { createPanel, normalizePanelConfiguration, panelBuildNotes, panelExport, panelSvg } from "@/lib/panel-designer";
 import { useSynthStand } from "@/components/use-synth-stand";
 import { StandDesigner } from "@/components/stand-designer";
-import { standBuildNotes, standExport, standSvg } from "@/lib/synth-stand";
+import { createSynthStand, standBuildNotes, standExport, standSvg } from "@/lib/synth-stand";
 import { PreviewStage } from "@/components/preview-stage";
 import { configurationExport, panelTintsFrom, panelTransparenciesFrom, rackRows, type CaseConfiguration } from "@/lib/configurator";
 
@@ -54,16 +56,21 @@ export function ConfiguratorShell() {
   const setProtectorConfig = (value: SetStateAction<Designs["protector"]>) => setDesign("protector", value);
   const setArtConfig = (value: SetStateAction<Designs["art"]>) => setDesign("art", value);
   const setSpeakerConfig = (value: SetStateAction<Designs["speaker"]>) => setDesign("speaker", value);
-  const speaker = useMemo(() => createSpeaker(speakerConfig), [speakerConfig]);
-  const art = useMemo(() => createArt(artConfig), [artConfig]);
-  const panelInput = useGeometryInput(panelConfig), caseInput = useGeometryInput(config);
+  const { value: previewDesigns, flush: flushPreview } = usePreviewInput(history.present);
+  const speaker = useMemo(() => createSpeaker(previewDesigns.speaker), [previewDesigns.speaker]);
+  const art = useMemo(() => createArt(previewDesigns.art), [previewDesigns.art]);
+  const panelInput = useGeometryInput(previewDesigns.panel), caseInput = useGeometryInput(previewDesigns.case);
   const panelGeometry = useMemo(() => createPanel(panelInput), [panelInput]);
-  const panel = useMemo(() => ({ ...panelGeometry, config: { ...panelGeometry.config, tint: panelConfig.tint, transparency: panelConfig.transparency } }), [panelGeometry, panelConfig.tint, panelConfig.transparency]);
-  const { protector, protectorError, protectorBusy } = useSynthProtector(protectorConfig);
-  const { stand, standError, standBusy } = useSynthStand(standConfig);
+  const panel = useMemo(() => ({ ...panelGeometry, config: { ...panelGeometry.config, tint: previewDesigns.panel.tint, transparency: previewDesigns.panel.transparency } }), [panelGeometry, previewDesigns.panel.tint, previewDesigns.panel.transparency]);
+  const { protector, protectorError, protectorBusy: protectorFitting } = useSynthProtector(previewDesigns.protector);
+  const protectorBusy = protectorFitting || (!!protectorConfig.object && protectorConfig !== previewDesigns.protector);
+  const { stand, standError, standBusy: standFitting } = useSynthStand(previewDesigns.stand);
+  const standBusy = standFitting || (!!standConfig.object && standConfig !== previewDesigns.stand);
   const panels = useMemo(() => createCasePanels(caseInput), [caseInput]);
+  const [fabricationOpen, setFabricationOpen] = useState(false);
+  const closeFabrication = useCallback(() => setFabricationOpen(false), []);
   const canExportCase = caseCanExport(panels);
-  const fabrication = useMemo(() => mode === "speaker" ? speakerFabrication(speaker) : mode === "art" ? artFabrication(art) : mode === "case" ? caseFabrication(config, panels) : mode === "panel" ? panelFabrication(panel) : mode === "stand" ? standFabrication(stand, standError, standBusy) : protectorFabrication(protector, protectorError, protectorBusy), [mode, speaker, art, config, panels, panel, stand, standError, standBusy, protector, protectorError, protectorBusy]);
+  const fabrication = useMemo(() => !fabricationOpen ? undefined : mode === "speaker" ? speakerFabrication(speaker) : mode === "art" ? artFabrication(art) : mode === "case" ? caseFabrication(previewDesigns.case, panels) : mode === "panel" ? panelFabrication(panel) : mode === "stand" ? standFabrication(stand, standError, standBusy) : protectorFabrication(protector, protectorError, protectorBusy), [fabricationOpen, mode, speaker, art, previewDesigns.case, panels, panel, stand, standError, standBusy, protector, protectorError, protectorBusy]);
   const [dark, setDark] = useState(false);
   const [info, setInfo] = useState<"materials" | "guide" | null>(null);
   const [exported, setExported] = useState<"JSON" | "SVG" | null>(null);
@@ -89,7 +96,7 @@ export function ConfiguratorShell() {
     document.documentElement.classList.toggle("dark", next);
     try { localStorage.setItem("acryl508-theme", next ? "dark" : "light"); } catch { /* Theme still works for this visit. */ }
   }
-  function openFabrication() { fabricationDialog.current?.showModal(); }
+  function openFabrication() { flushSync(() => { flushPreview(); setFabricationOpen(true); }); fabricationDialog.current?.showModal(); }
   function openInfo(tab: "materials" | "guide") { setInfo(tab); dialog.current?.showModal(); }
   function download(contents: string, type: string, name: string) {
     const url = URL.createObjectURL(new Blob([contents], { type }));
@@ -104,7 +111,19 @@ export function ConfiguratorShell() {
     if (exportTimer.current) clearTimeout(exportTimer.current);
     exportTimer.current = setTimeout(() => setExported(null), 4000);
   }
+  // Generate only the active design if a download happens before the next tick.
+  function exportModels() {
+    return {
+      speaker: mode === "speaker" && speakerConfig !== previewDesigns.speaker ? createSpeaker(speakerConfig) : speaker,
+      art: mode === "art" && artConfig !== previewDesigns.art ? createArt(artConfig) : art,
+      panel: mode === "panel" && panelConfig !== previewDesigns.panel ? createPanel(panelConfig) : panel,
+      panels: mode === "case" && config !== previewDesigns.case ? createCasePanels(config) : panels,
+      stand: mode === "stand" && !standConfig.object && standConfig !== previewDesigns.stand ? createSynthStand(standConfig) : stand,
+      protector: mode === "protector" && !protectorConfig.object && protectorConfig !== previewDesigns.protector ? createSynthProtector(protectorConfig) : protector,
+    };
+  }
   function exportDesign() {
+    const { speaker, art, panel, panels, stand, protector } = exportModels();
     if (mode === "speaker") { download(JSON.stringify(speakerExport(speaker), null, 2), "application/json", "acryl508-mynd-speaker.json"); showExported("JSON"); return; }
     if (mode === "art") { download(JSON.stringify(artExport(art), null, 2), "application/json", `acryl508-art-${art.config.seed}.json`); showExported("JSON"); return; }
     if (mode === "panel") {
@@ -129,6 +148,7 @@ export function ConfiguratorShell() {
     showExported("JSON");
   }
   function exportSheets() {
+    const { speaker, art, panel, panels, stand, protector } = exportModels();
     if (mode === "speaker") { download(speakerSvg(speaker), "image/svg+xml", "acryl508-mynd-speaker-sheets.svg"); showExported("SVG"); return; }
     if (mode === "art") { download(artSvg(art), "image/svg+xml", `acryl508-art-${art.config.seed}-sheets.svg`); showExported("SVG"); return; }
     if (mode === "panel") {
@@ -149,7 +169,7 @@ export function ConfiguratorShell() {
       showExported("SVG");
       return;
     }
-    if (!canExportCase) return;
+    if (!caseCanExport(panels)) return;
     download(configurationSvg(config, panels), "image/svg+xml", `acryl508-${rackRows(config).map(units => `${units}u`).join("-")}-${config.hp}hp-sheets.svg`);
     showExported("SVG");
   }
@@ -164,14 +184,14 @@ export function ConfiguratorShell() {
     if ((event.target as Element).closest('.workspace input[type="range"], .workspace .panel-front-editor, .workspace .cutout-layout')) dispatch({ type: "begin" });
   }} onFocusCapture={event => {
     if ((event.target as Element).closest('.workspace input[type="number"], .workspace input[type="text"]')) dispatch({ type: "begin" });
-  }} onBlurCapture={() => dispatch({ type: "end" })}>
+  }} onBlur={() => dispatch({ type: "end" })}>
     <ConfiguratorHeader mode={mode} onModeChange={setMode} dark={dark} onThemeChange={toggleTheme} onInfo={openInfo} />
     <ProjectToolbar designs={history.present} mode={mode} canUndo={history.past.length > 0 || (history.group !== undefined && history.group !== history.present)} canRedo={history.future.length > 0} onUndo={() => travel("undo")} onRedo={() => travel("redo")} onRestore={project => { dispatch({ type: "reset", value: project.designs }); setMode(project.mode); setWorkspaceRevision(value => value + 1); }} onReady={() => setReady(true)} />
     <main key={workspaceRevision} id="configure" className="workspace" inert={!ready}>
       <h1 className="sr-only">{mode === "speaker" ? "Teufel MYND acrylic speaker case designer" : mode === "art" ? "Generative slotted acrylic art designer" : mode === "panel" ? "Acrylic Eurorack panel designer" : mode === "case" ? "Acrylic Eurorack case configurator" : mode === "protector" ? "Slotted acrylic synth protector designer" : "Slotted acrylic synth stand designer"}</h1>
-      {mode === "speaker" ? <SpeakerDesigner speaker={speaker} dark={dark} onChange={patch => setSpeakerConfig(current => normalizeSpeakerConfiguration({ ...current, ...patch }))} onExportJson={exportDesign} onExportSvg={exportSheets} onOpenFabrication={openFabrication} /> : mode === "art" ? <ArtDesigner art={art} dark={dark} onChange={patch => setArtConfig(current => normalizeArtConfiguration({ ...current, ...patch }))} onExportJson={exportDesign} onExportSvg={exportSheets} onOpenFabrication={openFabrication} /> : mode === "panel" ? <PanelDesigner panel={panel} dark={dark} onChange={patch => setPanelConfig(current => Object.keys(patch).every(key => key === "tint" || key === "transparency") ? { ...current, ...patch } : normalizePanelConfiguration({ ...current, ...patch }))} onExportJson={exportDesign} onExportSvg={exportSheets} onOpenFabrication={openFabrication} /> : mode === "protector" ? <ProtectorDesigner protector={protector} object={protectorConfig.object} objectError={protectorError} busy={protectorBusy} dark={dark} onChange={patch => setProtectorConfig(current => ({ ...current, ...patch }))} onExportJson={exportDesign} onExportSvg={exportSheets} onOpenFabrication={openFabrication} /> : mode === "stand" ? <StandDesigner stand={stand} object={standConfig.object} objectError={standError} busy={standBusy} dark={dark} onChange={patch => setStandConfig(current => ({ ...current, ...patch }))} onExportJson={exportDesign} onExportSvg={exportSheets} onOpenFabrication={openFabrication} /> : <div className="configurator-grid"><div className="preview-column"><PreviewStage panels={panels} config={config} dark={dark} /><BuildSummary canExportSvg={canExportCase} config={config} onExportJson={exportDesign} onExportSvg={exportSheets} onOpenFabrication={openFabrication} /></div><ConfigurationPanel panels={panels} onCutoutAction={cutoutAction} config={config} onChange={updateConfig} /></div>}
+      {mode === "speaker" ? <SpeakerDesigner config={speakerConfig} speaker={speaker} dark={dark} onChange={patch => setSpeakerConfig(current => normalizeSpeakerConfiguration({ ...current, ...patch }))} onExportJson={exportDesign} onExportSvg={exportSheets} onOpenFabrication={openFabrication} /> : mode === "art" ? <ArtDesigner config={artConfig} art={art} dark={dark} onChange={patch => setArtConfig(current => normalizeArtConfiguration({ ...current, ...patch }))} onExportJson={exportDesign} onExportSvg={exportSheets} onOpenFabrication={openFabrication} /> : mode === "panel" ? <PanelDesigner config={panelConfig} panel={panel} dark={dark} onChange={patch => setPanelConfig(current => Object.keys(patch).every(key => key === "tint" || key === "transparency") ? { ...current, ...patch } : normalizePanelConfiguration({ ...current, ...patch }))} onExportJson={exportDesign} onExportSvg={exportSheets} onOpenFabrication={openFabrication} /> : mode === "protector" ? <ProtectorDesigner config={protectorConfig === previewDesigns.protector ? undefined : protectorConfig} protector={protector} object={protectorConfig.object} objectError={protectorError} busy={protectorBusy} dark={dark} onChange={patch => setProtectorConfig(current => ({ ...current, ...patch }))} onExportJson={exportDesign} onExportSvg={exportSheets} onOpenFabrication={openFabrication} /> : mode === "stand" ? <StandDesigner config={standConfig === previewDesigns.stand ? undefined : standConfig} stand={stand} object={standConfig.object} objectError={standError} busy={standBusy} dark={dark} onChange={patch => setStandConfig(current => ({ ...current, ...patch }))} onExportJson={exportDesign} onExportSvg={exportSheets} onOpenFabrication={openFabrication} /> : <div className="configurator-grid"><div className="preview-column"><PreviewStage panels={panels} config={previewDesigns.case} dark={dark} /><BuildSummary canExportSvg={canExportCase} config={config} onExportJson={exportDesign} onExportSvg={exportSheets} onOpenFabrication={openFabrication} /></div><ConfigurationPanel panels={panels} onCutoutAction={cutoutAction} config={config} onChange={updateConfig} /></div>}
     </main>
-    <FabricationWorkspace fabrication={fabrication} mode={mode} dialogRef={fabricationDialog} />
+    <FabricationWorkspace fabrication={fabrication} mode={mode} dialogRef={fabricationDialog} onClose={closeFabrication} />
     <div className={`export-toast ${exported ? "toast-visible" : ""}`} role="status">{exported && <><Check size={15} />{exported === "SVG" ? mode === "panel" ? "Panel cut and engrave layers downloaded as SVG." : "All sheets downloaded as SVG." : "Configuration downloaded as JSON."}</>}</div>
     <dialog ref={dialog} className="info-dialog" aria-labelledby="dialog-title" onClose={() => setInfo(null)} onClick={event => { if (event.target === event.currentTarget) dialog.current?.close(); }}>
       <div className="dialog-top"><span className="eyebrow">ACRYL508 / FIELD NOTES</span><button className="icon-button" aria-label="Close notes" onClick={() => dialog.current?.close()}><X size={19} /></button></div>

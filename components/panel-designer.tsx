@@ -1,7 +1,7 @@
 "use client";
 import { LedStripControls } from "./led-strip-controls";
 import { FabricationButton } from "./fabrication-button";
-import { lazy, Suspense, useId, useRef, useState, type PointerEvent, type KeyboardEvent } from "react";
+import { memo, lazy, Suspense, useId, useMemo, useRef, useState, type PointerEvent, type KeyboardEvent } from "react";
 import { ArrowDownToLine, Check, Copy, Maximize, Minimize, Plus, Trash2 } from "lucide-react";
 import { ConfigSection } from "@/components/config-section";
 import { NumberControl } from "@/components/cutout-controls";
@@ -11,16 +11,17 @@ import { materialLabel } from "@/lib/acrylic-material";
 import { outlinePath, placedCutout, polygonBounds } from "@/lib/custom-cutouts";
 import { alignPanelItems, componentOutline, maxPanelArtwork, maxPanelComponents, newPanelComponent, panelFormats, panelRound, type DesignedPanel, type PanelAlignment, type PanelArtwork, type PanelComponent, type PanelConfiguration, type PanelFormat } from "@/lib/panel-designer";
 import { ventPresets } from "@/lib/vent-design";
-const PanelPreview = lazy(() => import("@/components/panel-preview").then(module => ({ default: module.PanelPreview })));
-type Props = { panel: DesignedPanel; dark: boolean; onChange: (patch: Partial<PanelConfiguration>) => void; onExportJson: () => void; onExportSvg: () => void; onOpenFabrication: () => void };
+const PanelPreview = memo(lazy(() => import("@/components/panel-preview").then(module => ({ default: module.PanelPreview }))));
+type Props = { config?: PanelConfiguration; panel: DesignedPanel; dark: boolean; onChange: (patch: Partial<PanelConfiguration>) => void; onExportJson: () => void; onExportSvg: () => void; onOpenFabrication: () => void };
 type Item = PanelComponent | PanelArtwork;
 function Toggle({ label, value, onChange }: { label: string; value: boolean; onChange: () => void }) {
   const id = useId();
   return <div className="inline-field"><label htmlFor={id}>{label}</label><button id={id} role="switch" className={`toggle ${value ? "toggle-on" : ""}`} aria-label={label} aria-checked={value} onClick={onChange}><span /></button></div>;
 }
 
-function FrontEditor({ panel, selection, onSelect, onChange, snap, grid, guides, cutting }: { panel: DesignedPanel; selection: string[]; onSelect: (ids: string[]) => void; onChange: Props["onChange"]; snap: boolean; grid: number; guides: boolean; cutting: boolean }) {
-  const { width, height, config } = panel, patternId = useId().replace(/:/g, "");
+function FrontEditor({ panel, config, selection, onSelect, onChange, snap, grid, guides, cutting }: { panel: DesignedPanel; config: PanelConfiguration; selection: string[]; onSelect: (ids: string[]) => void; onChange: Props["onChange"]; snap: boolean; grid: number; guides: boolean; cutting: boolean }) {
+  const { width, height } = panel, patternId = useId().replace(/:/g, "");
+  const cutPath = useMemo(() => outlinePath(panel.polygons), [panel.polygons]);
   const items: Item[] = [...config.components, ...config.artwork];
   const drag = useRef<{ pointer: number; start: { x: number; y: number }; items: { id: string; x: number; y: number }[]; anchor: { x: number; y: number } } | null>(null);
   const quantize = (value: number) => panelRound(snap ? Math.round(value / grid) * grid : value);
@@ -60,7 +61,7 @@ function FrontEditor({ panel, selection, onSelect, onChange, snap, grid, guides,
     <defs><pattern id={patternId} width={grid} height={grid} patternUnits="userSpaceOnUse"><circle cx="0" cy="0" r="0.16" fill="currentColor" opacity="0.25" /></pattern></defs>
     {!cutting && <path d={outlinePath(panel.original)} fill="var(--background)" stroke="var(--strong-border)" strokeWidth="0.2" />}
     {!cutting && guides && <g pointerEvents="none"><rect x={-width / 2} y={-height / 2} width={width} height={height} fill={`url(#${patternId})`} /><rect x={-width / 2} y={-height / 2} width={width} height="8" fill="currentColor" opacity="0.06" /><rect x={-width / 2} y={height / 2 - 8} width={width} height="8" fill="currentColor" opacity="0.06" /></g>}
-    <path data-layer="cut" d={outlinePath(panel.polygons)} fill={cutting ? "none" : config.tint.color} fillOpacity={cutting ? 1 : opacity} fillRule="evenodd" stroke={cutting ? "#ef4444" : "currentColor"} strokeWidth={cutting ? 0.2 : 0.15} pointerEvents="none" />
+    <path data-layer="cut" d={cutPath} fill={cutting ? "none" : config.tint.color} fillOpacity={cutting ? 1 : opacity} fillRule="evenodd" stroke={cutting ? "#ef4444" : "currentColor"} strokeWidth={cutting ? 0.2 : 0.15} pointerEvents="none" />
     {panel.engravings.map(a => <path key={a.id} data-layer="engrave" d={outlinePath(a.polygons)} fill={cutting ? "#2563eb" : config.tint.id === "black" ? "#eee8d7" : "#353b47"} fillRule="evenodd" pointerEvents="none" />)}
     {!cutting && guides && <g className="panel-guides" pointerEvents="none"><path d={`M${-width / 2},0H${width / 2}M0,${-height / 2}V${height / 2}`} /><path d={`M${-width / 2},${-height / 2 + 8}H${width / 2}M${-width / 2},${height / 2 - 8}H${width / 2}`} />{panel.components.map(c => <path key={c.id} d={outlinePath(c.body)} />)}</g>}
     {!cutting && items.map(item => { const polygons = "kind" in item ? componentOutline(item) : placedCutout(item), b = polygonBounds(polygons), selected = selection.includes(item.id);
@@ -70,8 +71,8 @@ function FrontEditor({ panel, selection, onSelect, onChange, snap, grid, guides,
   </svg></div>;
 }
 
-export function PanelDesigner({ panel, dark, onChange, onExportJson, onExportSvg, onOpenFabrication }: Props) {
-  const config = panel.config;
+export function PanelDesigner({ config: liveConfig, panel, dark, onChange, onExportJson, onExportSvg, onOpenFabrication }: Props) {
+  const config = liveConfig ?? panel.config;
   const [view, setView] = useState<"front" | "perspective" | "cutting">("front");
   const [selectedIds, setSelectedIds] = useState<string[]>([]), [expanded, setExpanded] = useState(false);
   const [snap, setSnap] = useState(true), [grid, setGrid] = useState(1), [guides, setGuides] = useState(true);
@@ -100,7 +101,7 @@ export function PanelDesigner({ panel, dark, onChange, onExportJson, onExportSvg
     <section className={`preview-stage ${expanded ? "preview-expanded" : ""}`} aria-label="Panel designer preview" onKeyDown={event => { if (event.key === "Escape") setExpanded(false); }}>
       <div className="stage-topline"><div className="model-label"><span className="status-dot" /><span>PANEL DESIGNER</span><span className="model-label-separator">/</span><span>{config.hp} HP · {panelFormats[config.format].label.toUpperCase()}</span></div><span className="stage-material">GS—{config.thickness} <span>•</span> {config.tint.label.toUpperCase()}</span></div>
       <div className="stage-watermark" aria-hidden="true">F-508</div>
-      <div className="canvas-wrap">{view === "perspective" ? <Suspense fallback={<div className="preview-fallback" role="status">Preparing your panel…</div>}><PanelPreview panel={panel} dark={dark} /></Suspense> : <FrontEditor panel={panel} selection={selection} onSelect={setSelectedIds} onChange={onChange} snap={snap} grid={grid} guides={guides} cutting={view === "cutting"} />}</div>
+      <div className="canvas-wrap">{view === "perspective" ? <Suspense fallback={<div className="preview-fallback" role="status">Preparing your panel…</div>}><PanelPreview panel={panel} dark={dark} /></Suspense> : <FrontEditor panel={panel} config={config} selection={selection} onSelect={setSelectedIds} onChange={onChange} snap={snap} grid={grid} guides={guides} cutting={view === "cutting"} />}</div>
       <div className="stage-side-tools"><button className="icon-button" aria-label={expanded ? "Exit expanded panel preview" : "Expand panel preview"} onClick={() => setExpanded(!expanded)}>{expanded ? <Minimize size={16} /> : <Maximize size={16} />}</button></div>
       <div className="stage-bottom"><div className="view-control" role="group" aria-label="Panel view">{(["front", "perspective", "cutting"] as const).map(option => <button key={option} className={view === option ? "view-active" : ""} aria-pressed={view === option} onClick={() => setView(option)}>{option === "front" ? "Front editor" : option === "perspective" ? "Perspective" : "Cutting layout"}</button>)}</div><span className="stage-hint">{view === "front" ? "Drag to place · Shift-click to select" : view === "cutting" ? "Red: cut · Blue: engrave" : "Drag to orbit · Scroll to zoom"}</span></div>
       <div className="stage-caption"><span><Check size={12} />{view === "front" ? "+X right · +Y up · Origin at centre" : "Shared preview & export geometry"}</span><span>PROTOTYPE · MM</span></div>

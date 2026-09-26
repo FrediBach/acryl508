@@ -1,6 +1,6 @@
 "use client";
 import { materialLabel } from "@/lib/acrylic-material";
-import { lazy, Suspense, useMemo, useState } from "react";
+import { memo, lazy, Suspense, useMemo, useState } from "react";
 import { Box, Check, Layers2, Maximize, Minimize, RotateCcw, SlidersHorizontal } from "lucide-react";
 import type { CasePanels } from "@/lib/case-panels";
 import type { CameraView } from "@/components/case-preview";
@@ -21,7 +21,7 @@ function CuttingLayout({ panels, config }: { panels: CasePanels; config: CaseCon
   </svg><p>{5 - removed} sheets{removed > 0 ? ` · ${removed} fully removed by cutouts` : ""} · {layout.width.toFixed(0)} × {layout.height.toFixed(0)} mm layout · arrange to fit your stock sheet</p></div>;
 }
 
-export function PreviewStage({ config, panels, dark }: { config: CaseConfiguration; panels: CasePanels; dark: boolean }) {
+export const PreviewStage = memo(function PreviewStage({ config, panels, dark }: { config: CaseConfiguration; panels: CasePanels; dark: boolean }) {
   const [view, setView] = useState<CameraView>("perspective");
   const [layout, setLayout] = useState(false);
   const [exploded, setExploded] = useState(false);
@@ -37,4 +37,4 @@ export function PreviewStage({ config, panels, dark }: { config: CaseConfigurati
     <div className="stage-bottom"><div className="view-control" role="group" aria-label="Case view">{(["perspective", "front", "top"] as const).map(option => <button key={option} onClick={() => { setLayout(false); setView(option); }} aria-pressed={!layout && view === option} className={!layout && view === option ? "view-active" : ""}>{option === "perspective" && <Box size={13} />}{option === "perspective" ? "Perspective" : option === "front" ? "Front" : "Top"}</button>)}<button className={layout ? "view-active" : ""} aria-pressed={layout} onClick={() => setLayout(true)}>Cutting layout</button></div><span className="stage-hint">{layout ? "Full-size SVG available below" : <>Drag to orbit <i /> Scroll to zoom</>}</span><span className="stage-dimensions">{dimensions.width.toFixed(1)} × {dimensions.length.toFixed(1)} × {dimensions.height} <small>mm</small></span></div>
     <div className="stage-caption"><span><Check size={12} />{layout ? "Shared preview & export geometry" : exploded ? "Interlocking panel assembly" : "Real-time material preview"}</span><span>CONCEPT MODEL · MM</span></div>
   </section>;
-}
+});

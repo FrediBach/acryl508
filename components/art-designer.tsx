@@ -1,5 +1,5 @@
 "use client";
-import { lazy, Suspense, useId, useState, type CSSProperties } from "react";
+import { memo, lazy, Suspense, useId, useState, type CSSProperties } from "react";
 import { ArrowDownToLine, Box, Check, Layers2, Maximize, Minimize, RotateCcw, Shuffle } from "lucide-react";
 import { ConfigSection } from "./config-section";
 import { SheetMaterialControls, SheetMaterialSwatches } from "./sheet-material-controls";
@@ -8,18 +8,19 @@ import { FabricationButton } from "./fabrication-button";
 import { artLimits, artSheetLayout, type Art, type ArtConfiguration, type ArtOverride } from "@/lib/art";
 import { standPathData } from "@/lib/synth-stand";
 import type { ArtView } from "./art-preview";
-const ArtPreview = lazy(() => import("./art-preview").then(module => ({ default: module.ArtPreview })));
+const ArtPreview = memo(lazy(() => import("./art-preview").then(module => ({ default: module.ArtPreview }))));
 function Slider({ label, value, min, max, step = 1, unit = "", onChange }: { label: string; value: number; min: number; max: number; step?: number; unit?: string; onChange: (value: number) => void }) {
   const id = useId();
-  return <div className="range-field"><div className="field-heading"><label htmlFor={id}>{label}</label><div className="number-field"><input type="number" aria-label={`${label}${unit ? ` in ${unit}` : ""}`} min={min} max={max} step={step} value={Number(value.toFixed(2))} onChange={event => { const next = event.currentTarget.valueAsNumber; if (Number.isFinite(next)) onChange(Math.max(min,Math.min(max,next))); }} /><span>{unit}</span></div></div><input id={id} className="range-input" type="range" min={min} max={max} step={step} value={value} style={{ "--range-progress": `${(value-min)/(max-min)*100}%` } as CSSProperties} onChange={event => onChange(event.currentTarget.valueAsNumber)} /><div className="range-labels"><span>{min}{unit}</span><span>{max}{unit}</span></div></div>;
+  const [draft, setDraft] = useState<string | null>(null);
+  return <div className="range-field"><div className="field-heading"><label htmlFor={id}>{label}</label><div className="number-field"><input type="number" aria-label={`${label}${unit ? ` in ${unit}` : ""}`} min={min} max={max} step={step} value={draft ?? Number(value.toFixed(2))} onFocus={() => setDraft(String(value))} onBlur={() => { if (draft?.trim() && Number.isFinite(Number(draft))) onChange(Math.max(min,Math.min(max,Number(draft)))); setDraft(null); }} onKeyDown={event => { if (event.key === "Enter") event.currentTarget.blur(); }} onChange={event => { setDraft(event.currentTarget.value); const next = event.currentTarget.valueAsNumber; if (Number.isFinite(next) && next >= min && next <= max) onChange(next); }} /><span>{unit}</span></div></div><input id={id} className="range-input" type="range" min={min} max={max} step={step} value={value} style={{ "--range-progress": `${(value-min)/(max-min)*100}%` } as CSSProperties} onChange={event => onChange(event.currentTarget.valueAsNumber)} /><div className="range-labels"><span>{min}{unit}</span><span>{max}{unit}</span></div></div>;
 }
-function CuttingLayout({ art }: { art: Art }) {
+const CuttingLayout = memo(function CuttingLayout({ art }: { art: Art }) {
   const layout = artSheetLayout(art);
   return <div className="stand-cutting-layout"><svg viewBox={`0 0 ${layout.width} ${layout.height}`} role="img" aria-label={`Art cutting layout: ${art.parts.length} slotted sheets`}>{layout.parts.map(({part,x,y}) => <g key={part.id} data-part={part.id} transform={`translate(${x} ${y})`}><title>{part.label} · {part.width.toFixed(1)} × {part.height.toFixed(1)} mm</title><path d={standPathData(part.polygons)} fill={sheetMaterial(art.config, part.id).tint.color} fillOpacity={sheetMaterial(art.config, part.id).transparency === "opaque" ? 1 : sheetMaterial(art.config, part.id).transparency === "opal" ? 0.75 : 0.4} stroke="currentColor" strokeWidth={1} vectorEffect="non-scaling-stroke" fillRule="evenodd" />{part.bend && <path d={`M${-part.leafWidth/2} ${-part.bend.start*100}H${part.leafWidth/2}`} fill="none" stroke="#2563eb" strokeDasharray="3 3" vectorEffect="non-scaling-stroke" />}</g>)}</svg><p>{art.parts.length} sheets · {layout.width.toFixed(0)} × {layout.height.toFixed(0)} mm · Blue dashed lines mark bend starts</p></div>;
-}
-type Props = { art: Art; dark: boolean; onChange: (patch: Partial<ArtConfiguration>) => void; onExportJson: () => void; onExportSvg: () => void; onOpenFabrication: () => void };
-export function ArtDesigner({ art, dark, onChange, onExportJson, onExportSvg, onOpenFabrication }: Props) {
-  const config = art.config;
+});
+type Props = { config?: ArtConfiguration; art: Art; dark: boolean; onChange: (patch: Partial<ArtConfiguration>) => void; onExportJson: () => void; onExportSvg: () => void; onOpenFabrication: () => void };
+export function ArtDesigner({ config: liveConfig, art, dark, onChange, onExportJson, onExportSvg, onOpenFabrication }: Props) {
+  const config = liveConfig ?? art.config;
   const [view,setView] = useState<ArtView>("perspective"), [layout,setLayout] = useState(false), [exploded,setExploded] = useState(false), [expanded,setExpanded] = useState(false), [resetKey,setResetKey] = useState(0), [selected,setSelected] = useState("a-1");
   const leaves = art.parts.filter(part => !part.shelf);
   const shelves = art.parts.filter(part => part.shelf);

@@ -20,16 +20,18 @@ test("mode switching preserves independent designs and routes material choices a
   dom.window.HTMLDialogElement.prototype.showModal = function () { this.open = true; };
   dom.window.HTMLDialogElement.prototype.close = function () { this.open = false; };
   const require = createRequire(import.meta.url), React = require("react"), { createRoot } = require("react-dom/client");
+  const geometryCalls = {}, previewRenders = {};
+  const geometryFunctions = { "speaker.ts": "createSpeaker", "art.ts": "createArt", "panel-designer.ts": "createPanel", "case-panels.ts": "createCasePanels", "synth-stand.ts": "createSynthStand", "synth-protector.ts": "createSynthProtector" };
   const project = fileURLToPath(new URL("../", import.meta.url)), cache = new Map();
   // Test real controls and shell with only the WebGL renderers stubbed.
   function load(file) {
     if (cache.has(file)) return cache.get(file).exports;
-    if (file.endsWith("/speaker-preview.tsx")) return { SpeakerPreview: () => React.createElement("div", null, "Speaker preview") };
-    if (file.endsWith("/art-preview.tsx")) return { ArtPreview: () => React.createElement("div", null, "Art preview") };
-    if (file.endsWith("/panel-preview.tsx")) return { PanelPreview: () => React.createElement("div", null, "Panel preview") };
-    if (file.endsWith("/case-preview.tsx")) return { CasePreview: () => React.createElement("div", null, "Case preview") };
-    if (file.endsWith("/protector-preview.tsx")) return { ProtectorPreview: () => React.createElement("div", null, "Protector preview") };
-    if (file.endsWith("/stand-preview.tsx")) return { StandPreview: () => React.createElement("div", null, "Stand preview") };
+    if (file.endsWith("/speaker-preview.tsx")) return { SpeakerPreview: () => { previewRenders.speaker = (previewRenders.speaker ?? 0) + 1; return React.createElement("div", null, "Speaker preview"); } };
+    if (file.endsWith("/art-preview.tsx")) return { ArtPreview: () => { previewRenders.art = (previewRenders.art ?? 0) + 1; return React.createElement("div", null, "Art preview"); } };
+    if (file.endsWith("/panel-preview.tsx")) return { PanelPreview: () => { previewRenders.panel = (previewRenders.panel ?? 0) + 1; return React.createElement("div", null, "Panel preview"); } };
+    if (file.endsWith("/case-preview.tsx")) return { CasePreview: () => { previewRenders.case = (previewRenders.case ?? 0) + 1; return React.createElement("div", null, "Case preview"); } };
+    if (file.endsWith("/protector-preview.tsx")) return { ProtectorPreview: () => { previewRenders.protector = (previewRenders.protector ?? 0) + 1; return React.createElement("div", null, "Protector preview"); } };
+    if (file.endsWith("/stand-preview.tsx")) return { StandPreview: () => { previewRenders.stand = (previewRenders.stand ?? 0) + 1; return React.createElement("div", null, "Stand preview"); } };
     const mod = { exports: {} }; cache.set(file, mod);
     const code = ts.transpileModule(readFileSync(file, "utf8").replaceAll("import.meta.url", JSON.stringify(pathToFileURL(file).href)), { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, esModuleInterop: true } }).outputText;
     const localRequire = specifier => {
@@ -39,6 +41,8 @@ test("mode switching preserves independent designs and routes material choices a
       return /\.tsx?$/.test(resolved) ? load(resolved) : require(resolved);
     };
     new vm.Script(`(function(require, module, exports) {${code}\n})`, { filename: file }).runInThisContext()(localRequire, mod, mod.exports);
+    const geometry = geometryFunctions[path.basename(file)];
+    if (geometry) { const create = mod.exports[geometry]; mod.exports[geometry] = (...args) => { geometryCalls[geometry] = (geometryCalls[geometry] ?? 0) + 1; return create(...args); }; }
     return mod.exports;
   }
   const downloads = [], blobs = new Map(), originalCreate = URL.createObjectURL, originalRevoke = URL.revokeObjectURL;
@@ -50,16 +54,42 @@ test("mode switching preserves independent designs and routes material choices a
     const match = [...document.querySelectorAll("button")].find(element => element.getAttribute("aria-label") === label || element.textContent.trim() === label);
     assert.ok(match, `button ${label} exists`); return match;
   };
-  const click = async label => React.act(async () => {
+  const settlePreview = async () => React.act(async () => new Promise(resolve => setTimeout(resolve, 120)));
+  const click = async label => { await React.act(async () => {
     const target = button(label), menu = target.closest(".project-menu");
     if (menu && !menu.open) menu.querySelector("summary").click();
     target.click();
-  });
+  }); await settlePreview(); };
+  const actAndPreview = async callback => { await React.act(callback); await settlePreview(); };
   try {
     const { ConfiguratorShell } = load(path.join(project, "components/configurator-shell.tsx"));
-    await React.act(async () => { root.render(React.createElement(ConfiguratorShell)); });
+    await actAndPreview(async () => { root.render(React.createElement(ConfiguratorShell)); });
     assert.equal(button("Case designer").getAttribute("aria-pressed"), "true");
     assert.equal(document.querySelector(".workspace .fabrication-workspace"), null, "Fabrication no longer extends the main workspace");
+    // Real inputs stay live without invoking any geometry builder. Downloads
+    // during the pending interval must still include the final input value.
+    for (const [modeLabel, field] of [["Speaker case","width"],["Case designer","hp"],["Synth stand","width"],["Synth protector","width"],["Art mode","height"],["Panel designer","hp"]]) {
+      await click(modeLabel);
+      const input = document.querySelector('.workspace input[type="range"]') ?? document.querySelector('.workspace input[type="number"]');
+      const original = Number(input.value), before = {...geometryCalls}, beforePreviews = {...previewRenders};
+      await React.act(async () => { input.dispatchEvent(new dom.window.Event("pointerdown",{bubbles:true})); if(input.type === "number")input.focus(); });
+      for (const next of [original+1,original+2,original+3]) {
+        await React.act(async () => {
+          Object.getOwnPropertyDescriptor(dom.window.HTMLInputElement.prototype,"value").set.call(input,String(next));
+          input.dispatchEvent(new dom.window.Event("input",{bubbles:true}));
+        });
+        assert.equal(Number(input.value),next,`${modeLabel} input updates immediately`);
+      }
+      assert.deepEqual(geometryCalls,before,`${modeLabel} does not build geometry during input events`);
+      assert.deepEqual(previewRenders,beforePreviews,`${modeLabel} does not rerender its 3D preview during input events`);
+      await React.act(async () => button("Design JSON").click());
+      const exported=JSON.parse(await downloads.at(-1).blob.text());
+      assert.equal(exported.configuration[field],original+3,`${modeLabel} exports latest values before preview catches up`);
+      await React.act(async () => { input.blur(); window.dispatchEvent(new dom.window.Event("pointerup")); });
+      await click("Undo design change");
+      await click("Design JSON");
+      assert.equal(JSON.parse(await downloads.at(-1).blob.text()).configuration[field],original,"A drag remains one undo step");
+    }
     for (const [modeLabel, firstPart] of [["Speaker case", "Driver baffle"], ["Case designer", "Bottom"], ["Synth stand", "Support rib 1"], ["Synth protector", "Protective top sheet"], ["Panel designer", "Panel"], ["Art mode", "Sheet A-1"]]) {
       await click(modeLabel);
       const trigger = button("Fabrication workspace");
@@ -71,7 +101,7 @@ test("mode switching preserves independent designs and routes material choices a
       assert.equal(overlay.open, true);
       assert.match(overlay.querySelector("#fabrication-description").textContent, new RegExp(modeLabel));
       assert.equal(overlay.querySelector("tbody td").textContent, firstPart, "The overlay uses the active mode's parts");
-      await React.act(async () => overlay.querySelector("h2").click());
+      await actAndPreview(async () => overlay.querySelector("h2").click());
       assert.equal(overlay.open, true, "Clicking content keeps the overlay open");
       await click("Download sheet 1");
       const sheet = new dom.window.DOMParser().parseFromString(await downloads.at(-1).blob.text(), "image/svg+xml");
@@ -79,7 +109,7 @@ test("mode switching preserves independent designs and routes material choices a
       await click("Download fit coupon");
       assert.match(downloads.at(-1).name, /fit-coupon\.svg$/);
       const widthInput = overlay.querySelector(".stock-controls input");
-      await React.act(async () => {
+      await actAndPreview(async () => {
         Object.getOwnPropertyDescriptor(dom.window.HTMLInputElement.prototype, "value").set.call(widthInput, "1200");
         widthInput.dispatchEvent(new dom.window.Event("input", { bubbles: true }));
       });
@@ -88,7 +118,7 @@ test("mode switching preserves independent designs and routes material choices a
       await click("Fabrication workspace");
       assert.equal(widthInput.value, "1200", "Stock settings survive closing and reopening");
       assert.match(overlay.querySelector(".stock-sheet svg").getAttribute("viewBox"), /^0 0 1200 /);
-      await React.act(async () => overlay.click());
+      await actAndPreview(async () => overlay.click());
       assert.equal(overlay.open, false, "Clicking the backdrop closes the overlay");
     }
     await click("Speaker case");
@@ -146,7 +176,7 @@ test("mode switching preserves independent designs and routes material choices a
     await click("Use individual acrylic materials for each sheet");
     assert.equal(document.querySelector('select[aria-label="Leaf shelf A-1 color"]'), null, "Shelf appearance follows its parent instead of offering a separate color");
     const leafColor = document.querySelector('select[aria-label="Sheet A-1 color"]');
-    await React.act(async () => {
+    await actAndPreview(async () => {
       leafColor.value = "blue";
       leafColor.dispatchEvent(new dom.window.Event("change", { bubbles: true }));
     });
@@ -172,7 +202,7 @@ test("mode switching preserves independent designs and routes material choices a
     assert.doesNotMatch(await downloads.at(-1).blob.text(),/data-operation="bend-guide"/);
     await click("Bend the leaves");
     await click("Material library");
-    await React.act(async () => document.querySelector('.info-dialog:not(.project-dialog) button[aria-label="Blue"]').click());
+    await actAndPreview(async () => document.querySelector('.info-dialog:not(.project-dialog) button[aria-label="Blue"]').click());
     await click("Close notes");
     await click("Export art design JSON");
     assert.equal(JSON.parse(await downloads.at(-1).blob.text()).configuration.tint.id,"blue");
@@ -192,11 +222,11 @@ test("mode switching preserves independent designs and routes material choices a
       assert.equal(part.querySelector("path").getAttribute("d"), exportedLayout.querySelector(`[data-part="${part.dataset.part}"] path`).getAttribute("d"));
     }
     const engravingSection = [...document.querySelectorAll(".config-section")].find(el => el.querySelector("h3").textContent === "Custom engravings");
-    await React.act(async () => engravingSection.querySelector("summary").click());
+    await actAndPreview(async () => engravingSection.querySelector("summary").click());
     const engravingInput = engravingSection.querySelector('input[aria-label="Import SVG engraving"]');
     const svgFile = { name: "etched-mark.svg", size: 120, text: async () => '<svg xmlns="http://www.w3.org/2000/svg"><path d="M0 0H20V20H0Z M5 5V15H15V5Z" fill-rule="evenodd" /></svg>' };
     Object.defineProperty(engravingInput, "files", { configurable: true, value: [svgFile] });
-    await React.act(async () => engravingInput.dispatchEvent(new dom.window.Event("change", { bubbles: true })));
+    await actAndPreview(async () => engravingInput.dispatchEvent(new dom.window.Event("change", { bubbles: true })));
     assert.equal(engravingSection.querySelectorAll(".cutout-list-row").length, 1);
     assert.ok(caseLayout().querySelector('[data-operation="engrave"]'), "Flat preview displays engravings");
     assert.equal(caseLayout().querySelector('[data-part="bottom"] path').getAttribute("d"), originalBottomPath);
@@ -209,7 +239,7 @@ test("mode switching preserves independent designs and routes material choices a
     await click("Remove etched-mark");
     assert.equal(caseLayout().querySelector('[data-operation="engrave"]'), null);
     const frontBeforeLed = caseLayout().querySelector('[data-part="front"] path').getAttribute("d");
-    await React.act(async () => engravingSection.querySelector('input[aria-label="LED strip · Front sheet"]').click());
+    await actAndPreview(async () => engravingSection.querySelector('input[aria-label="LED strip · Front sheet"]').click());
     assert.notEqual(caseLayout().querySelector('[data-part="front"] path').getAttribute("d"), frontBeforeLed);
     await click("Undo design change");
     assert.equal(caseLayout().querySelector('[data-part="front"] path').getAttribute("d"), frontBeforeLed);
@@ -227,7 +257,7 @@ test("mode switching preserves independent designs and routes material choices a
     assert.equal(button("Perspective").getAttribute("aria-pressed"), "true");
     await click("Cutting layout");
     const section = title => [...document.querySelectorAll(".config-section")].find(element => element.querySelector("h3").textContent === title);
-    const toggleSection = async title => React.act(async () => { section(title).querySelector("summary").click(); });
+    const toggleSection = async title => actAndPreview(async () => { section(title).querySelector("summary").click(); });
     assert.equal(section("Dimensions").open, true);
     assert.equal(section("Accessories").open, false);
     await toggleSection("Accessories");
@@ -277,8 +307,8 @@ test("mode switching preserves independent designs and routes material choices a
     assert.equal(button("Front extension").getAttribute("aria-checked"), "true");
     await click("35°");
     await click("Material library");
-    await React.act(async () => document.querySelector('.info-dialog:not(.project-dialog) button[aria-label="Blue"]').click());
-    const selectValue = async (select, value) => React.act(async () => {
+    await actAndPreview(async () => document.querySelector('.info-dialog:not(.project-dialog) button[aria-label="Blue"]').click());
+    const selectValue = async (select, value) => actAndPreview(async () => {
       select.value = value;
       select.dispatchEvent(new dom.window.Event("change", { bubbles: true }));
     });
@@ -310,7 +340,7 @@ test("mode switching preserves independent designs and routes material choices a
     assert.ok(document.querySelector('[aria-label="Synth protector controls"]'));
     await click("50 mm");
     await click("Material library");
-    await React.act(async () => document.querySelector('.info-dialog:not(.project-dialog) button[aria-label="Red"]').click());
+    await actAndPreview(async () => document.querySelector('.info-dialog:not(.project-dialog) button[aria-label="Red"]').click());
     await selectValue(document.querySelector(".info-dialog:not(.project-dialog) select"), "see-through");
     await click("Close notes");
     await click("Design JSON");
@@ -335,7 +365,7 @@ test("mode switching preserves independent designs and routes material choices a
     assert.equal(button("50 mm").getAttribute("aria-pressed"), "true");
     await toggleSection("Feet & edge fit");
     await click("Feet on all four edges");
-    const setProtectorNumber = async (label, value) => React.act(async () => {
+    const setProtectorNumber = async (label, value) => actAndPreview(async () => {
       const input = document.querySelector(`input[aria-label="${label}"]`);
       assert.ok(input);
       Object.getOwnPropertyDescriptor(dom.window.HTMLInputElement.prototype, "value").set.call(input, String(value));
@@ -403,10 +433,10 @@ test("mode switching preserves independent designs and routes material choices a
     await click("Use individual acrylic materials for each sheet");
     assert.equal(document.querySelector("#panel-tint-left").value, "white", "Toggling individual mode retains choices");
     // Exercise the real row controls through both exports, including row edits.
-    const addRow = async units => React.act(async () => {
+    const addRow = async units => actAndPreview(async () => {
       [...document.querySelectorAll(".rack-add button")].find(element => element.textContent.trim() === `${units}U`).click();
     });
-    const setRowAngle = async (row, value) => React.act(async () => {
+    const setRowAngle = async (row, value) => actAndPreview(async () => {
       const label = [...document.querySelectorAll("label")].find(element => element.textContent === `Row ${row} extra angle`);
       const input = document.getElementById(label.htmlFor);
       Object.getOwnPropertyDescriptor(dom.window.HTMLInputElement.prototype, "value").set.call(input, String(value));
@@ -439,7 +469,7 @@ test("mode switching preserves independent designs and routes material choices a
     assert.equal(button("Panel designer").getAttribute("aria-pressed"), "true");
     assert.ok(document.querySelector('[aria-label="Panel designer controls"]'));
     const field = text => [...document.querySelectorAll("label")].find(label => label.textContent.startsWith(text)).querySelector("input, select");
-    const setPanelNumber = async (label, value) => React.act(async () => {
+    const setPanelNumber = async (label, value) => actAndPreview(async () => {
       const input = field(label);
       Object.getOwnPropertyDescriptor(dom.window.HTMLInputElement.prototype, "value").set.call(input, String(value));
       input.dispatchEvent(new dom.window.Event("input", { bubbles: true }));
@@ -460,7 +490,7 @@ test("mode switching preserves independent designs and routes material choices a
     assert.deepEqual(panelData.configuration.components.map(c => c.y), [20, 20]);
     assert.match(panelData.warnings.join(" "), /exceeds the specified 2 mm/);
     const editor = document.querySelector(".panel-front-editor");
-    await React.act(async () => editor.dispatchEvent(new dom.window.KeyboardEvent("keydown", { key: "ArrowUp", bubbles: true })));
+    await actAndPreview(async () => editor.dispatchEvent(new dom.window.KeyboardEvent("keydown", { key: "ArrowUp", bubbles: true })));
     panelData = await exportedPanel();
     assert.deepEqual(panelData.configuration.components.map(c => c.y), [21, 21]);
     // Pointer capture keeps a selected group moving together; grid snapping uses the grabbed item.
@@ -473,9 +503,9 @@ test("mode switching preserves independent designs and routes material choices a
     editor.releasePointerCapture = () => { captured = false; };
     const pointer = (type, x, y) => { const event = new dom.window.MouseEvent(type, { clientX: x, clientY: y, bubbles: true }); Object.defineProperty(event, "pointerId", { value: 1 }); return event; };
     try {
-      await React.act(async () => editor.querySelector("[data-item] rect").dispatchEvent(pointer("pointerdown", 0, 0)));
-      await React.act(async () => editor.dispatchEvent(pointer("pointermove", 2.4, -4.6)));
-      await React.act(async () => editor.dispatchEvent(pointer("pointerup", 2.4, -4.6)));
+      await actAndPreview(async () => editor.querySelector("[data-item] rect").dispatchEvent(pointer("pointerdown", 0, 0)));
+      await actAndPreview(async () => editor.dispatchEvent(pointer("pointermove", 2.4, -4.6)));
+      await actAndPreview(async () => editor.dispatchEvent(pointer("pointerup", 2.4, -4.6)));
       panelData = await exportedPanel();
       assert.deepEqual(panelData.configuration.components.map(c => c.x), [-13, 17]);
       assert.deepEqual(panelData.configuration.components.map(c => c.y), [26, 26]);
@@ -508,7 +538,7 @@ test("mode switching preserves independent designs and routes material choices a
     // Use the actual SVG parser, text outlines and fabrication layer controls.
     const upload = document.querySelector('[aria-label="Import panel artwork SVG"]');
     Object.defineProperty(upload, "files", { configurable: true, value: [{ name: "label.svg", size: 150, text: async () => '<svg xmlns="http://www.w3.org/2000/svg"><rect width="20" height="5" /></svg>' }] });
-    await React.act(async () => upload.dispatchEvent(new dom.window.Event("change", { bubbles: true })));
+    await actAndPreview(async () => upload.dispatchEvent(new dom.window.Event("change", { bubbles: true })));
     panelData = await exportedPanel();
     assert.equal(panelData.configuration.artwork[0].operation, "engrave");
     assert.equal(panelData.layers.engrave.length, 1);
@@ -521,7 +551,7 @@ test("mode switching preserves independent designs and routes material choices a
     globalThis.fetch = async url => ({ ok: true, json: async () => JSON.parse(readFileSync(path.join(project, "public", url), "utf8")) });
     try { await click("Add text"); } finally { globalThis.fetch = oldFetch; }
     const textInput = field("Text");
-    await React.act(async () => {
+    await actAndPreview(async () => {
       Object.getOwnPropertyDescriptor(dom.window.HTMLInputElement.prototype, "value").set.call(textInput, "OUT");
       textInput.dispatchEvent(new dom.window.Event("input", { bubbles: true }));
     });
@@ -542,7 +572,7 @@ test("mode switching preserves independent designs and routes material choices a
     panelData = await exportedPanel(); assert.equal(panelData.dimensions.height, 43.18); assert.equal(panelData.configuration.hp, 18);
     await selectValue(field("Panel format"), "3u");
     await click("Material library");
-    await React.act(async () => document.querySelector('.info-dialog:not(.project-dialog) button[aria-label="Green"]').click());
+    await actAndPreview(async () => document.querySelector('.info-dialog:not(.project-dialog) button[aria-label="Green"]').click());
     await selectValue(document.querySelector(".info-dialog:not(.project-dialog) select"), "opaque");
     await click("Close notes");
     await click("Build notes");
@@ -619,9 +649,9 @@ test("mode switching preserves independent designs and routes material choices a
     const objText = "v -300 -40 -150\nv 300 -40 -150\nv 300 40 -150\nv -300 40 -150\nv -300 -40 150\nv 300 -40 150\nv 300 40 150\nv -300 40 150\nf 1 2 3 4\nf 5 8 7 6\nf 1 5 6 2\nf 4 3 7 8\nf 1 4 8 5\nf 2 6 7 3\n";
     const modelUpload = document.querySelector('.stand-object-file');
     Object.defineProperty(modelUpload, "files", { configurable: true, value: [{ name: "my-synth.obj", size: objText.length, text: async () => objText }] });
-    await React.act(async () => modelUpload.dispatchEvent(new dom.window.Event("change", { bubbles: true })));
+    await actAndPreview(async () => modelUpload.dispatchEvent(new dom.window.Event("change", { bubbles: true })));
     assert.equal(button("Export stand sheets as SVG").disabled, true, "Export waits for the current fit");
-    const settleFit = async () => React.act(async () => new Promise(resolve => setTimeout(resolve, 180)));
+    const settleFit = async () => actAndPreview(async () => new Promise(resolve => setTimeout(resolve, 180)));
     await settleFit();
     assert.equal(button("Export stand sheets as SVG").disabled, false);
     assert.equal(document.querySelector('input[aria-label="Synth width in mm"]'), null);
@@ -631,7 +661,7 @@ test("mode switching preserves independent designs and routes material choices a
     assert.equal(fitted.objectFit.name, "my-synth.obj");
     const jobsBeforeAppearance = fittingJobs;
     await click("Material library");
-    await React.act(async () => document.querySelector('.info-dialog:not(.project-dialog) button[aria-label="Green"]').click());
+    await actAndPreview(async () => document.querySelector('.info-dialog:not(.project-dialog) button[aria-label="Green"]').click());
     await click("Close notes");
     assert.equal(button("Export stand sheets as SVG").disabled, false, "Appearance edits keep fitted export ready");
     await settleFit();
@@ -671,7 +701,7 @@ test("mode switching preserves independent designs and routes material choices a
     assert.equal(document.querySelector('.stand-object-name'), null, "Models are independent between modes");
     const protectorUpload = document.querySelector('.stand-object-file');
     Object.defineProperty(protectorUpload, "files", { configurable: true, value: [{ name: "protector-synth.obj", size: objText.length, text: async () => objText }] });
-    await React.act(async () => protectorUpload.dispatchEvent(new dom.window.Event("change", { bubbles: true })));
+    await actAndPreview(async () => protectorUpload.dispatchEvent(new dom.window.Event("change", { bubbles: true })));
     assert.equal(button("Export protector sheets as SVG").disabled, true);
     await settleFit();
     assert.equal(button("Export protector sheets as SVG").disabled, false);
@@ -721,7 +751,7 @@ test("mode switching preserves independent designs and routes material choices a
       const materialRow = () => document.querySelector(".panel-material");
       await selectValue(materialRow().querySelector("select"), "blue");
       await selectValue(materialRow().querySelectorAll("select")[1], "opaque");
-      await React.act(async () => {
+      await actAndPreview(async () => {
         const input = materialRow().querySelector('input[type="number"]');
         Object.getOwnPropertyDescriptor(dom.window.HTMLInputElement.prototype, "value").set.call(input, String(thickness));
         input.dispatchEvent(new dom.window.Event("input", { bubbles: true }));
@@ -742,7 +772,7 @@ test("mode switching preserves independent designs and routes material choices a
       assert.equal(materialRow().querySelector("select").value, "blue");
       assert.equal(materialRow().querySelector("input").value, String(thickness));
       await click("Material library");
-      await React.act(async () => document.querySelector('.info-dialog:not(.project-dialog) button[aria-label="Red"]').click());
+      await actAndPreview(async () => document.querySelector('.info-dialog:not(.project-dialog) button[aria-label="Red"]').click());
       await click("Close notes");
       assert.equal(materialRow().querySelector("select").value, "red", "Library color applies to every sheet");
       assert.equal(materialRow().querySelectorAll("select")[1].value, "opaque");
@@ -761,34 +791,34 @@ test("mode switching preserves independent designs and routes material choices a
     for (const mode of ["speaker", "art", "stand", "protector"]) assert.equal(projectData.designs[mode].individualSheetMaterials, true);
     await click("Save copy");
     // IndexedDB commits asynchronously; wait for the operation, not a fixed UI state assumption.
-    await React.act(async () => new Promise(resolve => setTimeout(resolve, 30)));
+    await actAndPreview(async () => new Promise(resolve => setTimeout(resolve, 30)));
     await click("Case designer");
     await click("84");
     await click("Open");
-    await React.act(async () => new Promise(resolve => setTimeout(resolve, 30)));
+    await actAndPreview(async () => new Promise(resolve => setTimeout(resolve, 30)));
     assert.equal(document.querySelector('.project-dialog').open, true);
     await click("Open project");
-    await React.act(async () => new Promise(resolve => setTimeout(resolve, 30)));
+    await actAndPreview(async () => new Promise(resolve => setTimeout(resolve, 30)));
     await click("Case designer");
     assert.equal(button("104").getAttribute("aria-pressed"), "true", "Named project restores the saved case");
     await click("84");
     const projectUpload = document.querySelector('input[aria-label="Import project JSON"]');
     Object.defineProperty(projectUpload, "files", { configurable: true, value: [{ name: "backup.json", size: projectBackup.length, text: async () => projectBackup }] });
-    await React.act(async () => projectUpload.dispatchEvent(new dom.window.Event("change", { bubbles: true })));
+    await actAndPreview(async () => projectUpload.dispatchEvent(new dom.window.Event("change", { bubbles: true })));
     await click("Case designer");
     assert.equal(button("104").getAttribute("aria-pressed"), "true", "Project JSON restores the saved case");
     assert.equal(button("Undo design change").disabled, true, "Opening a project starts a fresh history");
     const beforeInvalidImport = JSON.stringify(projectData.designs);
     Object.defineProperty(projectUpload, "files", { configurable: true, value: [{ name: "bad.json", size: 2, text: async () => "{}" }] });
-    await React.act(async () => projectUpload.dispatchEvent(new dom.window.Event("change", { bubbles: true })));
+    await actAndPreview(async () => projectUpload.dispatchEvent(new dom.window.Event("change", { bubbles: true })));
     assert.match(document.querySelector('.project-toolbar [role="alert"]').textContent, /Choose an Acryl508/);
     await click("Download project");
     assert.deepEqual(JSON.parse(await downloads.at(-1).blob.text()).designs.panel, JSON.parse(beforeInvalidImport).panel);
     // Remount against the same database to exercise actual recovery.
-    await React.act(async () => new Promise(resolve => setTimeout(resolve, 850)));
-    await React.act(async () => root.render(null));
-    await React.act(async () => root.render(React.createElement(ConfiguratorShell)));
-    await React.act(async () => new Promise(resolve => setTimeout(resolve, 30)));
+    await actAndPreview(async () => new Promise(resolve => setTimeout(resolve, 850)));
+    await actAndPreview(async () => root.render(null));
+    await actAndPreview(async () => root.render(React.createElement(ConfiguratorShell)));
+    await actAndPreview(async () => new Promise(resolve => setTimeout(resolve, 30)));
     await click("Case designer");
     assert.equal(button("104").getAttribute("aria-pressed"), "true", "Autosave restores after remount");
     await click("Download project");
@@ -809,13 +839,13 @@ test("mode switching preserves independent designs and routes material choices a
     const fontSource = JSON.stringify(fontProject);
     const recoveredUpload = document.querySelector('input[aria-label="Import project JSON"]');
     Object.defineProperty(recoveredUpload, "files", { configurable: true, value: [{ name: "font-project.json", size: fontSource.length, text: async () => fontSource }] });
-    await React.act(async () => recoveredUpload.dispatchEvent(new dom.window.Event("change", { bubbles: true })));
+    await actAndPreview(async () => recoveredUpload.dispatchEvent(new dom.window.Event("change", { bubbles: true })));
     await click("Synth stand");
     await click("Case designer");
     const fontSelect = document.querySelector('.cutout-text-editor select');
     assert.equal(fontSelect.value, "case-font", "Imported font remains selected after switching modes");
     const recoveredTextInput = document.querySelector('.cutout-text-editor input');
-    await React.act(async () => {
+    await actAndPreview(async () => {
       Object.getOwnPropertyDescriptor(dom.window.HTMLInputElement.prototype, "value").set.call(recoveredTextInput, "AAA");
       recoveredTextInput.dispatchEvent(new dom.window.Event("input", { bubbles: true }));
     });
@@ -830,7 +860,7 @@ test("mode switching preserves independent designs and routes material choices a
 
 
   } finally {
-    await React.act(async () => root.unmount());
+    await actAndPreview(async () => root.unmount());
     URL.createObjectURL = originalCreate; URL.revokeObjectURL = originalRevoke;
     for (const [key, descriptor] of previous) { if (descriptor) Object.defineProperty(globalThis, key, descriptor); else delete globalThis[key]; }
     dom.window.close();

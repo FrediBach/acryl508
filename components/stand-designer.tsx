@@ -1,6 +1,6 @@
 "use client";
 import { FabricationButton } from "./fabrication-button";
-import { lazy, Suspense, useId, useState, type CSSProperties } from "react";
+import { memo, lazy, Suspense, useId, useState, type CSSProperties } from "react";
 import { ArrowDownToLine, Box, Check, Layers2, Maximize, Minimize, Minus, Plus, RotateCcw, SlidersHorizontal } from "lucide-react";
 import { StandObjectControls } from "@/components/stand-object-controls";
 import type { StandObject } from "@/lib/stand-object";
@@ -9,7 +9,7 @@ import { SheetMaterialControls, SheetMaterialSwatches } from "./sheet-material-c
 import { allSheetMaterials, sheetMaterial, sheetMaterialSummary, sheetThicknessLabel } from "@/lib/sheet-materials";
 import { standLimits, standPathData, standSheetLayout, type StandConfiguration, type SynthStand } from "@/lib/synth-stand";
 import type { StandView } from "@/components/stand-preview";
-const StandPreview = lazy(() => import("@/components/stand-preview").then(module => ({ default: module.StandPreview })));
+const StandPreview = memo(lazy(() => import("@/components/stand-preview").then(module => ({ default: module.StandPreview }))));
 
 function Dimension({ label, field, config, onChange, unit = "mm", step = 1 }: { label: string; field: keyof typeof standLimits; config: StandConfiguration; onChange: (patch: Partial<StandConfiguration>) => void; unit?: string; step?: number }) {
   const id = useId(), value = config[field], { min, max } = standLimits[field];
@@ -20,15 +20,15 @@ function Dimension({ label, field, config, onChange, unit = "mm", step = 1 }: { 
   }
   return <div className="range-field"><div className="field-heading"><label htmlFor={id}>{label}</label><div className="number-field"><input aria-label={`${label} in ${unit}`} type="number" min={min} max={max} step={step} value={draft ?? value} onFocus={() => setDraft(String(value))} onChange={event => { setDraft(event.target.value); const next = Number(event.target.value); if (event.target.value && Number.isFinite(next) && next >= min && next <= max) onChange({ [field]: next }); }} onBlur={commit} onKeyDown={event => { if (event.key === "Enter") event.currentTarget.blur(); }} /><span>{unit}</span></div></div><input id={id} className="range-input" type="range" min={min} max={max} step={step} value={value} style={{ "--range-progress": `${(value - min) / (max - min) * 100}%` } as CSSProperties} onChange={event => onChange({ [field]: event.currentTarget.valueAsNumber })} /><div className="range-labels"><span>{min} {unit}</span><span>{max} {unit}</span></div></div>;
 }
-function CuttingLayout({ stand }: { stand: SynthStand }) {
+const CuttingLayout = memo(function CuttingLayout({ stand }: { stand: SynthStand }) {
   const layout = standSheetLayout(stand);
   return <div className="stand-cutting-layout"><svg viewBox={`0 0 ${layout.width} ${layout.height}`} role="img" aria-label={`Cutting layout: ${stand.ribCount} support ribs and ${stand.braceCount} cross braces`}>
     {layout.parts.map(({ part, x, y }) => <g key={part.id} data-part={part.id} transform={`translate(${x} ${y})`}><title>{`${part.label}: ${part.width.toFixed(1)} × ${part.height.toFixed(1)} mm`}</title><path d={standPathData(part.polygons)} fill={sheetMaterial(stand.config, part.id).tint.color} fillOpacity={sheetMaterial(stand.config, part.id).transparency === "opaque" ? 1 : sheetMaterial(stand.config, part.id).transparency === "opal" ? 0.75 : 0.4} stroke="currentColor" strokeWidth={1} vectorEffect="non-scaling-stroke" fillRule="evenodd" /></g>)}
   </svg><p>All {stand.parts.length} parts · {layout.width.toFixed(0)} × {layout.height.toFixed(0)} mm layout · arrange to fit your stock sheet</p></div>;
-}
-type Props = { busy?: boolean; object?: StandObject; objectError?: string; stand: SynthStand; dark: boolean; onChange: (patch: Partial<StandConfiguration>) => void; onExportJson: () => void; onExportSvg: () => void; onOpenFabrication: () => void };
-export function StandDesigner({ stand, object, objectError, busy, dark, onChange, onExportJson, onExportSvg, onOpenFabrication }: Props) {
-  const config = stand.config;
+});
+type Props = { config?: StandConfiguration; busy?: boolean; object?: StandObject; objectError?: string; stand: SynthStand; dark: boolean; onChange: (patch: Partial<StandConfiguration>) => void; onExportJson: () => void; onExportSvg: () => void; onOpenFabrication: () => void };
+export function StandDesigner({ config: liveConfig, stand, object, objectError, busy, dark, onChange, onExportJson, onExportSvg, onOpenFabrication }: Props) {
+  const config = liveConfig ? { ...liveConfig, ...(object ? { width: stand.config.width, depth: stand.config.depth, height: stand.config.height } : {}) } : stand.config;
   const rib = stand.parts[0];
   const [view, setView] = useState<StandView>("perspective");
   const [layout, setLayout] = useState(false), [exploded, setExploded] = useState(false), [instrument, setInstrument] = useState(!!object);
