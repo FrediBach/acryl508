@@ -15,8 +15,9 @@ export type SpeakerFastener = {
 /** Millimetres, Z along the fastener axis. Attached items travel with their
  * panel during disassembly; a spacer never stretches to fill an exploded gap. */
 export function speakerFasteners(speaker: Speaker, exploded = false): SpeakerFastener[] {
-  const { config } = speaker, d = config.depth;
-  const baffle = d / 2, rear = -d / 2, grille = baffle + config.grilleGap;
+  const { config } = speaker;
+  const frontPanel = speaker.parts.find(p => p.id === "baffle")!, rearPanel = speaker.parts.find(p => p.id === "rear")!;
+  const baffle = frontPanel.position[2] + frontPanel.thickness / 2, rear = rearPanel.position[2] - rearPanel.thickness / 2, grille = baffle + config.grilleGap;
   const t = (id: string) => sheetThickness(config, id);
   const offset = (id: string) => exploded ? speaker.parts.find(p => p.id === id)!.explode[2] : 0;
   const items: SpeakerFastener[] = [];

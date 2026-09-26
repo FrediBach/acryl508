@@ -27,7 +27,7 @@ function Sheet({ part, speaker, exploded }: { part: SpeakerPart; speaker: Speake
   },[part]);
   useEffect(()=>()=>geometry.dispose(),[geometry]);
   const material=sheetMaterial(speaker.config,part.id);
-  return <mesh geometry={geometry} position={part.position.map((v,i)=>(v+(exploded ? part.explode[i] : 0))/100) as [number,number,number]} rotation={part.rotation}><meshPhysicalMaterial {...acrylicMaterial(material.tint,part.thickness/100,material.transparency)} /></mesh>;
+  return <mesh geometry={geometry} position={part.position.map((v,i)=>(v+(exploded ? part.explode[i] : 0))/100) as [number,number,number]} rotation={part.rotation}>{part.id.startsWith("damping-") ? <meshStandardMaterial color="#292b2c" roughness={0.95} /> : <meshPhysicalMaterial {...acrylicMaterial(material.tint,part.thickness/100,material.transparency)} />}</mesh>;
 }
 function Camera({ speaker,view,resetKey,exploded }: Omit<Props,"dark"|"hardware">) {
   const controls=useRef<OrbitControlsImpl>(null),{camera,size,invalidate}=useThree();
@@ -50,6 +50,7 @@ export function SpeakerPreview(props: Props) {
     <ambientLight intensity={dark ? 0.8 : 1.3} /><directionalLight position={[3,7,5]} intensity={2.5} /><directionalLight position={[-5,3,-2]} intensity={1.5} color="#e6efff" />
     <Suspense fallback={null}><Environment resolution={128} frames={1}><Lightformer position={[0,5,-3]} rotation={[Math.PI/2,0,0]} scale={[10,8,1]} intensity={3} /><Lightformer position={[-5,2,1]} rotation={[0,Math.PI/2,0]} scale={[6,3,1]} intensity={4} /></Environment>
       {speaker.parts.map(part=><Sheet key={part.id} part={part} speaker={speaker} exploded={exploded} />)}
+      {speaker.dampingParts.map(part=><Sheet key={part.id} part={part} speaker={speaker} exploded={exploded} />)}
       <SpeakerHardware speaker={speaker} exploded={exploded} donorVisible={hardware} onStatusChange={setModelStatus} />
       <ContactShadows key={JSON.stringify([speaker.config,exploded,hardware])} position={[0,Math.min(speaker.floorY,-speaker.config.height/2-(exploded ? 35 : 0))/100-0.03,0]} opacity={dark ? 0.45 : 0.25} scale={15} blur={2.4} far={5} resolution={512} frames={1} color="#24231e" />
     </Suspense><Camera {...props} />

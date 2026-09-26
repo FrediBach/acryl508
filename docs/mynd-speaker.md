@@ -6,6 +6,29 @@ Default body dimensions are **280 × 210 × 120 mm** (W × H × D), with 5 mm sh
 3 mm dots and a 5 mm staggered pitch. Total depth includes the grille and gap.
 The body is a new design; these are not Teufel's stock enclosure dimensions.
 
+## Optional joint damping
+
+The **Joint damping** control adds two dark, one-piece frames between the shell
+edges and the front baffle / removable rear. It defaults off; sheet thickness is
+adjustable from **0.25–2 mm**, initially 1 mm. The frames follow the individual
+side, top and base thicknesses, with a 0.35 mm setback on each side of the narrow
+contact strips. Rounded corner tabs surround four Ø3.6 mm locating holes at the
+tie-rod centres. The large centre stays open and clears the donor apertures.
+
+The bonded shell and electronics retain their dimensions and positions. Each end
+panel moves outward by one gasket thickness, the grille and drivers follow the
+baffle, and the tie rods grow by twice that thickness. Body depth, overall depth
+and gross chamber volume include the nominal gasket spacing. With damping
+enabled, clamp the front baffle against its gasket instead of bonding it to the
+shell; the sides, top, base and internal carrier joints remain bonded.
+
+Assembled and exploded previews show both layers. Design JSON and SVG include
+the two gasket patterns; Fabrication groups them on separate **Dark damping
+sheet** stock, never on acrylic stock. The selected thickness is nominal: material
+compression is not simulated. Verify compressed fit, sealing and rod engagement
+in the prototype. Joint damping is not internal acoustic lining, and no acoustic
+attenuation is predicted.
+
 ## Provenance
 
 Adapted from [Teufel MYND hardware](https://github.com/teufelaudio/mynd-hardware),

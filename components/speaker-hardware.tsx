@@ -3,7 +3,6 @@ import { Suspense, useMemo } from "react";
 import { useGLTF, RoundedBox, Line } from "@react-three/drei";
 import { CatmullRomCurve3, DoubleSide, Path, Shape, Vector2, Vector3 } from "three";
 import { myndDrivers, speakerRoundedRect, type Speaker } from "@/lib/speaker";
-import { sheetThickness } from "@/lib/sheet-materials";
 import { speakerBoardPlacements, speakerFasteners, speakerPortPlacement, speakerControlPlacement, type HardwarePoint, type SpeakerFastener } from "@/lib/speaker-hardware";
 import manifest from "@/public/models/mynd/manifest.json";
 import { speakerCarrierLayout } from "@/lib/speaker-carriers";
@@ -81,9 +80,10 @@ function Cable({ points, color, radius = 0.65 }: { points: HardwarePoint[]; colo
   return <mesh><tubeGeometry args={[curve, 24, radius, 6, false]} /><meshStandardMaterial color={color} roughness={0.8} /></mesh>;
 }
 function SourceAssemblies({ speaker, exploded }: { speaker: Speaker; exploded: boolean }) {
-  const c = speaker.config, t = (id: string) => sheetThickness(c, id);
+  const c = speaker.config;
   const offset = (id: string): HardwarePoint => exploded ? speaker.parts.find(p => p.id === id)!.explode : [0, 0, 0];
-  const front = c.depth / 2 - t("baffle");
+  const baffle = speaker.parts.find(p => p.id === "baffle")!;
+  const front = baffle.position[2] - baffle.thickness / 2;
   const boards = speakerBoardPlacements(speaker, exploded);
   return <>
     {boards.map(board => {
@@ -104,7 +104,7 @@ function SourceAssemblies({ speaker, exploded }: { speaker: Speaker; exploded: b
 }
 export function SpeakerHardware({ speaker, exploded, donorVisible, onStatusChange }: { speaker: Speaker; exploded: boolean; donorVisible: boolean; onStatusChange: ModelStatusChange }) {
   const c = speaker.config, baffle = speaker.parts.find(p => p.id === "baffle")!;
-  const front = c.depth / 2 - baffle.thickness;
+  const front = baffle.position[2] - baffle.thickness / 2;
   const rear = speakerCarrierLayout(c).rearFront;
   const baffleConnector = speakerBoardPlacements(speaker).find(board => board.id === "Conn_Baffle")!.position;
   return <group scale={0.01}>
