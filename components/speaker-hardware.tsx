@@ -1,12 +1,13 @@
 "use client";
-import { Component, Suspense, useMemo, type ReactNode } from "react";
-import { useGLTF, RoundedBox, Line, Html } from "@react-three/drei";
+import { Suspense, useMemo } from "react";
+import { useGLTF, RoundedBox, Line } from "@react-three/drei";
 import { CatmullRomCurve3, DoubleSide, Path, Shape, Vector2, Vector3 } from "three";
 import { myndDrivers, speakerRoundedRect, type Speaker } from "@/lib/speaker";
 import { sheetThickness } from "@/lib/sheet-materials";
 import { speakerBoardPlacements, speakerFasteners, type HardwarePoint, type SpeakerFastener } from "@/lib/speaker-hardware";
 import manifest from "@/public/models/mynd/manifest.json";
 import { myndBoardMounts } from "@/lib/mynd-mounts";
+import { ModelStatusReporter, SpeakerModelBoundary, type ModelStatusChange } from "./speaker-model-status";
 
 const modelUrls = Object.values(manifest.assets).map(asset => `/models/mynd/${asset.file}`);
 // Cached source GLBs remain immutable. Each placed assembly gets its own scene
@@ -18,11 +19,6 @@ function SourceModel({ asset }: { asset: string }) {
   const { scene } = models[modelUrls.indexOf(`/models/mynd/${asset}.glb`)];
   const object = useMemo(() => scene.clone(true), [scene]);
   return <primitive object={object} dispose={null} />;
-}
-class AssetBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
-  state = { failed: false };
-  static getDerivedStateFromError() { return { failed: true }; }
-  render() { return this.state.failed ? <Html center><div className="preview-fallback" role="status">The detailed MYND models could not load. Reload to try again.</div></Html> : this.props.children; }
 }
 function Annulus({ radius, bore, length, hex = false, color = "#a7adb3" }: { radius: number; bore: number; length: number; hex?: boolean; color?: string }) {
   const shape = useMemo(() => {
@@ -104,14 +100,14 @@ function SourceAssemblies({ speaker, exploded }: { speaker: Speaker; exploded: b
     <group position={offset("top")}><group rotation={[-Math.PI / 2, 0, 0]} position={[0, top - 170.5, 57.17]}><SourceModel asset="hmi-cover" /><SourceModel asset="hmi-pad" /></group></group>
   </>;
 }
-export function SpeakerHardware({ speaker, exploded, donorVisible }: { speaker: Speaker; exploded: boolean; donorVisible: boolean }) {
+export function SpeakerHardware({ speaker, exploded, donorVisible, onStatusChange }: { speaker: Speaker; exploded: boolean; donorVisible: boolean; onStatusChange: ModelStatusChange }) {
   const c = speaker.config, baffle = speaker.parts.find(p => p.id === "baffle")!;
   const front = c.depth / 2 - baffle.thickness;
   const rear = -c.depth / 2 + sheetThickness(c, "rear");
   return <group scale={0.01}>
     {speakerFasteners(speaker, exploded).map(item => <Fastener key={item.id} item={item} />)}
     {donorVisible && <>
-      <AssetBoundary><Suspense fallback={<Html center><span className="micro-label" role="status">Loading MYND hardware…</span></Html>}><SourceAssemblies speaker={speaker} exploded={exploded} /></Suspense></AssetBoundary>
+      <SpeakerModelBoundary onStatusChange={onStatusChange}><Suspense fallback={<ModelStatusReporter status="loading" onStatusChange={onStatusChange} />}><ModelStatusReporter status="ready" onStatusChange={onStatusChange}><SourceAssemblies speaker={speaker} exploded={exploded} /></ModelStatusReporter></Suspense></SpeakerModelBoundary>
       <group position={exploded ? baffle.explode : [0, 0, 0]}>{myndDrivers.map(driver => <group key={driver.id} name={`${driver.label} reconstruction`} position={[driver.x, driver.y, front]}>{driver.kind === "radiator" ? <Radiator /> : <Driver kind={driver.kind} />}</group>)}</group>
       <group name="Battery pack reconstruction" position={[0, 40, rear + 28 + (exploded ? -40 : 0)]}>
         <RoundedBox args={[72, 34, 36]} radius={7} smoothness={4}><meshStandardMaterial color="#23272c" roughness={0.65} /></RoundedBox>
