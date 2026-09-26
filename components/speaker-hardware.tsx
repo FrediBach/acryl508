@@ -10,14 +10,15 @@ import { speakerCarrierLayout } from "@/lib/speaker-carriers";
 import { myndBoardMounts } from "@/lib/mynd-mounts";
 import { ModelStatusReporter, SpeakerModelBoundary, type ModelStatusChange } from "./speaker-model-status";
 
-const modelUrls = Object.values(manifest.assets).map(asset => `/models/mynd/${asset.file}`);
+const modelAssets = Object.values(manifest.assets);
+const modelUrls = modelAssets.map(asset => `/models/mynd/${asset.file}?v=${asset.bytes}`);
 // Cached source GLBs remain immutable. Each placed assembly gets its own scene
 // graph while sharing geometry/materials, which useGLTF owns for the session.
 function SourceModel({ asset }: { asset: string }) {
   // One shared array starts every request together rather than loading boards
   // serially as each suspended model becomes ready.
   const models = useGLTF(modelUrls);
-  const { scene } = models[modelUrls.indexOf(`/models/mynd/${asset}.glb`)];
+  const { scene } = models[modelAssets.findIndex(model => model.file === `${asset}.glb`)];
   const object = useMemo(() => scene.clone(true), [scene]);
   return <primitive object={object} dispose={null} />;
 }
@@ -105,6 +106,7 @@ export function SpeakerHardware({ speaker, exploded, donorVisible, onStatusChang
   const c = speaker.config, baffle = speaker.parts.find(p => p.id === "baffle")!;
   const front = c.depth / 2 - baffle.thickness;
   const rear = speakerCarrierLayout(c).rearFront;
+  const baffleConnector = speakerBoardPlacements(speaker).find(board => board.id === "Conn_Baffle")!.position;
   return <group scale={0.01}>
     {speakerFasteners(speaker, exploded).map(item => <Fastener key={item.id} item={item} />)}
     {donorVisible && <>
@@ -118,8 +120,7 @@ export function SpeakerHardware({ speaker, exploded, donorVisible, onStatusChang
       {!exploded && <group name="Illustrative cable routes">
         <Cable color="#ac3431" points={[[-30, 36, rear + 28], [-43, 34, rear + 32], [-60, 18, rear + 25], [-77, -5, rear + 20]]} />
         <Cable color="#1b2026" points={[[-28, 35, rear + 28], [-40, 32, rear + 34], [-56, 17, rear + 27], [-73, -5, rear + 20]]} />
-        <Cable color="#bc8850" points={[[65, c.height / 2 - sheetThickness(c, "top") - 42, rear + 15], [52, 44, rear + 22], [33, 14, rear + 28], [37, 8, rear + 18]]} />
-        <Cable color="#263035" points={[[7, -51, front - 22], [30, -56, 5], [63, -50, rear + 28], [68, -26, rear + 19]]} />
+        <Cable color="#263035" points={[[7, -51, front - 22], [30, -56, front - 28], [baffleConnector[0], baffleConnector[1] - 24, baffleConnector[2] + 12], [baffleConnector[0], baffleConnector[1] - 10, baffleConnector[2] + 9]]} />
       </group>}
     </>}
   </group>;

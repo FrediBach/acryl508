@@ -43,7 +43,12 @@ test("internal carriers leave exterior PCB faces clean and every cap head inside
       const transform=new Matrix4().compose(new Vector3(...board.position),new Quaternion().setFromEuler(new Euler(...board.rotation)),new Vector3(1,1,1));
       return {id:board.id,box:new Box3(new Vector3(...min),new Vector3(...max)).applyMatrix4(transform)};
     });
-    for(let i=0;i<boxes.length;i++)for(let j=i+1;j<boxes.length;j++)assert.equal(boxes[i].box.intersectsBox(boxes[j].box),false,`${boxes[i].id} clears ${boxes[j].id}`);
+    for(let i=0;i<boxes.length;i++)for(let j=i+1;j<boxes.length;j++) {
+      // Mated connectors intentionally share an envelope. Their substrate
+      // clearance and actual header insertion are checked separately.
+      if ([boxes[i].id,boxes[j].id].includes("Conn_Amp") && [boxes[i].id,boxes[j].id].some(id=>["Amp","Conn_Baffle"].includes(id))) continue;
+      assert.equal(boxes[i].box.intersectsBox(boxes[j].box),false,`${boxes[i].id} clears ${boxes[j].id}`);
+    }
     const connector=boxes.find(b=>b.id==="Conn_Baffle").box;
     assert.ok(connector.min.x>36,"Relocated connector clears the battery width");
     assert.ok(connector.max.y<height/2-parts.top.thickness-22.4-2,"Relocated connector remains below the HMI cover");

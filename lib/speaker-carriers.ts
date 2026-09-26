@@ -37,7 +37,9 @@ export function addSpeakerCarriers(c: SpeakerConfiguration, parts: SpeakerPart[]
     polygons[0].push(...holes.map(ring=>[...ring].reverse()));
     parts.push({id,label,width:c.width,height,thickness:t(id),polygons,position,rotation,explode});
   }
-  const floorHoles = [l.left+25,l.right-25].map(x=>rect(x,0,18,10));
+  // Leave the amplifier's right-hand mounting row and the main board's
+  // front-left mount clear of the wiring windows.
+  const floorHoles = [rect(l.left+25,0,18,10),rect(l.right-25,(l.floorFront-l.floorRear)/2-12,18,10)];
   carrier("pcb-floor","Internal PCB floor",l.floorRear,l.floorFront,[0,(l.floorBottom+l.floorTop)/2,l.floorZ],[Math.PI/2,0,0],[0,-18,0],floorHoles);
   const rearY = (l.rearBottom+l.rearTop)/2;
   carrier("pcb-rear","Internal PCB backplate",l.rearBottom,l.rearTop,[0,rearY,(l.rearBack+l.rearFront)/2],[0,0,0],[0,0,-18],[rect(0,l.floorTop+18-rearY,120,12)]);

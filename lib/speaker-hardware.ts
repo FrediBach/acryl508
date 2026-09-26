@@ -76,18 +76,34 @@ export function speakerFasteners(speaker: Speaker, exploded = false): SpeakerFas
 }
 
 export type BoardPlacement = { id: string; asset: string; parent: string; position: HardwarePoint; rotation: HardwarePoint; standoff: number };
+// P2A/P2S: 2×5, 2.54 mm right-angle header; P1S/P1X: eight-way
+// baffle contact. Footprint centres and header seating faces come from the
+// pinned KiCad/STEP sources. The 10 mm contact-board spacing is provisional;
+// verify spring engagement on the donor before fabrication.
+export const myndAmpBridge = {
+  ampSocket: [-2.19, 24.27801, 8.3027] as HardwarePoint,
+  headerSeat: [0.00001, -27, 3.36276] as HardwarePoint,
+  baffleSocket: [-0.00967, 24.27987, 0] as HardwarePoint,
+  contactBoardSpacing: 10,
+};
 export function speakerBoardPlacements(speaker: { config: SpeakerConfiguration; parts: SpeakerPart[] }, exploded = false): BoardPlacement[] {
   const c = speaker.config, t = (id: string) => sheetThickness(c, id);
   const layout = speakerCarrierLayout(c), rear = layout.rearFront, bottom = layout.floorTop, top = layout.top;
   const left = -c.width / 2 + t("left");
+  const amp: BoardPlacement = { id: "Amp", asset: "pcb-amp", parent: "pcb-floor", position: [80, bottom + 9.8, rear + 32], rotation: [-Math.PI / 2, 0, Math.PI], standoff: 9 };
+  const bridgeRotation: HardwarePoint = [0, Math.PI, 0];
+  const socket = new Vector3(...myndAmpBridge.ampSocket).applyEuler(new Euler(...amp.rotation)).add(new Vector3(...amp.position));
+  const bridgePosition = socket.sub(new Vector3(...myndAmpBridge.headerSeat).applyEuler(new Euler(...bridgeRotation)));
+  const contact = new Vector3(...myndAmpBridge.baffleSocket).applyEuler(new Euler(...bridgeRotation)).add(bridgePosition);
+  contact.z -= myndAmpBridge.contactBoardSpacing;
   const boards: BoardPlacement[] = [
-    { id: "Main", asset: "pcb-main", parent: "pcb-floor", position: [0, bottom + 9.8, layout.floorZ], rotation: [-Math.PI / 2, 0, -Math.PI / 2], standoff: 9 },
-    { id: "Amp", asset: "pcb-amp", parent: "pcb-rear", position: [43, -9, rear + 8.8], rotation: [0, 0, 0], standoff: 8 },
+    { id: "Main", asset: "pcb-main", parent: "pcb-floor", position: [-45, bottom + 9.8, layout.floorZ], rotation: [-Math.PI / 2, 0, -Math.PI / 2], standoff: 9 },
+    amp,
     { id: "Bluetooth", asset: "pcb-bluetooth", parent: "pcb-rear", position: [-66, 42, rear + 8.8], rotation: [0, 0, 0], standoff: 8 },
     { id: "UI", asset: "pcb-ui", parent: "top", position: [0, top-myndControls.sheetSourceZ+myndControls.pcbCentreZ, 15], rotation: [-Math.PI / 2, 0, 0], standoff: 0 },
     { id: "Conn_Bat", asset: "pcb-conn-bat", parent: "pcb-rear", position: [-83, -9, rear + 10.8], rotation: [0, 0, 0], standoff: 10 },
-    { id: "Conn_Amp", asset: "pcb-conn-amp", parent: "pcb-rear", position: [109, -14, rear + 8.8], rotation: [0, 0, 0], standoff: 0 },
-    { id: "Conn_Baffle", asset: "pcb-conn-baffle", parent: "pcb-rear", position: [65, top-42, rear + 6.8], rotation: [0, 0, 0], standoff: 6 },
+    { id: "Conn_Amp", asset: "pcb-conn-amp", parent: "pcb-floor", position: bridgePosition.toArray() as HardwarePoint, rotation: bridgeRotation, standoff: 0 },
+    { id: "Conn_Baffle", asset: "pcb-conn-baffle", parent: "pcb-rear", position: contact.toArray() as HardwarePoint, rotation: [0, 0, 0], standoff: contact.z - rear - 0.8 },
     { id: "Jack_USB", asset: "pcb-jack-usb", parent: "left", position: [left + 15, -c.height / 2 + 59, 1], rotation: [0, -Math.PI / 2, 0], standoff: 0 },
     { id: "Jack_Line_In", asset: "pcb-jack-line-in", parent: "left", position: [left + 15, -c.height / 2 + 39, 1], rotation: [0, -Math.PI / 2, 0], standoff: 0 },
   ];

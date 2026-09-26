@@ -126,9 +126,23 @@ illustrative M3 hardware, not a specified supplier part. Spacers fill the chosen
 gap less two 0.5 mm washers; rod reach and screw lengths follow the actual sheets.
 Items move with their attachment panels in exploded view and keep their physical
 length. The 19 source PCB mounting coordinates now cut **two internal sheets**:
-six Ø3.4 mm holes in `pcb-floor`, thirteen in `pcb-rear`. The baffle connector
-board moves to the upper-right backplate, clear of the battery and below the
-control pod; main-board depth centres between that backplate and the baffle.
+ten Ø3.4 mm holes in `pcb-floor`, nine in `pcb-rear`. The amplifier sits on
+the right of the floor, alongside the main board (shifted 45 mm left). Its
+`P2A` socket receives the `P2S` right-angle header on `Conn_Amp`; the bridge's
+`P1S` contact mates with `P1X` on `Conn_Baffle`. These are a rigid board-to-board
+connection, not a cable or a separately screwed bridge. The baffle connector
+is supported from the backplate, clear of the battery, on approximately
+48.84 mm standoffs. Main-board depth centres between that backplate and the baffle.
+Connector locations and header seating faces follow the pinned KiCad/STEP
+files; the nominal **10 mm spacing** between the two contact boards remains a
+preview assumption. Measure the donor's spring-contact engagement before
+fabricating supports. The bridge moves with the amplifier/floor in exploded
+view, separating from the baffle connector on the backplate. The illustrative
+amp-to-baffle cable has been removed; the driver cable now ends at `P2X`.
+
+All nine PCB substrates use red solder mask, matching the donor photograph.
+Pads, silkscreen and component materials retain their separate colors. The
+asset generator uses the same red material as the shipped GLBs.
 The main board is turned 180° on its floor so its taller front-edge components
 face away from the woofer. The minimum body height increases to 210 mm for
 the raised electronics; older compact designs normalize to this height. Control and port pods retain their own

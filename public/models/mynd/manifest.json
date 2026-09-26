@@ -94,7 +94,7 @@
         "PCB_Schematics/KiCad/Main/ALTIUM_EMBEDDED_MODELS/pin_header_a-sl254-eg-g03mr1.stp"
       ],
       "file": "pcb-main.glb",
-      "bytes": 6867904,
+      "bytes": 6867900,
       "triangles": 278048,
       "bounds": [
         [
@@ -166,7 +166,7 @@
         "PCB_Schematics/KiCad/Amp/ALTIUM_EMBEDDED_MODELS/User Library-RESC3216X___.step"
       ],
       "file": "pcb-amp.glb",
-      "bytes": 2109144,
+      "bytes": 2109140,
       "triangles": 85427,
       "bounds": [
         [
@@ -447,7 +447,7 @@
         "PCB_Schematics/KiCad/Conn_Amp/ALTIUM_EMBEDDED_MODELS/tsb0-0128d-00xxa_asm__sw0001.stp"
       ],
       "file": "pcb-conn-amp.glb",
-      "bytes": 146596,
+      "bytes": 146592,
       "triangles": 5772,
       "bounds": [
         [
@@ -498,7 +498,7 @@
         "PCB_Schematics/KiCad/Conn_Baffle/ALTIUM_EMBEDDED_MODELS/TSB1.step"
       ],
       "file": "pcb-conn-baffle.glb",
-      "bytes": 170732,
+      "bytes": 170728,
       "triangles": 8198,
       "bounds": [
         [

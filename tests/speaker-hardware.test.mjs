@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
 import { loadTypescript } from "./load-typescript.mjs";
-import { Euler, Quaternion, Vector3 } from "three";
+import { Box3, Euler, Quaternion, Vector3 } from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import polygonClipping from "polygon-clipping";
 const { myndBoardMounts } = await loadTypescript("../lib/mynd-mounts.ts");
@@ -87,7 +87,7 @@ test("source mounts, sheet cuts and screw axes coincide across sizes and mixed t
     const s=createSpeaker({...defaultSpeakerConfiguration,depth,height,thickness,controlDepth:35,
       individualSheetMaterials:true,sheetThicknesses:{baffle:3,rear:8,top:8,bottom:3}});
     const fasteners=speakerFasteners(s);
-    assert.deepEqual(Object.fromEntries(["top","bottom","rear","baffle","left","pcb-floor","pcb-rear"].map(id=>[id,s.panelMounts.filter(m=>m.parent===id).length])),{top:8,bottom:0,rear:0,baffle:0,left:4,"pcb-floor":6,"pcb-rear":13});
+    assert.deepEqual(Object.fromEntries(["top","bottom","rear","baffle","left","pcb-floor","pcb-rear"].map(id=>[id,s.panelMounts.filter(m=>m.parent===id).length])),{top:8,bottom:0,rear:0,baffle:0,left:4,"pcb-floor":10,"pcb-rear":9});
     for (const mount of s.panelMounts) {
       const panel=s.parts.find(p=>p.id===mount.parent);
       const inverse=new Quaternion().setFromEuler(new Euler(...panel.rotation)).invert();
@@ -193,6 +193,10 @@ test("all shipped GLBs are complete, finite, locally referenced and have valid i
     assert.equal(bytes.subarray(0,4).toString(),"glTF");assert.equal(bytes.readUInt32LE(4),2);
     assert.equal(bytes.readUInt32LE(8),bytes.length);assert.equal(bytes.length,asset.bytes);
     const jsonLength=bytes.readUInt32LE(12), json=JSON.parse(bytes.subarray(20,20+jsonLength).toString());
+    if(asset.kind === "source-pcb") {
+      const mask=json.materials.find(material=>material.name === "pcb");
+      assert.deepEqual(mask.pbrMetallicRoughness.baseColorFactor,[181/255,35/255,43/255,1],"Donor PCBs have red solder mask");
+    }
     assert.ok(json.meshes.length>0);
     assert.ok(json.buffers.every(b=>!b.uri), "Assets are self-contained, with no runtime upstream fetch");
     for(const accessor of json.accessors) {
@@ -209,6 +213,45 @@ test("all shipped GLBs are complete, finite, locally referenced and have valid i
   }
 });
 
+test("the bridge header enters the amplifier socket and its upper contact meets the baffle board", async () => {
+  const scenes={};
+  for(const id of ["Amp","Conn_Amp","Conn_Baffle"]) {
+    const bytes=readFileSync(new URL(`../public/models/mynd/${manifest.assets[id].file}`,import.meta.url));
+    scenes[id]=(await new GLTFLoader().parseAsync(bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength),"")).scene;
+  }
+  const bounds=(id,placement,name,filter=()=>true)=>{
+    const points=[];
+    scenes[id].updateMatrixWorld(true);
+    scenes[id].traverse(node=>{
+      if(!node.isMesh || node.name!==name)return;
+      const positions=node.geometry.attributes.position;
+      for(let i=0;i<positions.count;i++) {
+        const v=new Vector3().fromBufferAttribute(positions,i).applyMatrix4(node.matrixWorld);
+        if(filter(v))points.push(v.applyEuler(new Euler(...placement.rotation)).add(new Vector3(...placement.position)));
+      }
+    });
+    assert.ok(points.length>0);
+    return new Box3().setFromPoints(points);
+  };
+  for(const width of [280,420]) for(const depth of [110,220]) for(const height of [210,300]) for(const thickness of [3,8]) {
+    const speaker=createSpeaker({...defaultSpeakerConfiguration,width,depth,height,thickness});
+    const placements=Object.fromEntries(speakerBoardPlacements(speaker).map(b=>[b.id,b]));
+    const amp=placements.Amp,bridge=placements.Conn_Amp,baffle=placements.Conn_Baffle;
+    const socket=bounds("Amp",amp,"plastic",v=>v.x>-10);
+    const pins=bounds("Conn_Amp",bridge,"body",v=>v.y<-28);
+    assert.ok(socket.containsBox(pins),"Actual free header pins fit inside the actual amplifier socket envelope");
+    assert.ok(pins.min.y>amp.position[1]+0.8,"Pin tips do not penetrate the amplifier substrate");
+    const upperSocket=bounds("Conn_Amp",bridge,"body",v=>v.y>15);
+    const contact=bounds("Conn_Baffle",baffle,"body");
+    assert.ok(upperSocket.intersectsBox(contact),"The source spring contact and socket engage");
+    const pcbBoxes=Object.entries({Amp:amp,Conn_Amp:bridge,Conn_Baffle:baffle}).map(([id,b])=>bounds(id,b,"pcb"));
+    for(let i=0;i<pcbBoxes.length;i++)for(let j=i+1;j<pcbBoxes.length;j++)assert.equal(pcbBoxes[i].intersectsBox(pcbBoxes[j]),false,"Substrates never overlap");
+    assert.equal(amp.parent,"pcb-floor");assert.equal(bridge.parent,amp.parent);assert.equal(bridge.standoff,0);
+    const exploded=Object.fromEntries(speakerBoardPlacements(speaker,true).map(b=>[b.id,b]));
+    for(let axis=0;axis<3;axis++)close(exploded.Conn_Amp.position[axis]-exploded.Amp.position[axis],bridge.position[axis]-amp.position[axis]);
+  }
+});
+
 test("all nine boards move with their mounting sheet, with fixed model scale", () => {
   const s=createSpeaker(defaultSpeakerConfiguration),a=speakerBoardPlacements(s),b=speakerBoardPlacements(s,true);
   assert.equal(a.length,9);
@@ -220,6 +263,6 @@ test("all nine boards move with their mounting sheet, with fixed model scale", (
   }
   for(const depth of [110,220]) {
     const boards=speakerBoardPlacements(createSpeaker({...defaultSpeakerConfiguration,depth}));
-    assert.equal(boards.find(p=>p.id === "Amp").position[2],-depth/2+5+5+5+8.8);
+    assert.equal(boards.find(p=>p.id === "Amp").position[2],-depth/2+5+5+5+32);
   }
 });

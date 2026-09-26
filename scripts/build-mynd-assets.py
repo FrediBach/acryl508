@@ -30,7 +30,7 @@ PROJECT = pathlib.Path(__file__).resolve().parents[1]
 OUT = PROJECT / 'public/models/mynd'
 OUT.mkdir(parents=True, exist_ok=True)
 REVISION = '149d002334b0725fba03499079bdaf2e61c8ff36'
-COLORS = {'pcb': '#185e43', 'pads': '#b5ac7b', 'traces': '#307957', 'silk': '#eee6cd',
+COLORS = {'pcb': '#b5232b', 'pads': '#b5ac7b', 'traces': '#cf3940', 'silk': '#eee6cd',
           'body': '#24282c', 'metal': '#aaaeb1', 'plastic': '#e4dccb', 'rubber': '#242529'}
 CACHE = {}
 SOURCES = {}
