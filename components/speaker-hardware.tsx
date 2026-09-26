@@ -6,6 +6,7 @@ import { myndDrivers, speakerRoundedRect, type Speaker } from "@/lib/speaker";
 import { sheetThickness } from "@/lib/sheet-materials";
 import { speakerBoardPlacements, speakerFasteners, speakerPortPlacement, speakerControlPlacement, type HardwarePoint, type SpeakerFastener } from "@/lib/speaker-hardware";
 import manifest from "@/public/models/mynd/manifest.json";
+import { speakerCarrierLayout } from "@/lib/speaker-carriers";
 import { myndBoardMounts } from "@/lib/mynd-mounts";
 import { ModelStatusReporter, SpeakerModelBoundary, type ModelStatusChange } from "./speaker-model-status";
 
@@ -103,13 +104,13 @@ function SourceAssemblies({ speaker, exploded }: { speaker: Speaker; exploded: b
 export function SpeakerHardware({ speaker, exploded, donorVisible, onStatusChange }: { speaker: Speaker; exploded: boolean; donorVisible: boolean; onStatusChange: ModelStatusChange }) {
   const c = speaker.config, baffle = speaker.parts.find(p => p.id === "baffle")!;
   const front = c.depth / 2 - baffle.thickness;
-  const rear = -c.depth / 2 + sheetThickness(c, "rear");
+  const rear = speakerCarrierLayout(c).rearFront;
   return <group scale={0.01}>
     {speakerFasteners(speaker, exploded).map(item => <Fastener key={item.id} item={item} />)}
     {donorVisible && <>
       <SpeakerModelBoundary onStatusChange={onStatusChange}><Suspense fallback={<ModelStatusReporter status="loading" onStatusChange={onStatusChange} />}><ModelStatusReporter status="ready" onStatusChange={onStatusChange}><SourceAssemblies speaker={speaker} exploded={exploded} /></ModelStatusReporter></Suspense></SpeakerModelBoundary>
       <group position={exploded ? baffle.explode : [0, 0, 0]}>{myndDrivers.map(driver => <group key={driver.id} name={`${driver.label} reconstruction`} position={[driver.x, driver.y, front]}>{driver.kind === "radiator" ? <Radiator /> : <Driver kind={driver.kind} />}</group>)}</group>
-      <group name="Battery pack reconstruction" position={[0, 40, rear + 28 + (exploded ? -40 : 0)]}>
+      <group name="Battery pack reconstruction" position={[0, 40, rear + 28 + (exploded ? speaker.parts.find(p => p.id === "pcb-rear")!.explode[2] : 0)]}>
         <RoundedBox args={[72, 34, 36]} radius={7} smoothness={4}><meshStandardMaterial color="#23272c" roughness={0.65} /></RoundedBox>
         {[-24, 24].map(x => <RoundedBox key={x} args={[7, 35, 37]} radius={2} position={[x, 0, 0]}><meshStandardMaterial color="#0e1116" roughness={0.9} /></RoundedBox>)}
         <mesh position={[0, 0, 18.1]}><planeGeometry args={[34, 18]} /><meshStandardMaterial color="#b9b9ad" roughness={0.9} /></mesh>
@@ -117,7 +118,7 @@ export function SpeakerHardware({ speaker, exploded, donorVisible, onStatusChang
       {!exploded && <group name="Illustrative cable routes">
         <Cable color="#ac3431" points={[[-30, 36, rear + 28], [-43, 34, rear + 32], [-60, 18, rear + 25], [-77, -5, rear + 20]]} />
         <Cable color="#1b2026" points={[[-28, 35, rear + 28], [-40, 32, rear + 34], [-56, 17, rear + 27], [-73, -5, rear + 20]]} />
-        <Cable color="#bc8850" points={[[0, 55, front - 9], [26, 44, 0], [33, 14, rear + 28], [37, 10, rear + 18]]} />
+        <Cable color="#bc8850" points={[[65, c.height / 2 - sheetThickness(c, "top") - 42, rear + 15], [52, 44, rear + 22], [33, 14, rear + 28], [37, 8, rear + 18]]} />
         <Cable color="#263035" points={[[7, -51, front - 22], [30, -56, 5], [63, -50, rear + 28], [68, -26, rear + 19]]} />
       </group>}
     </>}

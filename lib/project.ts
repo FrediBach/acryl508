@@ -179,7 +179,7 @@ export function readArt(input: unknown): ArtConfiguration {
   return normalizeArtConfiguration(config);
 }
 export function readSpeaker(input: unknown): SpeakerConfiguration {
-  return normalizeSpeakerConfiguration(sheetMaterials(material(base(input, defaultSpeakerConfiguration)), /^(baffle|rear|top|bottom|left|right|grille)$/, 3, 8));
+  return normalizeSpeakerConfiguration(sheetMaterials(material(base(input, defaultSpeakerConfiguration)), /^(baffle|rear|top|bottom|left|right|grille|pcb-floor|pcb-rear)$/, 3, 8));
 }
 const readers = { speaker: readSpeaker, case: readCase, stand: readStand, protector: readProtector, panel: readPanel, art: readArt };
 export function makeProject(name: string, mode: DesignerMode, designs: Designs, fonts: FontAsset[]): Project {

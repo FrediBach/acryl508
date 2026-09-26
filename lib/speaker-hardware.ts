@@ -3,6 +3,7 @@ import { Euler, Quaternion, Vector3 } from "three";
 import { myndBoardMounts, myndControlMounts } from "./mynd-mounts";
 import { myndPort, myndPortMounts } from "./mynd-port";
 import { myndControls } from "./mynd-controls";
+import { speakerCarrierLayout } from "./speaker-carriers";
 import type { Speaker, SpeakerConfiguration, SpeakerPart } from "./speaker";
 
 export type HardwarePoint = [number, number, number];
@@ -42,7 +43,7 @@ export function speakerFasteners(speaker: Speaker, exploded = false): SpeakerFas
   });
   for (const mount of speaker.panelMounts) {
     const panel = speaker.parts.find(p => p.id === mount.parent)!;
-    const rotation: HardwarePoint = panel.id === "left" ? [0, -Math.PI / 2, 0] : panel.id === "top" ? [-Math.PI / 2, 0, 0] : panel.id === "bottom" ? [Math.PI / 2, 0, 0] : panel.id === "rear" ? [0, Math.PI, 0] : [0, 0, 0];
+    const rotation: HardwarePoint = panel.id === "left" ? [0, -Math.PI / 2, 0] : panel.id === "top" ? [-Math.PI / 2, 0, 0] : ["bottom","pcb-floor"].includes(panel.id) ? [Math.PI / 2, 0, 0] : ["rear","pcb-rear"].includes(panel.id) ? [0, Math.PI, 0] : [0, 0, 0];
     const normal = new Vector3(0, 0, 1).applyEuler(new Euler(...rotation));
     const centre = new Vector3(...mount.position, 0).applyEuler(new Euler(...panel.rotation)).add(new Vector3(...panel.position));
     if (exploded) centre.add(new Vector3(...panel.explode));
@@ -77,16 +78,16 @@ export function speakerFasteners(speaker: Speaker, exploded = false): SpeakerFas
 export type BoardPlacement = { id: string; asset: string; parent: string; position: HardwarePoint; rotation: HardwarePoint; standoff: number };
 export function speakerBoardPlacements(speaker: { config: SpeakerConfiguration; parts: SpeakerPart[] }, exploded = false): BoardPlacement[] {
   const c = speaker.config, t = (id: string) => sheetThickness(c, id);
-  const rear = -c.depth / 2 + t("rear"), bottom = -c.height / 2 + t("bottom"), top = c.height / 2 - t("top");
-  const front = c.depth / 2 - t("baffle"), left = -c.width / 2 + t("left");
+  const layout = speakerCarrierLayout(c), rear = layout.rearFront, bottom = layout.floorTop, top = layout.top;
+  const left = -c.width / 2 + t("left");
   const boards: BoardPlacement[] = [
-    { id: "Main", asset: "pcb-main", parent: "bottom", position: [0, bottom + 12.8, -3], rotation: [-Math.PI / 2, 0, Math.PI / 2], standoff: 12 },
-    { id: "Amp", asset: "pcb-amp", parent: "rear", position: [43, -9, rear + 8.8], rotation: [0, 0, 0], standoff: 8 },
-    { id: "Bluetooth", asset: "pcb-bluetooth", parent: "rear", position: [-66, 42, rear + 8.8], rotation: [0, 0, 0], standoff: 8 },
+    { id: "Main", asset: "pcb-main", parent: "pcb-floor", position: [0, bottom + 9.8, layout.floorZ], rotation: [-Math.PI / 2, 0, -Math.PI / 2], standoff: 9 },
+    { id: "Amp", asset: "pcb-amp", parent: "pcb-rear", position: [43, -9, rear + 8.8], rotation: [0, 0, 0], standoff: 8 },
+    { id: "Bluetooth", asset: "pcb-bluetooth", parent: "pcb-rear", position: [-66, 42, rear + 8.8], rotation: [0, 0, 0], standoff: 8 },
     { id: "UI", asset: "pcb-ui", parent: "top", position: [0, top-myndControls.sheetSourceZ+myndControls.pcbCentreZ, 15], rotation: [-Math.PI / 2, 0, 0], standoff: 0 },
-    { id: "Conn_Bat", asset: "pcb-conn-bat", parent: "rear", position: [-83, -9, rear + 10.8], rotation: [0, 0, 0], standoff: 10 },
-    { id: "Conn_Amp", asset: "pcb-conn-amp", parent: "rear", position: [109, -14, rear + 8.8], rotation: [0, 0, 0], standoff: 0 },
-    { id: "Conn_Baffle", asset: "pcb-conn-baffle", parent: "baffle", position: [0, 58, front - 6.8], rotation: [0, Math.PI, 0], standoff: 6 },
+    { id: "Conn_Bat", asset: "pcb-conn-bat", parent: "pcb-rear", position: [-83, -9, rear + 10.8], rotation: [0, 0, 0], standoff: 10 },
+    { id: "Conn_Amp", asset: "pcb-conn-amp", parent: "pcb-rear", position: [109, -14, rear + 8.8], rotation: [0, 0, 0], standoff: 0 },
+    { id: "Conn_Baffle", asset: "pcb-conn-baffle", parent: "pcb-rear", position: [65, top-42, rear + 6.8], rotation: [0, 0, 0], standoff: 6 },
     { id: "Jack_USB", asset: "pcb-jack-usb", parent: "left", position: [left + 15, -c.height / 2 + 59, 1], rotation: [0, -Math.PI / 2, 0], standoff: 0 },
     { id: "Jack_Line_In", asset: "pcb-jack-line-in", parent: "left", position: [left + 15, -c.height / 2 + 39, 1], rotation: [0, -Math.PI / 2, 0], standoff: 0 },
   ];

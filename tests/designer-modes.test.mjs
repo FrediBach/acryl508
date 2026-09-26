@@ -97,7 +97,7 @@ test("mode switching preserves independent designs and routes material choices a
     await click("Export speaker design JSON");
     const speakerDesign = JSON.parse(await downloads.at(-1).blob.text());
     assert.equal(speakerDesign.mode, "speaker");
-    assert.equal(speakerDesign.parts.length, 7);
+    assert.equal(speakerDesign.parts.length, 9);
     assert.equal(speakerDesign.configuration.staggered, false);
     await click("Cutting layout");
     const speakerPaths = [...document.querySelectorAll(".stand-cutting-layout path")].map(p => p.getAttribute("d"));

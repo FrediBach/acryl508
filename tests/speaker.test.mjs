@@ -10,11 +10,11 @@ const area = ring => Math.abs(ring.reduce((sum,p,i) => { const q=ring[(i+1)%ring
 
 test("MYND baffle keeps source driver centres, two radiators and mounting holes", () => {
   const speaker=createSpeaker(defaults), baffle=speaker.parts[0];
-  assert.equal(speaker.parts.length,7);
+  assert.equal(speaker.parts.length,9);
   assert.equal(myndDrivers.filter(d=>d.kind === "radiator").length,2);
   assert.deepEqual(myndDrivers.map(d=>[d.x,d.y]),[[0,-24],[-93,53.3],[93,53.3],[-82,-18],[82,-18]]);
   assert.equal(speaker.driverMounts.length,20);
-  assert.equal(baffle.polygons[0].length,1+5+20+4+3);
+  assert.equal(baffle.polygons[0].length,1+5+20+4);
   assert.deepEqual(createSpeaker({...defaults,width:400,height:260}).parts[0].polygons[0].slice(1,6),baffle.polygons[0].slice(1,6));
   // Resolve rings independently: overlapping holes or cuts outside a panel
   // would change the count or area and invalidate the direct polygon geometry.
@@ -55,7 +55,7 @@ test("mixed sheet thicknesses meet at butt joints without changing the body enve
   assert.equal(p.bottom.position[1]+p.bottom.thickness/2,p.left.position[1]-p.left.height/2);
   assert.equal(p.baffle.position[2]-p.baffle.thickness/2,p.top.position[2]+p.top.height/2);
   assert.equal(p.rear.position[2]+p.rear.thickness/2,p.top.position[2]-p.top.height/2);
-  assert.equal(s.grossVolumeLitres,(280-11)*(200-11)*(120-9)/1e6);
+  assert.equal(s.grossVolumeLitres,(280-11)*(210-11)*(120-9)/1e6);
   assert.equal(s.totalDepth,135);
 });
 
@@ -79,11 +79,11 @@ test("SVG and fabrication preserve all sheets, apertures, units and source attri
   const s=createSpeaker(defaults),svg=speakerSvg(s);
   const dom=new JSDOM(svg,{contentType:"image/svg+xml"});
   assert.match(dom.window.document.documentElement.getAttribute("width"),/mm$/);
-  assert.equal(dom.window.document.querySelectorAll('path[data-operation="cut"]').length,7);
+  assert.equal(dom.window.document.querySelectorAll('path[data-operation="cut"]').length,9);
   assert.match(svg,/CC-BY-SA-4.0/);assert.match(svg,/unvalidated|Prototype/);
   const f=speakerFabrication(s),stock=packSheets(f.parts,1000,600,10,true);
   assert.deepEqual(stock.unplaced,[]);
-  assert.equal(stock.sheets.flatMap(s=>s.parts).length,7);
+  assert.equal(stock.sheets.flatMap(s=>s.parts).length,9);
   assert.ok(f.warnings.some(w=>w.includes("not included")));
   assert.match(stockSvg(stock.sheets[0],1000,600,f.warnings),/CC-BY-SA-4.0/);
   assert.equal(f.parts.find(p=>p.id === "grille").polygons[0].length,1+s.dots.length+4);

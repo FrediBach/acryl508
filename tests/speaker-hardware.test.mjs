@@ -83,11 +83,11 @@ test("every corner spacer fills the physical gap between the two washers", () =>
 
 test("source mounts, sheet cuts and screw axes coincide across sizes and mixed thicknesses", () => {
   for (const [id,mounts] of Object.entries(myndBoardMounts)) assert.deepEqual(mounts,manifest.assets[id].mounts);
-  for (const depth of [110,220]) for (const height of [190,300]) for (const thickness of [3,8]) {
+  for (const depth of [110,220]) for (const height of [210,300]) for (const thickness of [3,8]) {
     const s=createSpeaker({...defaultSpeakerConfiguration,depth,height,thickness,controlDepth:35,
       individualSheetMaterials:true,sheetThicknesses:{baffle:3,rear:8,top:8,bottom:3}});
     const fasteners=speakerFasteners(s);
-    assert.deepEqual(Object.fromEntries(["top","bottom","rear","baffle","left"].map(id=>[id,s.panelMounts.filter(m=>m.parent===id).length])),{top:8,bottom:6,rear:10,baffle:3,left:4});
+    assert.deepEqual(Object.fromEntries(["top","bottom","rear","baffle","left","pcb-floor","pcb-rear"].map(id=>[id,s.panelMounts.filter(m=>m.parent===id).length])),{top:8,bottom:0,rear:0,baffle:0,left:4,"pcb-floor":6,"pcb-rear":13});
     for (const mount of s.panelMounts) {
       const panel=s.parts.find(p=>p.id===mount.parent);
       const inverse=new Quaternion().setFromEuler(new Euler(...panel.rotation)).invert();
@@ -128,11 +128,11 @@ test("port sheet uses the source access wire and all four housing axes, includin
   assert.deepEqual(myndPortMounts.map(m=>[m.y,m.z]),[[31.36,51.28],[80.86,51.28],[54.36,37.03],[54.36,66.03]]);
   assert.ok(myndPortOpening.length>50,"Curved and notched source wire is retained");
   close(myndPort.width,40.99132);close(myndPort.openingHeight,20.08888);
-  for(const width of [280,420]) for(const height of [190,300]) for(const thickness of [3,8]) {
+  for(const width of [280,420]) for(const height of [210,300]) for(const thickness of [3,8]) {
     const s=createSpeaker({...defaultSpeakerConfiguration,width,height,portWidth:65,portHeight:45,
       individualSheetMaterials:true,sheetThicknesses:{left:thickness,baffle:8,rear:3,top:3,bottom:8}});
     const panel=s.parts.find(p=>p.id==="left"),fasteners=speakerFasteners(s);
-    assert.equal(panel.polygons[0].length,6,"One access wire and four independent screw holes");
+    assert.equal(panel.polygons[0].length,10,"Access wire, four screw holes and four carrier slots");
     assert.equal(s.config.portWidth,myndPort.width);assert.equal(s.config.portHeight,myndPort.openingHeight);
     const sourceToWorld=p=>new Vector3(...p).applyEuler(new Euler(-Math.PI/2,0,0)).add(new Vector3(...speakerPortPlacement(s.config)));
     const toWorld=p=>new Vector3(...p,0).applyEuler(new Euler(...panel.rotation)).add(new Vector3(...panel.position));
@@ -220,6 +220,6 @@ test("all nine boards move with their mounting sheet, with fixed model scale", (
   }
   for(const depth of [110,220]) {
     const boards=speakerBoardPlacements(createSpeaker({...defaultSpeakerConfiguration,depth}));
-    assert.equal(boards.find(p=>p.id === "Amp").position[2],-depth/2+5+8.8);
+    assert.equal(boards.find(p=>p.id === "Amp").position[2],-depth/2+5+5+5+8.8);
   }
 });

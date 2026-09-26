@@ -6,6 +6,7 @@ import { speakerFasteners, speakerBoardPlacements, speakerPanelMounts } from "./
 import { standPathData } from "./synth-stand";
 import { myndPort, myndPortOpening } from "./mynd-port";
 import { myndButtons, myndControls } from "./mynd-controls";
+import { addSpeakerCarriers } from "./speaker-carriers";
 
 export const myndSource = "https://github.com/teufelaudio/mynd-hardware";
 export const myndRevision = "149d002334b0725fba03499079bdaf2e61c8ff36";
@@ -24,14 +25,14 @@ export type SpeakerConfiguration = SheetMaterialConfiguration & {
   portWidth: number; portHeight: number; controlWidth: number; controlDepth: number;
 };
 export const speakerLimits = {
-  width: { min: 280, max: 420 }, height: { min: 190, max: 300 }, depth: { min: 110, max: 220 },
+  width: { min: 280, max: 420 }, height: { min: 210, max: 300 }, depth: { min: 110, max: 220 },
   thickness: { min: 3, max: 8 }, grilleGap: { min: 8, max: 25 },
   dotDiameter: { min: 2, max: 6 }, dotPitch: { min: 4, max: 12 }, grilleBorder: { min: 16, max: 28 },
   portWidth: { min: myndPort.width, max: myndPort.width }, portHeight: { min: myndPort.openingHeight, max: myndPort.openingHeight },
   controlWidth: { min: myndControls.width, max: myndControls.width }, controlDepth: { min: myndControls.depth, max: myndControls.depth },
 };
 export const defaultSpeakerConfiguration: SpeakerConfiguration = {
-  ...defaultSheetMaterials, width: 280, height: 200, depth: 120, thickness: 5,
+  ...defaultSheetMaterials, width: 280, height: 210, depth: 120, thickness: 5,
   tint: defaultTint, transparency: "transparent", grilleGap: 12,
   dotDiameter: 3, dotPitch: 5, grilleBorder: 18, staggered: true,
   portWidth: myndPort.width, portHeight: myndPort.openingHeight, controlWidth: myndControls.width, controlDepth: myndControls.depth,
@@ -92,12 +93,13 @@ export function createSpeaker(input: SpeakerConfiguration) {
   part("left","USB-C / AUX side",innerDepth,innerHeight,[portOpening],[-w/2+t("left")/2,(t("bottom")-t("top"))/2,(t("rear")-t("baffle"))/2],[0,Math.PI/2,0],[-35,0,0]);
   part("right","Right side",innerDepth,innerHeight,[],[w/2-t("right")/2,(t("bottom")-t("top"))/2,(t("rear")-t("baffle"))/2],[0,Math.PI/2,0],[35,0,0]);
   part("grille","Dot grille",w,h,[...dots.map(([x,y])=>circle(x,y,config.dotDiameter/2)),...bolts],[0,0,d/2+config.grilleGap+t("grille")/2],[0,0,0],[0,0,80]);
+  const carrierJoints = addSpeakerCarriers(config,parts);
   const panelMounts = speakerPanelMounts({ config, parts });
   for (const mount of panelMounts) {
     parts.find(p => p.id === mount.parent)!.polygons[0].push(circle(...mount.position, mount.diameter / 2).reverse());
   }
   const grossVolumeLitres = innerWidth*innerHeight*innerDepth/1e6;
-  return { config, parts, mounts, driverMounts, panelMounts, dots, innerWidth, innerHeight, innerDepth, grossVolumeLitres,
+  return { config, parts, mounts, driverMounts, panelMounts, carrierJoints, dots, innerWidth, innerHeight, innerDepth, grossVolumeLitres,
     totalDepth: d+config.grilleGap+t("grille"), openArea: dots.length*Math.PI*(config.dotDiameter/2)**2/((w-2*config.grilleBorder)*(h-2*config.grilleBorder))*100 };
 }
 export type Speaker = ReturnType<typeof createSpeaker>;
@@ -105,7 +107,7 @@ export const speakerBuildNotes = [
   "Reuse the MYND woofer, both tweeters, both passive radiators, original amplifier, main and Bluetooth boards, battery, UI, USB-C/AUX assemblies and wiring. The preview uses nine original PCB layouts with 788 referenced component models, plus the released radiator frames, port housing and HMI parts. Driver diaphragms, baskets, battery pack and cable routes are reconstructions; assembly placements in this new shell are provisional.",
   "Bond the baffle, top, base and side sheets into a sealed shell. Four M3 corner tie rods retain a gasketed removable rear with nuts and load-spreading washers. The preview includes these fasteners, driver screws and board standoffs. Mount the grille on separate spacers at those same centres. Seal penetrations and retain service access.",
   "Baffle centres and woofer/radiator screw centres come from Teufel’s STEP files. The 86 mm woofer and 39.4 mm tweeter openings reference CAD seating circles. Radiator windows are simplified 50 × 100 mm profiles. Verify seating, screw sizes, gaskets and adapter/clamp rings on the donor hardware; the original moulded recesses and tweeter clips are not reproduced in flat sheet.",
-  "The sheets include 6 main-board mounting holes in the base, 10 PCB mounting holes in the rear, 3 connector-board holes in the baffle and 8 control-cover holes in the top, aligned to the source hardware and rendered supports. PCB sheet holes are Ø3.4 mm; control-cover holes are Ø3.5 mm. Verify the proposed standoff lengths and screw engagement on the donor.",
+  "Two internal acrylic carriers hold all 19 PCB standoff mounts: 6 in the raised PCB floor and 13 in the PCB backplate. Flush tabs fit eight rectangular side-wall slots; bond and seal the joints. At least 5 mm behind each carrier encloses the 3.5 mm screw-head/washer stack. The raised floor and backplate edges clear the corner tie rods. The minimum body height is 210 mm to accommodate the raised electronics; the main board is turned to keep its taller components away from the woofer. The outer bottom is unperforated and flat; the outer rear and baffle have no PCB screw holes. The top retains 8 control-cover mounting holes. Verify standoff lengths and screw engagement on the donor.",
   "The side opening follows the source port-housing access wire, with two Ø2.8 mm side screw holes and two Ø3.4 mm recessed-mount screw holes. Retain the flange behind the acrylic, use the illustrated M2.5/M3 through fasteners and two 7 mm counterbore sleeves, and seal the contact face. Verify screw lengths and the donor’s mounting method. The top has three Ø18 mm button cutouts and one 38 × 18 mm capsule for the combined volume rocker. The HMI assembly sits on 7.1 mm supports, with its rubber backing beneath the sheet. Verify button travel, finger access with thicker acrylic, clearances and sealing. Battery restraint, tweeter retainers and sealing gaskets require donor measurements and are not included in the acrylic cutting patterns.",
   "The dot grille sits outside the acoustic chamber. Keep both passive radiators free to move. Gross internal volume excludes drivers, boards, battery and bracing; it is not the stock acoustic volume. Prototype sealing, panel resonance, radiator travel and DSP tuning. The replacement enclosure has no validated acoustic or IP rating.",
 ];
@@ -124,11 +126,11 @@ export function speakerExport(speaker: Speaker) {
     source:{repository:myndSource,revision:myndRevision,license:"CC-BY-SA-4.0",changes:"Flat acrylic enclosure, simplified seating apertures, service openings and perforated grille; not a Teufel product or validated replacement."},
     dimensions:{width:speaker.config.width,height:speaker.config.height,bodyDepth:speaker.config.depth,totalDepth:speaker.totalDepth,grossVolumeLitres:speaker.grossVolumeLitres},
     previewHardware:{modelManifest:"/models/mynd/manifest.json",fasteners:speakerFasteners(speaker),boardPlacements:speakerBoardPlacements(speaker),status:"Source PCB/component/mechanical meshes; reconstructed drivers and battery; provisional placement and cable routing"},
-    grille:{holes:speaker.dots.length,openAreaPercent:speaker.openArea},drivers:myndDrivers,panelMounts:speaker.panelMounts,parts:speaker.parts,sheetMaterials:sheetMaterialExport(speaker.config,speaker.parts),hardware:speakerHardware,notes:speakerBuildNotes,
+    grille:{holes:speaker.dots.length,openAreaPercent:speaker.openArea},drivers:myndDrivers,panelMounts:speaker.panelMounts,carrierJoints:speaker.carrierJoints,parts:speaker.parts,sheetMaterials:sheetMaterialExport(speaker.config,speaker.parts),hardware:speakerHardware,notes:speakerBuildNotes,
     coordinates:"Millimetres. Sheet X right, Y up, thickness centred on local Z. Apply XYZ Euler rotation (radians) then position for assembly. Scene Z points forward. Explode vectors are preview-only offsets.",
   };
 }
 export function speakerSvg(speaker: Speaker) {
   const layout=speakerSheetLayout(speaker);
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="${layout.width}mm" height="${layout.height}mm" viewBox="0 0 ${layout.width} ${layout.height}"><title>Acryl508 MYND acrylic speaker / 7 sheets</title><desc>Prototype. Verify donor fit, adapters and acoustic tuning before fabrication. Red: finished cut edges; apply kerf once in CAM. Adapted from Teufel MYND hardware ${myndSource} revision ${myndRevision}, CC-BY-SA-4.0. Changes: flat sheet enclosure, simplified apertures and dot grille. ${speakerBuildNotes.join(" ")}</desc>${layout.parts.map(({part,x,y})=>`<g id="${part.id}" ${sheetMaterialAttributes(speaker.config,part.id)} transform="translate(${x} ${y})"><title>${part.label}</title><path data-operation="cut" d="${standPathData(part.polygons)}" fill="none" stroke="#ef4444" stroke-width="0.2"/></g>`).join("")}</svg>`;
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="${layout.width}mm" height="${layout.height}mm" viewBox="0 0 ${layout.width} ${layout.height}"><title>Acryl508 MYND acrylic speaker / ${speaker.parts.length} sheets</title><desc>Prototype. Verify donor fit, adapters and acoustic tuning before fabrication. Red: finished cut edges; apply kerf once in CAM. Adapted from Teufel MYND hardware ${myndSource} revision ${myndRevision}, CC-BY-SA-4.0. Changes: flat sheet enclosure, simplified apertures and dot grille. ${speakerBuildNotes.join(" ")}</desc>${layout.parts.map(({part,x,y})=>`<g id="${part.id}" ${sheetMaterialAttributes(speaker.config,part.id)} transform="translate(${x} ${y})"><title>${part.label}</title><path data-operation="cut" d="${standPathData(part.polygons)}" fill="none" stroke="#ef4444" stroke-width="0.2"/></g>`).join("")}</svg>`;
 }

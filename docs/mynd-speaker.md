@@ -1,8 +1,8 @@
 # MYND acrylic enclosure reference
 
-Speaker case is a seven-sheet prototype: baffle, removable rear, top, base,
-left, right and an independently spaced dot grille. Default body dimensions
-are **280 × 200 × 120 mm** (W × H × D), with 5 mm sheet, a 12 mm grille gap,
+Speaker case is a nine-sheet prototype: baffle, removable rear, top, base,
+left, right, an independently spaced dot grille, and two internal PCB carriers.
+Default body dimensions are **280 × 210 × 120 mm** (W × H × D), with 5 mm sheet, a 12 mm grille gap,
 3 mm dots and a 5 mm staggered pitch. Total depth includes the grille and gap.
 The body is a new design; these are not Teufel's stock enclosure dimensions.
 
@@ -113,8 +113,8 @@ model scale, negative X/Y/Z rotations, offset, bottom-side flip, footprint rotat
 and footprint position, with KiCad's downward Y converted to upward Y.
 
 Board placements in the acrylic shell are proposed arrangements, not the stock
-assembly. The main board follows the base, the amplifier/Bluetooth boards follow
-the rear, control parts follow the top, port parts follow the left side and driver
+assembly. The main board follows the internal floor, the amplifier/Bluetooth boards follow
+the internal backplate, control parts follow the top, port parts follow the left side and driver
 parts follow the baffle during explosion. Neither enclosure fit nor cable routing
 has been physically validated. The control and port openings now follow the donor geometry; sealing and
 physical fastening still require validation.
@@ -125,17 +125,36 @@ washers, and PCB standoffs/screws at the source mounting centres. Profiles are
 illustrative M3 hardware, not a specified supplier part. Spacers fill the chosen
 gap less two 0.5 mm washers; rod reach and screw lengths follow the actual sheets.
 Items move with their attachment panels in exploded view and keep their physical
-length. The same source mount coordinates now drive enclosure cuts and hardware:
-six Ø3.4 mm main-board holes in the bottom, ten Ø3.4 mm holes in the rear
-(amplifier, Bluetooth and battery connector), and three Ø3.4 mm connector-board
-holes in the baffle. The top has eight Ø3.5 mm HMI-cover mounting holes at
-X = −66, −22, 22, 66 and scene Z = ±22 mm. These are extracted from the
-released HMI cover's source X/Y centres (Y = 35.17 / 79.17 mm); its seating
-faces are source Z = 156.4 / 158.9 mm. The proposed top supports span 7.1 mm
-from the upper seating face to the sheet. Exterior washers/screws and the
-cover's interior screws are rendered on those axes. All holes appear in both
-3D and cutting exports, including mixed sheet thicknesses. Support lengths,
-thread engagement, pod sealing and the overall arrangement remain provisional.
+length. The 19 source PCB mounting coordinates now cut **two internal sheets**:
+six Ø3.4 mm holes in `pcb-floor`, thirteen in `pcb-rear`. The baffle connector
+board moves to the upper-right backplate, clear of the battery and below the
+control pod; main-board depth centres between that backplate and the baffle.
+The main board is turned 180° on its floor so its taller front-edge components
+face away from the woofer. The minimum body height increases to 210 mm for
+the raised electronics; older compact designs normalize to this height. Control and port pods retain their own
+mounting positions. Board-side and carrier-side fasteners follow the carriers
+in exploded view.
+
+The floor underside sits 15 mm above the exterior base, or at least 5 mm above
+the inner bottom face, whichever is higher, clearing the lower corner tie rods.
+The main board uses 9 mm standoffs (about 3 mm beneath its lowest components).
+The backplate sits 5 mm ahead of the inner rear face and stops 12 mm below the
+inner top to clear the upper tie rods. A 0.5 mm washer plus 3 mm cap head leaves
+at least 1.5 mm clearance inside each gap. Neither PCB mounts nor tabs penetrate the outer bottom. Four
+flush tabs per carrier enter closed rectangular slots in the side sheets, using
+the Eurorack case's tab-and-slot construction principle. Tab length follows the
+receiving side's thickness; slot thickness follows the carrier. The nominal
+paths are uncompensated: prototype the fit and apply kerf compensation once.
+Bond and seal these joints to preserve the acoustic chamber. Two floor openings
+and a lower backplate window provide wiring/air paths. Carrier removal requires
+disassembling bonded joints; boards remain screw-serviceable through the rear.
+
+The top has eight Ø3.5 mm HMI-cover mounting holes at X = −66, −22, 22, 66 and
+scene Z = ±22 mm. Source seating faces are Z = 156.4 / 158.9 mm; the proposed
+supports span 7.1 mm to the inner top face. The shell, two carriers, fasteners,
+exploded view, individual material settings and exports share these dimensions.
+All nine sheets are included in SVG and fabrication packing. Placement, cable
+reach, battery restraint, sealing and physical clearance remain prototype checks.
 
 The manufacturer's [MYND specifications](https://hr.teufelaudio.com/mynd-107002004)
 identify one nominal 90 mm woofer, two nominal 20 mm tweeters and a three-channel
