@@ -27,6 +27,7 @@ export type CaseConfiguration = {
   hp: number; rows: number; rowUnits: RackUnit[]; depth: number; thickness: number; sideMarginRatio: number;
   tint: AcrylicTint; transparency?: AcrylicTransparency; panelTransparencies?: Partial<Record<PanelSide, AcrylicTransparency>>; individualPanelTints?: boolean; panelThicknesses?: Partial<Record<PanelSide, number>>; panelTints?: Partial<Record<PanelSide, AcrylicTint>>;
   angle: number; rowAngles?: number[]; vents: boolean; busboard: Busboard;
+  compactPwrInletSide?: "left" | "rear";
   ventStyle: VentStyle; ventDensity: VentDensity;
   ventLayout: VentLayout; ventCoverage: VentCoverage; ventMix: VentMix;
   ventDesign: VentDesign;
@@ -81,6 +82,7 @@ export const defaultConfiguration: CaseConfiguration = {
   hp: 84, rows: 1, rowUnits: [3], depth: 75, thickness: 5, sideMarginRatio: 2, tint: defaultTint, transparency: defaultTransparency, angle: 0, vents: true, busboard: "none",
   handle: false, handleMode: "auto", handleWidth: 160, handleHeight: 70, handleBendAngle: 0, footShape: "wedge", cutouts: [], ventStyle: "long-slits", ventDensity: "medium",
   ventDesign: defaultVentDesign,
+  compactPwrInletSide: "left",
   ventLayout: "aligned", ventCoverage: "bands", ventMix: "checkerboard",
   flatFeet: false, flatFootStyle: "pads", flatFootHeight: 15,
   patchBoard: false, patchBoardSide: "left", patchBoardWidth: 160, patchBoardHeight: 70, patchBoardSpacing: 15, patchBoardBendAngle: 0,
@@ -246,8 +248,8 @@ export function configurationExport(config: CaseConfiguration, cutoutReports: Cu
       mountingHoleCentersMm: compactPwrHoles,
       coordinates: "Centred on base, viewed from above; X right, Y rear. Underside editor mirrors X. No automatic rotation or scaling.",
       bottomHolePolicy: "Four approximate corner screw holes when the board fits. Vents retain one sheet thickness around each hole. Review custom-cutout conflicts.",
-      inputModule: "Barrel/switch inlet clearance window and mounting holes on the left side when the full plate fits clear of panel joints and rail holes. Omitted if there is insufficient room. Rear component clearance and cable routing require hardware verification.",
-      inlet: compactPwrInlet,
+      inputModule: `Barrel/switch inlet clearance window and mounting holes on the ${config.compactPwrInletSide === "rear" ? "rear panel" : "left side"} when the full plate fits clear of panel joints and rail holes. Omitted if there is insufficient room. Rear component clearance and cable routing require hardware verification.`,
+      inlet: { ...compactPwrInlet, side: config.compactPwrInletSide ?? "left" },
     } : null,
     customCutouts: {
       placement: "Viewed from outside each panel; x/y in mm from panel centre, x right, y up; rotation in degrees counterclockwise; width uniformly scales the normalized outlines. Bottom is viewed from below with rear at the top.",

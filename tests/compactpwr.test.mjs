@@ -1,10 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { Euler, ExtrudeGeometry, ShapeUtils, Vector3 } from "three";
 import { loadTypescript } from "./load-typescript.mjs";
 const { busboards, defaultConfiguration, configurationExport, caseDimensions } = await loadTypescript("../lib/configurator.ts");
 const { createCasePanels, caseCanExport } = await loadTypescript("../lib/case-panels.ts");
 const { configurationSvg } = await loadTypescript("../lib/svg-export.ts");
 const { compactPwr, compactPwrHoles, compactPwrHeaders } = await loadTypescript("../lib/compactpwr.ts");
+const { compactPwrInletPlate, compactPwrInletTransform } = await loadTypescript("../lib/compactpwr-inlet.ts");
+const { readCase, parseProject, makeProject, initialDesigns } = await loadTypescript("../lib/project.ts");
 const config = { ...defaultConfiguration, busboard: "compactpwr", vents: false };
 const near = (a, b) => assert.ok(Math.abs(a - b) < 1e-8, `${a} ≈ ${b}`);
 
@@ -55,6 +58,73 @@ test("inlet fit respects shallow sides, sheet thickness and angled rows without 
     assert.ok(panels.inlet.y - 20 >= panels.layout.baseTop * 100 + thickness - 1e-7);
     assert.equal(caseCanExport(panels), true);
   }
+});
+
+test("rear selection relocates all inlet cuts, exports and custom-artwork protection", () => {
+  const rearConfig = { ...config, compactPwrInletSide: "rear" };
+  const panels = createCasePanels(rearConfig), bare = createCasePanels({ ...config, busboard: "none" });
+  assert.equal(panels.inlet.side, "rear");
+  assert.equal(panels.inlet.fits, true);
+  near(panels.inlet.x, 0);
+  for (const side of ["left", "right", "front", "rear"]) {
+    assert.equal(panels.faces[side].shapes[0].holes.length, bare.faces[side].shapes[0].holes.length + (side === "rear" ? 3 : 0));
+  }
+  assert.match(configurationSvg(rearConfig, panels), /Rear inlet:/);
+  assert.equal(configurationExport(rearConfig).powerBoard.inlet.side, "rear");
+  const cutout = { id: "rear-inlet", name: "Square", side: "rear", source: { kind: "svg", fileName: "square.svg" },
+    polygons: [[[[-0.5, -0.5], [0.5, -0.5], [0.5, 0.5], [-0.5, 0.5]]]], width: 10,
+    x: -panels.inlet.x - 29.5, y: panels.inlet.y - caseDimensions(rearConfig).height / 2, rotation: 0 };
+  const conflict = createCasePanels({ ...rearConfig, cutouts: [cutout] });
+  assert.equal(caseCanExport(conflict), false);
+  assert.match(conflict.faces.rear.report.error, /CompactPWR inlet/);
+  assert.equal(createCasePanels({ ...rearConfig, depth: 25 }).inlet.fits, false);
+});
+
+test("inlet selection survives saved projects and legacy cases default to the left", () => {
+  const rear = { ...config, compactPwrInletSide: "rear" };
+  const project = makeProject("Rear inlet", "case", { ...initialDesigns, case: rear }, []);
+  assert.equal(parseProject(JSON.stringify(project)).designs.case.compactPwrInletSide, "rear");
+  assert.equal(parseProject(JSON.stringify(configurationExport(rear))).designs.case.compactPwrInletSide, "rear");
+  const legacy = { ...config }; delete legacy.compactPwrInletSide;
+  assert.equal(readCase(legacy).compactPwrInletSide, "left");
+  assert.throws(() => readCase({ ...config, compactPwrInletSide: "bottom" }), /inlet panel/);
+});
+
+test("3D inlet screw axes coincide with both panel patterns and follow exploded sheets", () => {
+  for (const side of ["left", "rear"]) for (const explode of [0, 0.4]) for (const thickness of [3, 6]) {
+    const panels = createCasePanels({ ...config, compactPwrInletSide: side, individualPanelTints: true, panelThicknesses: { left: thickness, rear: thickness } });
+    const transform = compactPwrInletTransform(panels.inlet, panels.layout, explode);
+    const rotation = new Euler(...transform.rotation), origin = new Vector3(...transform.position);
+    const normal = new Vector3(0, 0, 1).applyEuler(rotation);
+    near(side === "left" ? normal.x : normal.z, -1);
+    const model = [-29.5, 29.5].map(x => new Vector3(x / 100, 0, 0).applyEuler(rotation).add(origin));
+    const actual = panels.faces[side].shapes[0].holes.slice(-2).map(hole => {
+      const { aX: x, aY: y } = hole.curves[0];
+      return side === "left" ? new Vector3(-panels.layout.innerWidth / 2 - thickness / 100 - explode, y, -x)
+        : new Vector3(x, y, -panels.layout.innerLength / 2 - thickness / 100 - explode);
+    });
+    for (const point of model) assert.ok(actual.some(hole => hole.distanceTo(point) < 1e-8));
+  }
+});
+
+test("3D faceplate retains the dimensioned openings and triangulates without filling them", () => {
+  const plate = compactPwrInletPlate(), points = plate.extractPoints(32);
+  near(Math.max(...points.shape.map(p => p.x)) - Math.min(...points.shape.map(p => p.x)), 70);
+  near(Math.max(...points.shape.map(p => p.y)) - Math.min(...points.shape.map(p => p.y)), 40);
+  assert.equal(plate.holes.length, 4);
+  const geometry = new ExtrudeGeometry(plate, { depth: 1.5, bevelEnabled: false, curveSegments: 32 });
+  const positions = geometry.getAttribute("position");
+  assert.ok(positions.array.every(Number.isFinite));
+  let capArea = 0;
+  for (let i = 0; i < positions.count; i += 3) {
+    if ([0, 1, 2].every(j => positions.getZ(i + j) === 0)) {
+      const a = new Vector3().fromBufferAttribute(positions, i), b = new Vector3().fromBufferAttribute(positions, i + 1), c = new Vector3().fromBufferAttribute(positions, i + 2);
+      capArea += b.sub(a).cross(c.sub(a)).length() / 2;
+    }
+  }
+  const expected = Math.abs(ShapeUtils.area(points.shape)) - points.holes.reduce((sum, hole) => sum + Math.abs(ShapeUtils.area(hole)), 0);
+  assert.ok(Math.abs(capArea - expected) < 0.001);
+  geometry.dispose();
 });
 
 test("custom artwork cannot remove the inlet mounting web without blocking fabrication", () => {

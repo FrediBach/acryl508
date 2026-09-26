@@ -111,6 +111,7 @@ export function readCase(input: unknown): CaseConfiguration {
   config.angle = number(config.angle, "Stance angle", 0, 30);
   config.sideMarginRatio = number(config.sideMarginRatio, "Side margin", 1, 2);
   config.busboard = choice(config.busboard, ["none", "sinusoda", "trolley", "compactpwr"], "busboard");
+  config.compactPwrInletSide = choice(config.compactPwrInletSide, ["left", "rear"], "CompactPWR inlet panel");
   config.flatFootStyle = choice(config.flatFootStyle, ["pads", "arch", "runners"], "flat foot style");
   config.footShape = choice(config.footShape, ["wedge", "arch", "sled"], "foot shape");
   config.patchBoardSide = choice(config.patchBoardSide, ["left", "right", "both"], "patch cable board side");

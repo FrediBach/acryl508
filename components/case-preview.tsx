@@ -17,6 +17,7 @@ import { panelEdgePoints } from "@/lib/panel-edges";
 import { TrolleyPreview } from "@/components/trolley-preview";
 import { SinusodaPreview } from "@/components/sinusoda-preview";
 import { CompactPwrPreview } from "@/components/compactpwr-preview";
+import { CompactPwrInletPreview } from "@/components/compactpwr-inlet-preview";
 
 export type CameraView = "perspective" | "front" | "top";
 type Props = { panels: CasePanels; config: CaseConfiguration; dark: boolean; view: CameraView; resetKey: number; exploded: boolean; modules: boolean };
@@ -108,6 +109,7 @@ function AcrylicCase({ config, panels, exploded, modules }: Pick<Props, "config"
       {config.busboard === "sinusoda" && panels.powerBoard?.fits && <SinusodaPreview baseTop={baseTop - explode} />}
       {config.busboard === "trolley" && panels.powerBoard?.fits && <TrolleyPreview baseTop={baseTop - explode} offsetX={panels.powerBoard.x} />}
       {config.busboard === "compactpwr" && panels.powerBoard?.fits && <CompactPwrPreview baseTop={baseTop - explode} />}
+      {config.busboard === "compactpwr" && <CompactPwrInletPreview panels={panels} explode={explode} />}
     </group>
   </group>;
 }

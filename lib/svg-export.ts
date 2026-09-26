@@ -77,7 +77,7 @@ export function caseSheetLayout(panels: CasePanels) {
 export function configurationSvg(config: CaseConfiguration, panels: CasePanels) {
   if (!caseCanExport(panels)) throw new Error("Resolve empty panels and cutout calculation errors before exporting SVG.");
   const boardNote = config.busboard === "trolley" ? ` ${trolleyBus.name}: ${trolleyBus.accuracy} ${trolleyBus.mounting}`
-    : config.busboard === "compactpwr" ? ` ${compactPwr.name}: ${compactPwr.accuracy} ${compactPwr.mounting} Left inlet: ${compactPwrInlet.accuracy}${panels.inlet?.fits ? "" : " Inlet plate does not fit; inlet cutout and screw holes omitted."}`
+    : config.busboard === "compactpwr" ? ` ${compactPwr.name}: ${compactPwr.accuracy} ${compactPwr.mounting} ${panels.inlet?.side === "rear" ? "Rear" : "Left"} inlet: ${compactPwrInlet.accuracy}${panels.inlet?.fits ? "" : " Inlet plate does not fit; inlet cutout and screw holes omitted."}`
     : config.busboard === "sinusoda" ? " Sinusoda Juice: 226 x 86 x 19 mm envelope from data sheet. All 28 mounting centres are photo-derived estimates; diameter 3.2 mm assumed. Verify on hardware before drilling." : "";
   const mountingNote = config.busboard === "none" ? "" : `${panels.powerBoard?.fits ? "" : " Board does not fit; no mounting holes exported."}${panels.mountingConflicts ? ` WARNING: custom cutouts approach or overlap ${panels.mountingConflicts} mounting points.` : ""}`;
   const bendNote = accessoryBendSpecification(config).map(bend => ` ${bend.side} ${bend.accessory}: bend ${bend.angleDegrees} degrees outward, inside radius ${number(bend.innerRadiusMm)} mm; flat allowance ${number(bend.allowanceMm)} mm plus ${bend.clearanceMm} mm clearance.`).join("");

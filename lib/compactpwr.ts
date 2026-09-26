@@ -24,7 +24,8 @@ export const compactPwrHeaders = [-24.5, 24.5].flatMap(y => Array.from({ length:
 // not a dimension published in that drawing.
 export const compactPwrInlet = {
   source: "https://konstantlab.audio/shop/compactpwr-35w-eurorack-power-supply/?attachment_id=2502&download_file=5c8534a4f9f21",
-  side: "left", plateWidth: 70, plateHeight: 40,
+  plateWidth: 70, plateHeight: 40, plateThickness: 1.5, cornerRadius: 5,
+  switchX: -9, switchWidth: 13, switchHeight: 19, jackX: 10, jackDiameter: 8.5,
   holePitch: 59, holeDiameter: 3.5,
   cutoutWidth: 45, cutoutHeight: 25,
   accuracy: "70 × 40 mm barrel/switch inlet plate; two Ø3.5 mm holes at 59 mm pitch from the manufacturer drawing. The 45 × 25 mm clearance window is an allowance for the assembled inlet; verify rear component clearance against hardware. USB-C inlet geometry and cable routing are not reserved.",

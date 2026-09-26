@@ -406,7 +406,10 @@ it cannot fit. Clearance above the board deducts its 20 mm height and assumed
 5 mm standoffs.
 
 Selecting CompactPWR also adds a 45 × 25 mm clearance window and two Ø3.5 mm
-screw holes at 59 mm pitch to the left side, low toward the rear. The
+screw holes at 59 mm pitch. **Inlet panel** selects the left side (low toward
+the rear, the default for older projects) or the back panel (low and centred).
+The choice is saved with the case and moves the preview, cutouts, export notes
+and custom-artwork protection together. The
 [manufacturer inlet drawing](https://konstantlab.audio/shop/compactpwr-35w-eurorack-power-supply/?attachment_id=2502&download_file=5c8534a4f9f21)
 specifies the 70 × 40 mm barrel/switch faceplate and screw pattern. The clearance
 window is a design allowance, not a published cutout dimension; verify the rear
@@ -414,6 +417,10 @@ component envelope against the assembled inlet before fabrication. The whole
 plate plus a sheet-thickness border must fit clear of joints and rail holes;
 otherwise inlet cuts are omitted with a notice. Custom artwork overlapping this
 reserved area blocks cutting export. Preview and SVG use the same inlet cuts.
+The 3D preview includes the rounded black 1.5 mm faceplate, rocker switch,
+barrel socket and two mounting screws. It faces outward on the selected panel
+and follows that sheet in exploded view. Front openings follow the drawing;
+component depths and fastener details are illustrative rather than CAD data.
 USB-C inlet geometry, internal component clearance and cable routing are not modelled.
 
 All four mounts share their coordinates with bottom geometry and exports.

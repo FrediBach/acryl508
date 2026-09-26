@@ -83,8 +83,11 @@ export function createCasePanels(config: CaseConfiguration) {
     return shape;
   };
   const left = sideProfile("left"), right = sideProfile("right");
+  const inletSide = config.compactPwrInletSide ?? "left";
   const inlet = config.busboard === "compactpwr"
-    ? addCompactPwrInlet(left, innerLength, panels.layout.baseTop, h, thicknesses.left)
+    ? addCompactPwrInlet(inletSide === "left" ? left : panels.rear,
+      inletSide === "left" ? innerLength : panels.layout.innerWidth,
+      panels.layout.baseTop, inletSide === "left" ? h : h - 0.14, thicknesses[inletSide], inletSide)
     : null;
   const originals = { front: panels.end, rear: panels.rear, left, right, bottom: base };
   const faces = Object.fromEntries(cutoutSides.map(({ value }) => {
@@ -95,7 +98,7 @@ export function createCasePanels(config: CaseConfiguration) {
     const original = mapPolygons(shapesToPolygons([originals[value]]), (x, y) => [direction * x * 100, (y - centerY) * 100]);
     const cuts = (config.cutouts ?? []).filter(cutout => cutout.side === value);
     const result = subtractCutouts(original, cuts, value);
-    if (value === "left" && inlet?.fits && cuts.length) {
+    if (value === inlet?.side && inlet.fits && cuts.length) {
       const reserved = mapPolygons(inlet.reserved, (x, y) => [-x * 100, (y - centerY) * 100]);
       if (cuts.some(cut => clipping.intersection(reserved, placedCutout(cut)).length)) {
         result.report.error = "Move custom cutouts clear of the CompactPWR inlet plate and mounting holes before exporting.";
