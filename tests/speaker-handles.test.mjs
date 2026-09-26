@@ -12,10 +12,11 @@ const world=(part,[x,y])=>new Vector3(x,y,0).applyEuler(new Euler(...part.rotati
 const area=ring=>Math.abs(ring.reduce((sum,p,i)=>{const q=ring[(i+1)%ring.length];return sum+p[0]*q[1]-q[0]*p[1];},0)/2);
 
 test("integral handles stay connected, preserve donor alignment and meet the inset top on either side",()=>{
-  for(const handleMode of ["left","right","pair"])for(const depth of [110,220])for(const [handleWidth,handleHeight] of [[130,50],[240,110]])for(const style of [null,"pads","arch","runners"]) {
+  for(const handleMode of ["left","right","pair"])for(const depth of [110,220])for(const [handleWidth,handleHeight] of [[100,50],[240,110]])for(const style of [null,"pads","arch","runners"]) {
     const config={...defaults,handle:true,handleMode,handleWidth,handleHeight,depth,flatFeet:!!style,flatFootStyle:style??"pads",flatFootHeight:30,
       individualSheetMaterials:true,sheetThicknesses:{left:3,right:8,top:8,bottom:3,rear:8,baffle:3}};
     const s=createSpeaker(config),off=createSpeaker({...config,handle:false}),top=s.parts.find(p=>p.id==="top");
+    assert.equal(s.config.handleWidth,handleWidth);
     assert.equal(s.parts.length,9);assert.equal(s.grossVolumeLitres,off.grossVolumeLitres);
     assert.equal(s.totalHeight,defaults.height+handleHeight+(style?30:0));
     assert.deepEqual(speakerBoardPlacements(s),speakerBoardPlacements(off));

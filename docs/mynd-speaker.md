@@ -203,8 +203,8 @@ in speaker/project JSON, with older designs retaining their original flat base.
 ## Optional integral handles
 
 Handles default to off, with left, right or both sides available. Width is
-130–240 mm (default 160 mm) and rise is 50–110 mm (default 70 mm), matching
-the Eurorack case. `createSideProfile` supplies the same rounded roots, upper
+100–240 mm (default 160 mm) and rise is 50–110 mm (default 70 mm).
+`createSideProfile` supplies the Eurorack case’s same rounded roots, upper
 corners and grip opening, combined with the selected feet in one side sheet.
 The top nests inside each extended side; asymmetric layouts compensate the
 control cutouts and mounting holes to preserve their original world positions.

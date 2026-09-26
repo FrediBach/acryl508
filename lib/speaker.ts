@@ -35,7 +35,7 @@ export const speakerLimits = {
   dotDiameter: { min: 2, max: 6 }, dotPitch: { min: 4, max: 12 }, grilleBorder: { min: 16, max: 28 },
   portWidth: { min: myndPort.width, max: myndPort.width }, portHeight: { min: myndPort.openingHeight, max: myndPort.openingHeight },
   controlWidth: { min: myndControls.width, max: myndControls.width }, controlDepth: { min: myndControls.depth, max: myndControls.depth },
-  flatFootHeight: flatFootHeightLimits, handleWidth: handleSizeLimits.width, handleHeight: handleSizeLimits.height,
+  flatFootHeight: flatFootHeightLimits, handleWidth: { ...handleSizeLimits.width, min: 100 }, handleHeight: handleSizeLimits.height,
 };
 export const defaultSpeakerConfiguration: SpeakerConfiguration = {
   ...defaultSheetMaterials, width: 280, height: 210, depth: 120, thickness: 5,
