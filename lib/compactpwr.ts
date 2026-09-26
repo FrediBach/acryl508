@@ -32,7 +32,9 @@ export const compactPwrInlet = {
 } as const;
 
 export function compactPwrPlacement(innerWidth: number, innerLength: number, depth: number) {
-  return { x: 0, y: 0, rotation: 0,
+  // Degrees about the vertical axis: move the input terminal to the case's left.
+  // The four mounting points are symmetric under this half-turn.
+  return { x: 0, y: 0, rotation: 180,
     fits: innerWidth >= compactPwr.width && innerLength >= compactPwr.length
       && depth >= compactPwr.standoffHeight + compactPwr.height,
     availableWidth: innerWidth, availableLength: innerLength,

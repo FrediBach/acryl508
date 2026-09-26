@@ -385,7 +385,9 @@ mounting assumptions, and omission of mounting holes when the board cannot fit.
 ## Konstant Lab CompactPWR
 
 Select **CompactPWR** for one centred 174 × 79 × 20 mm board with two rows of
-10 vertical IDC headers. Dimensions use the manufacturer's explicit **SIZE**
+10 vertical IDC headers, rotated 180° so the power connector is on the case's
+left near the inlet. The symmetric mounting-hole pattern is unchanged.
+Dimensions use the manufacturer's explicit **SIZE**
 specification and manual, rather than the rounded 18 × 8 × 2 cm shop field.
 References: [product page](https://konstantlab.audio/shop/compactpwr-35w-eurorack-power-supply/),
 [manual](https://konstantlab.audio/shop/compactpwr-35w-eurorack-power-supply/?attachment_id=2571&download_file=5c8534d9f9f22),
@@ -407,7 +409,9 @@ it cannot fit. Clearance above the board deducts its 20 mm height and assumed
 
 Selecting CompactPWR also adds a 45 × 25 mm clearance window and two Ø3.5 mm
 screw holes at 59 mm pitch. **Inlet panel** selects the left side (low toward
-the rear, the default for older projects) or the back panel (low and centred).
+the rear, the default for older projects) or the back panel (low toward the
+case's left side, as viewed from the front). Both placements start near the
+rear-left corner while preserving the full plate and joint clearance.
 The choice is saved with the case and moves the preview, cutouts, export notes
 and custom-artwork protection together. The
 [manufacturer inlet drawing](https://konstantlab.audio/shop/compactpwr-35w-eurorack-power-supply/?attachment_id=2502&download_file=5c8534a4f9f21)

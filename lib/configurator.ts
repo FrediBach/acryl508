@@ -246,7 +246,7 @@ export function configurationExport(config: CaseConfiguration, cutoutReports: Cu
       ...compactPwr,
       placement: compactPwrPlacement(config.hp * 5.08, rackEnvelope(config).length, config.depth),
       mountingHoleCentersMm: compactPwrHoles,
-      coordinates: "Centred on base, viewed from above; X right, Y rear. Underside editor mirrors X. No automatic rotation or scaling.",
+      coordinates: "Centred on base, viewed from above; X right, Y rear. Board rotated 180 degrees about the vertical axis so its input connector faces the case’s left side. The symmetric mounting-hole pattern is unchanged. Underside editor mirrors X. No scaling.",
       bottomHolePolicy: "Four approximate corner screw holes when the board fits. Vents retain one sheet thickness around each hole. Review custom-cutout conflicts.",
       inputModule: `Barrel/switch inlet clearance window and mounting holes on the ${config.compactPwrInletSide === "rear" ? "rear panel" : "left side"} when the full plate fits clear of panel joints and rail holes. Omitted if there is insufficient room. Rear component clearance and cable routing require hardware verification.`,
       inlet: { ...compactPwrInlet, side: config.compactPwrInletSide ?? "left" },

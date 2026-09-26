@@ -108,7 +108,7 @@ function AcrylicCase({ config, panels, exploded, modules }: Pick<Props, "config"
       })}
       {config.busboard === "sinusoda" && panels.powerBoard?.fits && <SinusodaPreview baseTop={baseTop - explode} />}
       {config.busboard === "trolley" && panels.powerBoard?.fits && <TrolleyPreview baseTop={baseTop - explode} offsetX={panels.powerBoard.x} />}
-      {config.busboard === "compactpwr" && panels.powerBoard?.fits && <CompactPwrPreview baseTop={baseTop - explode} />}
+      {config.busboard === "compactpwr" && panels.powerBoard?.fits && <CompactPwrPreview baseTop={baseTop - explode} rotation={panels.powerBoard.rotation} />}
       {config.busboard === "compactpwr" && <CompactPwrInletPreview panels={panels} explode={explode} />}
     </group>
   </group>;

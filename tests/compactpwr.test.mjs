@@ -23,6 +23,7 @@ test("CompactPWR selection exports precise published dimensions and estimated mo
   assert.equal(data.powerBoard.inlet.holePitch, 59);
   assert.equal(data.powerBoard.inlet.holeDiameter, 3.5);
   assert.equal(data.powerBoard.placement.moduleClearance, 50);
+  assert.equal(data.powerBoard.placement.rotation, 180);
   assert.equal(compactPwrHeaders.length, 20);
   assert.equal(compactPwrHeaders.filter(p => p.y > 0).length, 10);
   assert.equal(compactPwrHoles.length, 4);
@@ -65,7 +66,8 @@ test("rear selection relocates all inlet cuts, exports and custom-artwork protec
   const panels = createCasePanels(rearConfig), bare = createCasePanels({ ...config, busboard: "none" });
   assert.equal(panels.inlet.side, "rear");
   assert.equal(panels.inlet.fits, true);
-  near(panels.inlet.x, 0);
+  near(panels.inlet.x, -panels.layout.innerWidth * 50 + 35 + panels.layout.thicknesses.rear * 100);
+  assert.ok(panels.inlet.x < 0, "Rear inlet belongs near the case's left side");
   for (const side of ["left", "right", "front", "rear"]) {
     assert.equal(panels.faces[side].shapes[0].holes.length, bare.faces[side].shapes[0].holes.length + (side === "rear" ? 3 : 0));
   }
@@ -78,6 +80,24 @@ test("rear selection relocates all inlet cuts, exports and custom-artwork protec
   assert.equal(caseCanExport(conflict), false);
   assert.match(conflict.faces.rear.report.error, /CompactPWR inlet/);
   assert.equal(createCasePanels({ ...rearConfig, depth: 25 }).inlet.fits, false);
+});
+
+test("half-turn brings the CompactPWR input toward either inlet and preserves the mount pattern", () => {
+  for (const side of ["left", "rear"]) {
+    const panels = createCasePanels({ ...config, compactPwrInletSide: side });
+    const angle = panels.powerBoard.rotation * Math.PI / 180;
+    const rotation = new Euler(0, angle, 0);
+    // The preview's input terminal is at PCB-local X=80 mm, Z=0.
+    const before = new Vector3(0.8, panels.layout.baseTop + 0.116, 0);
+    const after = before.clone().applyEuler(rotation);
+    near(after.x, -0.8);
+    const inlet = new Vector3(...compactPwrInletTransform(panels.inlet, panels.layout).position);
+    assert.ok(after.distanceTo(inlet) < before.distanceTo(inlet));
+    for (const { x, y } of compactPwrHoles) {
+      const rotated = new Vector3(x, 0, -y).applyEuler(rotation);
+      assert.ok(panels.mountingHoles.some(p => Math.hypot(p.x - rotated.x, p.y + rotated.z) < 1e-8));
+    }
+  }
 });
 
 test("inlet selection survives saved projects and legacy cases default to the left", () => {

@@ -9,7 +9,7 @@ function hole(shape: Shape, x: number, y: number, radius: number) {
 
 // Millimetres within the group. Component envelopes and mounting hardware
 // are visual estimates from CompactPWR2.jpg, not manufacturer CAD.
-export function CompactPwrPreview({ baseTop }: { baseTop: number }) {
+export function CompactPwrPreview({ baseTop, rotation }: { baseTop: number; rotation: number }) {
   const profiles = useMemo(() => {
     const pcb = new Shape();
     pcb.moveTo(-87, -39.5); pcb.lineTo(87, -39.5); pcb.lineTo(87, 39.5); pcb.lineTo(-87, 39.5); pcb.closePath();
@@ -20,7 +20,7 @@ export function CompactPwrPreview({ baseTop }: { baseTop: number }) {
     const washer = new Shape(); washer.absarc(0, 0, 3, 0, Math.PI * 2, false); hole(washer, 0, 0, 1.6);
     return { pcb, header, washer };
   }, []);
-  return <group position={[0, baseTop, 0]} scale={0.01}>
+  return <group position={[0, baseTop, 0]} rotation={[0, rotation * Math.PI / 180, 0]} scale={0.01}>
     <group position={[0, board.standoffHeight, 0]}>
       <mesh rotation={[-Math.PI / 2, 0, 0]}><extrudeGeometry args={[profiles.pcb, { depth: board.pcbThickness, bevelEnabled: false, curveSegments: 16 }]} /><meshStandardMaterial color="#20282a" roughness={0.6} /></mesh>
       {compactPwrHoles.map(({ x, y }, i) => <group key={i} position={[x, 0, -y]}>

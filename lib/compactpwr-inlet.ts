@@ -35,15 +35,12 @@ export function addCompactPwrInlet(shape: Shape, innerLength: number, baseTop: n
   const web = Math.max(0.03, thickness);
   const width = inlet.plateWidth / 100 + 2 * web, plateHeight = inlet.plateHeight / 100 + 2 * web;
   const original = shapesToPolygons([shape], 32);
-  const rear = innerLength / 2 - width / 2, front = -rear;
+  const limit = innerLength / 2 - width / 2;
   const lowest = baseTop + plateHeight / 2, highest = height - plateHeight / 2;
   const columns: number[] = [];
-  for (let x = rear; x >= front - 1e-8; x -= 0.05) columns.push(x);
-  if (side === "rear" && rear >= 0) {
-    columns.push(0);
-    columns.sort((a, b) => Math.abs(a) - Math.abs(b));
-  }
-  // Search low first: toward the rear on a side, centred on the back panel.
+  for (let x = limit; x >= -limit - 1e-8; x -= 0.05) columns.push(side === "rear" ? -x : x);
+  // Search low first, starting at the case's rear-left corner on either panel.
+  // Rear-panel X is world X: negative is the case's left, viewed from the front.
   for (let y = lowest; y <= highest + 1e-8; y += 0.05) {
     for (const x of columns) {
       const reserved = rectangle(x, y, width, plateHeight);
