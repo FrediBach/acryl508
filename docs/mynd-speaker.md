@@ -51,8 +51,18 @@ Source files under `CAD/STP/`:
   These are proposed flat-sheet fasteners, not a verified donor fastening method;
   verify access, sealing, tolerances and nut clearance on the physical assembly.
 - `MYND Print parts HMI cover.stp` has approximately 145 mm span in X.
-  The **148 × 24 mm top opening is a proposed adapter**, not a direct projection
-  of that cover. It is adjustable independently of the case dimensions.
+  The top now keeps acrylic between individual controls: **three Ø18 mm circles**
+  at source X = −49, −23, 3, plus a **38 × 18 mm capsule** centred at X = 39
+  for the combined volume rocker (end centres X = 29, 49). All button axes are
+  at source Y = 56.17 (scene Z = 1). STEP collar radii reach approximately
+  8.54 mm; R9 holes provide about 0.46 mm radial clearance.
+  `lib/mynd-controls.ts` shares these dimensions and the assembly seating datum.
+  Non-button rubber reaches source Z = 165.789; the inner acrylic face is set
+  at source Z = 166 to keep the backing below it. The cover and UI board move
+  together, using 7.1 mm cover supports. Buttons remain recessed with thicker
+  acrylic; verify finger access, button travel and sealing on the donor.
+  Old rectangular control-opening settings normalize to the fixed 116 × 18 mm
+  overall button-cutout footprint.
 
 Source X becomes sheet X; source Z becomes sheet Y after subtracting 90 mm.
 The driver layout remains fixed and centred as enclosure width/height changes.
@@ -106,8 +116,8 @@ Board placements in the acrylic shell are proposed arrangements, not the stock
 assembly. The main board follows the base, the amplifier/Bluetooth boards follow
 the rear, control parts follow the top, port parts follow the left side and driver
 parts follow the baffle during explosion. Neither enclosure fit nor cable routing
-has been physically validated. The new flat-sheet control/port adapters remain
-necessary even though the original pod meshes are now visible.
+has been physically validated. The control and port openings now follow the donor geometry; sealing and
+physical fastening still require validation.
 
 The assembly preview includes four M3 tie rods, four threaded hex grille spacers,
 four grille screws, rear nuts, corner washers, twenty driver/radiator screws and
@@ -121,7 +131,7 @@ six Ø3.4 mm main-board holes in the bottom, ten Ø3.4 mm holes in the rear
 holes in the baffle. The top has eight Ø3.5 mm HMI-cover mounting holes at
 X = −66, −22, 22, 66 and scene Z = ±22 mm. These are extracted from the
 released HMI cover's source X/Y centres (Y = 35.17 / 79.17 mm); its seating
-faces are source Z = 156.4 / 158.9 mm. The proposed top supports span 11.6 mm
+faces are source Z = 156.4 / 158.9 mm. The proposed top supports span 7.1 mm
 from the upper seating face to the sheet. Exterior washers/screws and the
 cover's interior screws are rendered on those axes. All holes appear in both
 3D and cutting exports, including mixed sheet thicknesses. Support lengths,
@@ -142,7 +152,7 @@ not modelled. Apply kerf compensation once in CAM.
 
 The source moulded driver recesses, tweeter clips and board bosses cannot be
 reproduced by a single flat cut. **Driver retainers/adapters, board standoffs,
-battery restraint and sealed port/control adapters are not supplied by these
+battery restraint and port/control sealing gaskets are not supplied by these
 cutting files.** Measure the donor, design those fittings and prototype the
 sealing and retention before treating the enclosure as fabrication-ready.
 

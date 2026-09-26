@@ -4,7 +4,7 @@ import { useGLTF, RoundedBox, Line } from "@react-three/drei";
 import { CatmullRomCurve3, DoubleSide, Path, Shape, Vector2, Vector3 } from "three";
 import { myndDrivers, speakerRoundedRect, type Speaker } from "@/lib/speaker";
 import { sheetThickness } from "@/lib/sheet-materials";
-import { speakerBoardPlacements, speakerFasteners, speakerPortPlacement, type HardwarePoint, type SpeakerFastener } from "@/lib/speaker-hardware";
+import { speakerBoardPlacements, speakerFasteners, speakerPortPlacement, speakerControlPlacement, type HardwarePoint, type SpeakerFastener } from "@/lib/speaker-hardware";
 import manifest from "@/public/models/mynd/manifest.json";
 import { myndBoardMounts } from "@/lib/mynd-mounts";
 import { ModelStatusReporter, SpeakerModelBoundary, type ModelStatusChange } from "./speaker-model-status";
@@ -81,7 +81,7 @@ function Cable({ points, color, radius = 0.65 }: { points: HardwarePoint[]; colo
 function SourceAssemblies({ speaker, exploded }: { speaker: Speaker; exploded: boolean }) {
   const c = speaker.config, t = (id: string) => sheetThickness(c, id);
   const offset = (id: string): HardwarePoint => exploded ? speaker.parts.find(p => p.id === id)!.explode : [0, 0, 0];
-  const front = c.depth / 2 - t("baffle"), top = c.height / 2 - t("top");
+  const front = c.depth / 2 - t("baffle");
   const boards = speakerBoardPlacements(speaker, exploded);
   return <>
     {boards.map(board => {
@@ -97,7 +97,7 @@ function SourceAssemblies({ speaker, exploded }: { speaker: Speaker; exploded: b
     })}
     <group position={offset("baffle")}><group rotation={[-Math.PI / 2, 0, 0]} position={[0, -90, front + 17.8]}><SourceModel asset="radiator-frames" /></group></group>
     <group position={offset("left")}><group rotation={[-Math.PI / 2, 0, 0]} position={speakerPortPlacement(c)}><SourceModel asset="port-housing" /></group></group>
-    <group position={offset("top")}><group rotation={[-Math.PI / 2, 0, 0]} position={[0, top - 170.5, 57.17]}><SourceModel asset="hmi-cover" /><SourceModel asset="hmi-pad" /></group></group>
+    <group position={offset("top")}><group rotation={[-Math.PI / 2, 0, 0]} position={speakerControlPlacement(c)}><SourceModel asset="hmi-cover" /><SourceModel asset="hmi-pad" /></group></group>
   </>;
 }
 export function SpeakerHardware({ speaker, exploded, donorVisible, onStatusChange }: { speaker: Speaker; exploded: boolean; donorVisible: boolean; onStatusChange: ModelStatusChange }) {

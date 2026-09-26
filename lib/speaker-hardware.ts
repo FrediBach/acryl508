@@ -2,6 +2,7 @@ import { sheetThickness } from "./sheet-materials";
 import { Euler, Quaternion, Vector3 } from "three";
 import { myndBoardMounts, myndControlMounts } from "./mynd-mounts";
 import { myndPort, myndPortMounts } from "./mynd-port";
+import { myndControls } from "./mynd-controls";
 import type { Speaker, SpeakerConfiguration, SpeakerPart } from "./speaker";
 
 export type HardwarePoint = [number, number, number];
@@ -63,10 +64,11 @@ export function speakerFasteners(speaker: Speaker, exploded = false): SpeakerFas
     addMount("sheet-washer", "washer", 0.25, 0.5, 3.5, 1.7);
     addMount("sheet-screw", "screw", 0.5, panel.thickness + 3, 2.75, 0);
     if (mount.parent === "top") {
-      // HMI cover upper seating face is 11.6 mm below the inner top face.
-      addMount("support", "spacer", -panel.thickness - 5.8, 11.6, 2.5, 1.5);
-      addMount("cover-washer", "washer", -panel.thickness - 14.35, 0.5, 3.5, 1.7);
-      addMount("cover-screw", "screw", -panel.thickness - 14.6, 5, 2.75, 0, true);
+      const support = myndControls.sheetSourceZ-myndControls.coverUpperZ;
+      const underside = myndControls.sheetSourceZ-myndControls.coverLowerZ;
+      addMount("support", "spacer", -panel.thickness-support/2, support, 2.5, 1.5);
+      addMount("cover-washer", "washer", -panel.thickness-underside-0.25, 0.5, 3.5, 1.7);
+      addMount("cover-screw", "screw", -panel.thickness-underside-0.5, 5, 2.75, 0, true);
     }
   }
   return items;
@@ -81,7 +83,7 @@ export function speakerBoardPlacements(speaker: { config: SpeakerConfiguration; 
     { id: "Main", asset: "pcb-main", parent: "bottom", position: [0, bottom + 12.8, -3], rotation: [-Math.PI / 2, 0, Math.PI / 2], standoff: 12 },
     { id: "Amp", asset: "pcb-amp", parent: "rear", position: [43, -9, rear + 8.8], rotation: [0, 0, 0], standoff: 8 },
     { id: "Bluetooth", asset: "pcb-bluetooth", parent: "rear", position: [-66, 42, rear + 8.8], rotation: [0, 0, 0], standoff: 8 },
-    { id: "UI", asset: "pcb-ui", parent: "top", position: [0, top - 10, 15], rotation: [-Math.PI / 2, 0, 0], standoff: 0 },
+    { id: "UI", asset: "pcb-ui", parent: "top", position: [0, top-myndControls.sheetSourceZ+myndControls.pcbCentreZ, 15], rotation: [-Math.PI / 2, 0, 0], standoff: 0 },
     { id: "Conn_Bat", asset: "pcb-conn-bat", parent: "rear", position: [-83, -9, rear + 10.8], rotation: [0, 0, 0], standoff: 10 },
     { id: "Conn_Amp", asset: "pcb-conn-amp", parent: "rear", position: [109, -14, rear + 8.8], rotation: [0, 0, 0], standoff: 0 },
     { id: "Conn_Baffle", asset: "pcb-conn-baffle", parent: "baffle", position: [0, 58, front - 6.8], rotation: [0, Math.PI, 0], standoff: 6 },
@@ -113,4 +115,8 @@ export function speakerPanelMounts(speaker: { config: SpeakerConfiguration; part
 
 export function speakerPortPlacement(config: SpeakerConfiguration): HardwarePoint {
   return [-config.width/2+sheetThickness(config,"left")-myndPort.sourceFace, -config.height/2, myndPort.depthOrigin];
+}
+
+export function speakerControlPlacement(config: SpeakerConfiguration): HardwarePoint {
+  return [0, config.height/2-sheetThickness(config,"top")-myndControls.sheetSourceZ, myndControls.depthOrigin];
 }

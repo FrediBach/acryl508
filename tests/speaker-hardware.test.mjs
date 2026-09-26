@@ -3,13 +3,63 @@ import test from "node:test";
 import { readFileSync } from "node:fs";
 import { loadTypescript } from "./load-typescript.mjs";
 import { Euler, Quaternion, Vector3 } from "three";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import polygonClipping from "polygon-clipping";
 const { myndBoardMounts } = await loadTypescript("../lib/mynd-mounts.ts");
 const { createSpeaker, defaultSpeakerConfiguration } = await loadTypescript("../lib/speaker.ts");
-const { speakerFasteners, speakerBoardPlacements, speakerPortPlacement } = await loadTypescript("../lib/speaker-hardware.ts");
+const { speakerFasteners, speakerBoardPlacements, speakerPortPlacement, speakerControlPlacement } = await loadTypescript("../lib/speaker-hardware.ts");
+const { myndButtons, myndControls } = await loadTypescript("../lib/mynd-controls.ts");
 const { myndPort, myndPortOpening, myndPortMounts } = await loadTypescript("../lib/mynd-port.ts");
 const manifest = JSON.parse(readFileSync(new URL("../public/models/mynd/manifest.json", import.meta.url)));
 const close = (a,b) => assert.ok(Math.abs(a-b)<1e-8, `${a} ≈ ${b}`);
+
+test("individual control cutouts align with the donor pad and leave its backing below the acrylic", async () => {
+  const bytes=readFileSync(new URL("../public/models/mynd/hmi-pad.glb",import.meta.url));
+  const gltf=await new GLTFLoader().parseAsync(bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength),"");
+  gltf.scene.updateMatrixWorld(true);
+  const exposed=[];
+  gltf.scene.traverse(node=>{
+    if(!node.isMesh)return;
+    const points=node.geometry.attributes.position;
+    for(let i=0;i<points.count;i++) {
+      const point=new Vector3().fromBufferAttribute(points,i).applyMatrix4(node.matrixWorld);
+      if(point.z>myndControls.sheetSourceZ)exposed.push(point);
+    }
+  });
+  assert.ok(exposed.length>100,"Test actual protruding button meshes");
+  const contains=(ring,x,y)=>{
+    let inside=false;
+    for(let i=0,j=ring.length-1;i<ring.length;j=i++) {
+      const [ax,ay]=ring[i],[bx,by]=ring[j];
+      if((ay>y)!==(by>y)&&x<(bx-ax)*(y-ay)/(by-ay)+ax)inside=!inside;
+    }
+    return inside;
+  };
+  for(const topThickness of [3,5,8]) {
+    const s=createSpeaker({...defaultSpeakerConfiguration,controlWidth:160,controlDepth:35,
+      individualSheetMaterials:true,sheetThicknesses:{top:topThickness,baffle:8,rear:3}});
+    const top=s.parts.find(p=>p.id==="top"),cuts=top.polygons[0].slice(1,5);
+    assert.equal(top.polygons[0].length,13,"Four separate control cutouts plus eight mounting holes");
+    assert.equal(s.config.controlWidth,116);assert.equal(s.config.controlDepth,18);
+    const inverse=new Quaternion().setFromEuler(new Euler(...top.rotation)).invert();
+    const sourcePosition=new Vector3(...speakerControlPlacement(s.config));
+    const toSheet=point=>point.clone().applyEuler(new Euler(-Math.PI/2,0,0)).add(sourcePosition).sub(new Vector3(...top.position)).applyQuaternion(inverse);
+    for(const point of exposed) {
+      const local=toSheet(point);
+      assert.ok(cuts.some(r=>contains(r,local.x,local.y)),"Every rubber vertex above the seating face clears a button cutout");
+    }
+    myndButtons.forEach((button,i)=>{
+      const centre=toSheet(new Vector3(button.x,myndControls.buttonSourceY,myndControls.sheetSourceZ));
+      assert.ok(contains(cuts[i],centre.x,centre.y));
+      const width=Math.max(...cuts[i].map(p=>p[0]))-Math.min(...cuts[i].map(p=>p[0]));
+      close(width,button.width);
+    });
+    const support=speakerFasteners(s).find(f=>f.id==="hmi-0-support");
+    close(support.length,7.1);
+    close(support.position[1]-support.length/2,sourcePosition.y+myndControls.coverUpperZ);
+    close(speakerBoardPlacements(s).find(b=>b.id==="UI").position[1],sourcePosition.y+myndControls.pcbCentreZ);
+  }
+});
 
 test("every corner spacer fills the physical gap between the two washers", () => {
   for (const grilleGap of [8,12,25]) for (const depth of [110,220]) for (const thickness of [3,8]) {
@@ -68,7 +118,7 @@ test("source mounts, sheet cuts and screw axes coincide across sizes and mixed t
       const get=suffix=>fasteners.find(f=>f.id===`${mount.id}-${suffix}`);
       const support=get("support"),outer=get("sheet-screw"),inner=get("cover-screw");
       close(support.position[1]+support.length/2,height/2-8);
-      close(support.position[1]-support.length/2,height/2-8-11.6);
+      close(support.position[1]-support.length/2,height/2-8-7.1);
       assert.ok(outer.position[1]-outer.length>inner.position[1]+inner.length,"Opposing top screw tips stay apart");
     }
   }
