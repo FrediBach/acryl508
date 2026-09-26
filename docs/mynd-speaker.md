@@ -276,6 +276,24 @@ in speaker/project JSON, with older designs retaining their original flat base.
 
 ## Optional integral handles
 
+**Handle bend angle** matches the Eurorack case control: **0–90° outward**, with
+0° retaining the original straight profile. Left, right and paired handles use
+the same angle; each side uses its own acrylic thickness for the forming radius.
+The shared bend model uses a 2× thickness inside radius and a mid-thickness
+neutral axis. The bend starts one sheet thickness above the enclosure rim.
+Flat patterns include that clearance and the developed arc allowance; the same
+root trim as the Eurorack handle retains a two-thickness web below the grip and
+the original opening size and 16 mm top rail.
+
+The 3D preview shows formed handles, including in exploded view. Overall width
+and height, and camera framing, include their actual outward reach. Body joints,
+donor mounting holes and chamber volume retain their original positions and
+dimensions. Design JSON includes the local bend start, allowance, radius and
+angle in each affected part. Design SVG adds blue dashed start/end guides;
+Fabrication stock sheets contain flat cuts only, with forming notes listed
+separately. Old projects acquire a 0° bend. Validate forming and carrying strength
+on a sample before using the handles under load.
+
 Handles default to off, with left, right or both sides available. Width is
 100–240 mm (default 160 mm) and rise is 50–110 mm (default 70 mm).
 `createSideProfile` supplies the Eurorack case’s same rounded roots, upper

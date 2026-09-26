@@ -2,7 +2,7 @@
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { Canvas, useThree } from "@react-three/fiber";
 import { ContactShadows, Environment, Lightformer, OrbitControls } from "@react-three/drei";
-import { ExtrudeGeometry, Path, Shape, Vector3 } from "three";
+import { Vector3 } from "three";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { acrylicMaterial } from "@/lib/acrylic-material";
 import { sheetMaterial } from "@/lib/sheet-materials";
@@ -10,37 +10,26 @@ import { type Speaker, type SpeakerPart } from "@/lib/speaker";
 import { PreviewBoundary } from "./stand-preview";
 import { SpeakerHardware } from "./speaker-hardware";
 import { SpeakerModelMessage, type SpeakerModelStatus } from "./speaker-model-status";
+import { speakerPartGeometry } from "@/lib/speaker-bends";
 export type SpeakerView = "perspective" | "front" | "rear";
 type Props = { speaker: Speaker; dark: boolean; exploded: boolean; hardware: boolean; view: SpeakerView; resetKey: number };
 function Sheet({ part, speaker, exploded }: { part: SpeakerPart; speaker: Speaker; exploded: boolean }) {
-  const geometry = useMemo(() => {
-    const shapes=part.polygons.map(polygon=>{
-      const shape=new Shape();
-      polygon.forEach((ring,index)=>{
-        const path=index ? new Path() : shape;
-        ring.forEach(([x,y],i)=>i ? path.lineTo(x/100,y/100) : path.moveTo(x/100,y/100));
-        path.closePath();if(index)shape.holes.push(path);
-      });return shape;
-    });
-    const geometry=new ExtrudeGeometry(shapes,{depth:part.thickness/100,bevelEnabled:false,steps:1,curveSegments:8});
-    geometry.translate(0,0,-part.thickness/200);return geometry;
-  },[part]);
+  const geometry = useMemo(() => speakerPartGeometry(part),[part]);
   useEffect(()=>()=>geometry.dispose(),[geometry]);
   const material=sheetMaterial(speaker.config,part.id);
   return <mesh geometry={geometry} position={part.position.map((v,i)=>(v+(exploded ? part.explode[i] : 0))/100) as [number,number,number]} rotation={part.rotation}>{part.id.startsWith("damping-") ? <meshStandardMaterial color="#292b2c" roughness={0.95} /> : <meshPhysicalMaterial {...acrylicMaterial(material.tint,part.thickness/100,material.transparency)} />}</mesh>;
 }
 function Camera({ speaker,view,resetKey,exploded }: Omit<Props,"dark"|"hardware">) {
   const controls=useRef<OrbitControlsImpl>(null),{camera,size,invalidate}=useThree();
-  const {width}=speaker.config;
-  const {totalHeight,overallDepth,floorY,topY,rearZ,frontZ}=speaker;
+  const {overallWidth:width,leftX,rightX,totalHeight,overallDepth,floorY,topY,rearZ,frontZ}=speaker;
   useEffect(()=>{
     const aspect=size.width/Math.max(1,size.height);
     const distance=Math.max((width+(exploded ? 100 : 0))/100/aspect,(totalHeight+(exploded ? 100 : 0))/100,(overallDepth+100)/100)*2.25;
     const direction=view === "front" ? new Vector3(0,0,1) : view === "rear" ? new Vector3(0,0,-1) : new Vector3(0.85,0.5,1.3).normalize();
-    const target=new Vector3(0,(topY+floorY)/200,(rearZ+frontZ)/200);
+    const target=new Vector3((leftX+rightX)/200,(topY+floorY)/200,(rearZ+frontZ)/200);
     camera.position.copy(direction.multiplyScalar(distance).add(target));camera.lookAt(target);
     if(controls.current){controls.current.target.copy(target);controls.current.update();}invalidate();
-  },[camera,size.width,size.height,width,totalHeight,overallDepth,floorY,topY,rearZ,frontZ,exploded,view,resetKey,invalidate]);
+  },[camera,size.width,size.height,width,leftX,rightX,totalHeight,overallDepth,floorY,topY,rearZ,frontZ,exploded,view,resetKey,invalidate]);
   return <OrbitControls ref={controls} makeDefault enablePan={false} minDistance={1} maxDistance={30} />;
 }
 export function SpeakerPreview(props: Props) {

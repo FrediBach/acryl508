@@ -1,5 +1,6 @@
 import { speakerBuildNotes, speakerHardware, myndSource, myndRevision, type Speaker } from "./speaker";
 import { speakerDampingMaterial } from "./speaker-damping";
+import { speakerBendNotes } from "./speaker-bends";
 import { sheetMaterial } from "./sheet-materials";
 import type { Art } from "./art";
 import type { MultiPolygon } from "polygon-clipping";
@@ -53,7 +54,7 @@ export function artFabrication(art: Art): Fabrication {
     hardware: ["No screws or adhesive. Assemble B slots-up and A slots-down, then form the leaves and insert leaf shelves inward, perpendicular to the bent parent leaves, into their matching slots."], thickness: art.config.thickness, clearance: art.config.clearance, blocked: false };
 }
 export function speakerFabrication(speaker: Speaker): Fabrication {
-  return { parts: [...speaker.parts.map(part => ({ id: part.id, label: part.label, polygons: down(part.polygons), thickness: part.thickness, material: materialLabel(sheetMaterial(speaker.config, part.id).tint, sheetMaterial(speaker.config, part.id).transparency) })), ...speaker.dampingParts.map(part => ({ id: part.id, label: part.label, polygons: down(part.polygons), thickness: part.thickness, material: speakerDampingMaterial }))], warnings: [...speakerBuildNotes, `Adapted from Teufel MYND hardware ${myndSource} revision ${myndRevision}, CC-BY-SA-4.0. Changes: flat acrylic shell, simplified apertures and dot grille.`], hardware: speakerHardware, thickness: speaker.config.thickness, clearance: 0, blocked: false };
+  return { parts: [...speaker.parts.map(part => ({ id: part.id, label: part.label, polygons: down(part.polygons), thickness: part.thickness, material: materialLabel(sheetMaterial(speaker.config, part.id).tint, sheetMaterial(speaker.config, part.id).transparency) })), ...speaker.dampingParts.map(part => ({ id: part.id, label: part.label, polygons: down(part.polygons), thickness: part.thickness, material: speakerDampingMaterial }))], warnings: [...speakerBuildNotes, ...speakerBendNotes(speaker.parts), `Adapted from Teufel MYND hardware ${myndSource} revision ${myndRevision}, CC-BY-SA-4.0. Changes: flat acrylic shell, simplified apertures and dot grille.`], hardware: speakerHardware, thickness: speaker.config.thickness, clearance: 0, blocked: false };
 }
 export function panelFabrication(panel: DesignedPanel): Fabrication {
   return { parts: [{ id: "panel", label: "Panel", polygons: down(panel.polygons), engraving: down(panel.engraving.polygons), material: materialLabel(panel.config.tint, panel.config.transparency) }],

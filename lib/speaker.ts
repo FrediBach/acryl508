@@ -14,6 +14,7 @@ import { handleSizeLimits } from "./configurator";
 import { flatFeetLayout, flatFootHeightLimits, type FlatFootStyle } from "./flat-feet";
 import { speakerDampingParts, speakerDampingThickness, speakerDampingMaterial, speakerDampingNote } from "./speaker-damping";
 import { speakerAcousticChamber, speakerAcousticComparison, speakerAcousticSources } from "./speaker-acoustics";
+import { speakerFormedOutline, speakerBendNotes, type SpeakerBend } from "./speaker-bends";
 
 export const myndSource = "https://github.com/teufelaudio/mynd-hardware";
 export const myndRevision = "149d002334b0725fba03499079bdaf2e61c8ff36";
@@ -31,7 +32,7 @@ export type SpeakerConfiguration = SheetMaterialConfiguration & {
   dotDiameter: number; dotPitch: number; grilleBorder: number; staggered: boolean;
   portWidth: number; portHeight: number; controlWidth: number; controlDepth: number;
   flatFeet: boolean; flatFootStyle: FlatFootStyle; flatFootHeight: number;
-  handle: boolean; handleMode: "left" | "right" | "pair"; handleWidth: number; handleHeight: number;
+  handle: boolean; handleMode: "left" | "right" | "pair"; handleWidth: number; handleHeight: number; handleBendAngle: number;
   damping: boolean; dampingThickness: number;
   acousticDisplacementLitres: number;
 };
@@ -44,6 +45,7 @@ export const speakerLimits = {
   flatFootHeight: flatFootHeightLimits, handleWidth: { ...handleSizeLimits.width, min: 100 }, handleHeight: handleSizeLimits.height,
   dampingThickness: { min: 0.25, max: 2 },
   acousticDisplacementLitres: { min: 0, max: 4 },
+  handleBendAngle: { min: 0, max: 90 },
 };
 export const defaultSpeakerConfiguration: SpeakerConfiguration = {
   ...defaultSheetMaterials, width: 280, height: 210, depth: 120, thickness: 5,
@@ -51,7 +53,7 @@ export const defaultSpeakerConfiguration: SpeakerConfiguration = {
   dotDiameter: 3, dotPitch: 5, grilleBorder: 18, staggered: true,
   portWidth: myndPort.width, portHeight: myndPort.openingHeight, controlWidth: myndControls.width, controlDepth: myndControls.depth,
   flatFeet: false, flatFootStyle: "pads", flatFootHeight: 15,
-  handle: false, handleMode: "pair", handleWidth: 160, handleHeight: 70,
+  handle: false, handleMode: "pair", handleWidth: 160, handleHeight: 70, handleBendAngle: 0,
   damping: false, dampingThickness: 1,
   acousticDisplacementLitres: 0,
 };
@@ -67,7 +69,7 @@ export function normalizeSpeakerConfiguration(input: SpeakerConfiguration): Spea
   return config;
 }
 const circle = (x: number, y: number, r: number) => speakerRoundedRect(x,y,r*2,r*2,r);
-export type SpeakerPart = { id: string; label: string; width: number; height: number; thickness: number; polygons: MultiPolygon; position: [number,number,number]; rotation: [number,number,number]; explode: [number,number,number] };
+export type SpeakerPart = { id: string; label: string; width: number; height: number; thickness: number; polygons: MultiPolygon; position: [number,number,number]; rotation: [number,number,number]; explode: [number,number,number]; bend?: SpeakerBend };
 export function createSpeaker(input: SpeakerConfiguration) {
   const config = normalizeSpeakerConfiguration(input);
   const { width: w, height: h, depth: d } = config;
@@ -120,12 +122,14 @@ export function createSpeaker(input: SpeakerConfiguration) {
   }
   const dampingParts = speakerDampingParts(config);
   const grossVolumeLitres = innerWidth*innerHeight*(innerDepth+2*gasket)/1e6;
-  const topY = h/2+(config.handle ? config.handleHeight : 0), floorY = -h/2-footHeight;
+  const handleOutline = parts.filter(p => handleSides.includes(p.id as "left" | "right")).flatMap(speakerFormedOutline);
+  const topY = Math.max(h/2,...handleOutline.map(p => p.y)), floorY = -h/2-footHeight;
+  const leftX = Math.min(-w/2,...handleOutline.map(p => p.x)), rightX = Math.max(w/2,...handleOutline.map(p => p.x));
   const handleCentreZ = (t("rear")-t("baffle"))/2;
   const rearZ = Math.min(-d/2-gasket,config.handle ? handleCentreZ-config.handleWidth/2 : -d/2-gasket);
   const frontZ = Math.max(d/2+gasket+config.grilleGap+t("grille"),config.handle ? handleCentreZ+config.handleWidth/2 : d/2+gasket);
-  const handles = {enabled:config.handle,mode:config.handleMode,sides:handleSides,widthMm:config.handleWidth,riseMm:config.handleHeight,additionalParts:0};
-  return { config, parts, dampingParts, mounts, driverMounts, panelMounts, carrierJoints, feet, handles, totalHeight:topY-floorY, floorY, topY, rearZ, frontZ, overallDepth:frontZ-rearZ, dots, innerWidth, innerHeight, innerDepth:innerDepth+2*gasket, grossVolumeLitres,
+  const handles = {enabled:config.handle,mode:config.handleMode,sides:handleSides,widthMm:config.handleWidth,riseMm:config.handleHeight,bendAngleDegrees:config.handle ? config.handleBendAngle : 0,additionalParts:0};
+  return { config, parts, dampingParts, mounts, driverMounts, panelMounts, carrierJoints, feet, handles, totalHeight:topY-floorY, floorY, topY, leftX, rightX, overallWidth:rightX-leftX, rearZ, frontZ, overallDepth:frontZ-rearZ, dots, innerWidth, innerHeight, innerDepth:innerDepth+2*gasket, grossVolumeLitres,
     bodyDepth: d+2*gasket, totalDepth: d+2*gasket+config.grilleGap+t("grille"), openArea: dots.length*Math.PI*(config.dotDiameter/2)**2/((w-2*config.grilleBorder)*(h-2*config.grilleBorder))*100 };
 }
 export type Speaker = ReturnType<typeof createSpeaker>;
@@ -138,7 +142,7 @@ export const speakerBuildNotes = [
   "Two internal acrylic carriers hold all 19 PCB standoff mounts: 10 in the raised PCB floor and 9 in the PCB backplate. Flush tabs fit eight rectangular side-wall slots; bond and seal the joints. At least 5 mm behind each carrier encloses the 3.5 mm screw-head/washer stack. The raised floor and backplate edges clear the corner tie rods. The minimum body height is 210 mm to accommodate the raised electronics; the main board is turned to keep its taller components away from the woofer. The outer bottom is unperforated and flat; the outer rear and baffle have no PCB screw holes. The top retains 8 control-cover mounting holes. Verify standoff lengths and screw engagement on the donor.",
   "The side opening follows the source port-housing access wire, with two Ø2.8 mm side screw holes and two Ø3.4 mm recessed-mount screw holes. Retain the flange behind the acrylic, use the illustrated M2.5/M3 through fasteners and two 7 mm counterbore sleeves, and seal the contact face. Verify screw lengths and the donor’s mounting method. The top has three Ø18 mm button cutouts and one 38 × 18 mm capsule for the combined volume rocker. The HMI assembly sits on 7.1 mm supports, with its rubber backing beneath the sheet. Verify button travel, finger access with thicker acrylic, clearances and sealing. Battery restraint, tweeter retainers and sealing gaskets require donor measurements and are not included in the acrylic cutting patterns.",
   "Optional feet extend the side-sheet profiles using pads, arches or runners. With feet enabled, the base fits between the extended sides to avoid overlapping acrylic; the enclosure and PCB joints stay at the same height. All feet share a level contact plane. Prototype stability and protect the acrylic contact edges as needed.",
-  "Optional handles extend one or both side sheets, using the Eurorack case’s rounded roots and grip opening. The top nests between the extended sides without moving the controls. Handle width and rise affect the cutting envelope, not the chamber volume. Prototype carrying strength and bonded joints before lifting the assembled speaker.",
+  "Optional handles extend one or both side sheets, using the Eurorack case’s rounded roots and grip opening. A 0–90° outward bend uses the same two-thickness inside radius, half-thickness neutral axis, clearance and developed flat allowance as the Eurorack case. Cutting patterns stay flat; formed dimensions include the outward reach. The top nests between the extended sides without moving the controls. Handle width and rise affect the cutting envelope, not the chamber volume. Prototype carrying strength and bonded joints before lifting the assembled speaker.",
   "The dot grille sits outside the acoustic chamber. Keep both passive radiators free to move. Gross internal volume excludes drivers, boards, battery and bracing; it is not the stock acoustic volume. Prototype sealing, panel resonance, radiator travel and DSP tuning. The replacement enclosure has no validated acoustic or IP rating.",
 ];
 export const speakerHardware = ["MYND donor: 1 woofer, 2 tweeters, 2 passive radiators; retain original gaskets and frames", "Original MYND electronics, protected battery pack, controls, USB-C/AUX pods and wiring", "4 M3 corner tie rods, 4 rear nuts, 4 threaded grille spacers, 4 grille screws and 16 corner washers; size to the chosen depth", "20 illustrative M3 driver/radiator screws and washers; verify thread and engagement against the donor", "Front and rear damping frames when enabled; otherwise a donor-measured rear seal. Acrylic-compatible bonding system and port/control sealing gaskets", "19 PCB standoffs with board-side and sheet-side screws / washers; 8 HMI-cover supports with screws / washers on both sides", "Port housing: 2 M2.5 and 2 M3 through screws, 4 nuts, 8 washers and 2 counterbore sleeves (7 mm); verify donor fit", "Battery restraint and driver mounting adapters / retainers"];
@@ -154,18 +158,18 @@ export function speakerSheetLayout(speaker: Speaker) {
 export function speakerExport(speaker: Speaker) {
   return { product:"Acryl508",mode:"speaker",version:1,units:"mm",status:"unvalidated-prototype",configuration:speaker.config,
     source:{repository:myndSource,revision:myndRevision,license:"CC-BY-SA-4.0",changes:"Flat acrylic enclosure, simplified seating apertures, service openings and perforated grille; not a Teufel product or validated replacement."},
-    dimensions:{width:speaker.config.width,height:speaker.config.height,totalHeight:speaker.totalHeight,bodyDepth:speaker.bodyDepth,totalDepth:speaker.totalDepth,overallDepth:speaker.overallDepth,grossVolumeLitres:speaker.grossVolumeLitres},
+    dimensions:{width:speaker.config.width,overallWidth:speaker.overallWidth,height:speaker.config.height,totalHeight:speaker.totalHeight,bodyDepth:speaker.bodyDepth,totalDepth:speaker.totalDepth,overallDepth:speaker.overallDepth,grossVolumeLitres:speaker.grossVolumeLitres},
     damping:{enabled:speaker.config.damping,thickness:speaker.config.dampingThickness,material:speakerDampingMaterial,parts:speaker.dampingParts,notes:speakerDampingNote},
     acoustics:{model:"Air-spring-only relative trend and empty rigid-box first axial modes; not a frequency response or bass-cutoff prediction",reference:"Default acrylic case, not the original MYND enclosure",displacementLitres:speaker.config.acousticDisplacementLitres,
       ...speakerAcousticComparison(speakerAcousticChamber(speaker.config),speakerAcousticChamber(defaultSpeakerConfiguration),speaker.config.acousticDisplacementLitres),sources:speakerAcousticSources},
     feet:{...speaker.feet,method:"Integral side-panel profiles",additionalParts:0,contactCount:speaker.feet.enabled ? speaker.feet.style === "runners" ? 2 : 4 : 0},
-    handles:{...speaker.handles,method:"Integral side-panel grips",roundedRoots:true},
+    handles:{...speaker.handles,method:"Integral side-panel grips",roundedRoots:true,bends:speaker.parts.filter(p=>p.bend).map(p=>({side:p.id,...p.bend})),formingNotes:speakerBendNotes(speaker.parts)},
     previewHardware:{modelManifest:"/models/mynd/manifest.json",fasteners:speakerFasteners(speaker),boardPlacements:speakerBoardPlacements(speaker),status:"Source PCB/component/mechanical meshes; reconstructed drivers and battery; provisional placement and cable routing"},
     grille:{holes:speaker.dots.length,openAreaPercent:speaker.openArea},drivers:myndDrivers,panelMounts:speaker.panelMounts,carrierJoints:speaker.carrierJoints,parts:speaker.parts,sheetMaterials:sheetMaterialExport(speaker.config,speaker.parts),hardware:speakerHardware,notes:speakerBuildNotes,
-    coordinates:"Millimetres. Sheet X right, Y up, thickness centred on local Z. Apply XYZ Euler rotation (radians) then position for assembly. Scene Z points forward. Explode vectors are preview-only offsets.",
+    coordinates:"Millimetres. Part polygons are flat cutting profiles. For a part with bend metadata, form the handle outward from its local startMm using allowanceMm before applying assembly rotation and position. Sheet X right, Y up, thickness centred on local Z. Apply XYZ Euler rotation (radians) then position for assembly. Scene Z points forward. Explode vectors are preview-only offsets.",
   };
 }
 export function speakerSvg(speaker: Speaker) {
   const layout=speakerSheetLayout(speaker);
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="${layout.width}mm" height="${layout.height}mm" viewBox="0 0 ${layout.width} ${layout.height}"><title>Acryl508 MYND acrylic speaker / ${speaker.parts.length} sheets${speaker.dampingParts.length ? ` + ${speaker.dampingParts.length} damping gaskets` : ""}</title><desc>Prototype. Verify donor fit, adapters and acoustic tuning before fabrication. Red: finished cut edges; apply kerf once in CAM. Adapted from Teufel MYND hardware ${myndSource} revision ${myndRevision}, CC-BY-SA-4.0. Changes: flat sheet enclosure, simplified apertures and dot grille. ${speakerBuildNotes.join(" ")}</desc>${layout.parts.map(({part,x,y})=>`<g id="${part.id}" ${part.id.startsWith("damping-") ? `data-material="${speakerDampingMaterial}" data-thickness-mm="${part.thickness}"` : sheetMaterialAttributes(speaker.config,part.id)} transform="translate(${x} ${y})"><title>${part.label}</title><path data-operation="cut" d="${standPathData(part.polygons)}" fill="none" stroke="#ef4444" stroke-width="0.2"/></g>`).join("")}</svg>`;
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="${layout.width}mm" height="${layout.height}mm" viewBox="0 0 ${layout.width} ${layout.height}"><title>Acryl508 MYND acrylic speaker / ${speaker.parts.length} sheets${speaker.dampingParts.length ? ` + ${speaker.dampingParts.length} damping gaskets` : ""}</title><desc>Prototype. Verify donor fit, adapters and acoustic tuning before fabrication. Red: finished cut edges; apply kerf once in CAM. Flat, unbent cutting profiles; blue dashed lines are bend guides, not cuts. Adapted from Teufel MYND hardware ${myndSource} revision ${myndRevision}, CC-BY-SA-4.0. Changes: flat sheet enclosure, simplified apertures and dot grille. ${[...speakerBuildNotes,...speakerBendNotes(speaker.parts)].join(" ")}</desc>${layout.parts.map(({part,x,y})=>`<g id="${part.id}" ${part.id.startsWith("damping-") ? `data-material="${speakerDampingMaterial}" data-thickness-mm="${part.thickness}"` : sheetMaterialAttributes(speaker.config,part.id)} transform="translate(${x} ${y})"><title>${part.label}</title><path data-operation="cut" d="${standPathData(part.polygons)}" fill="none" stroke="#ef4444" stroke-width="0.2"/>${part.bend ? `<path data-operation="bend-guide" d="M ${-speaker.config.handleWidth/2} ${-part.bend.startMm} H ${speaker.config.handleWidth/2} M ${-speaker.config.handleWidth/2} ${-part.bend.startMm-part.bend.allowanceMm} H ${speaker.config.handleWidth/2}" fill="none" stroke="#2563eb" stroke-width="0.2" stroke-dasharray="2 1"/>` : ""}</g>`).join("")}</svg>`;
 }

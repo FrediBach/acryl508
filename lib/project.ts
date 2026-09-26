@@ -182,6 +182,7 @@ export function readSpeaker(input: unknown): SpeakerConfiguration {
   const config = sheetMaterials(material(base(input, defaultSpeakerConfiguration)), /^(baffle|rear|top|bottom|left|right|grille|pcb-floor|pcb-rear)$/, 3, 8);
   config.flatFootStyle = choice(config.flatFootStyle,["pads","arch","runners"],"speaker feet style");
   config.handleMode = choice(config.handleMode,["left","right","pair"],"speaker handle layout");
+  config.handleBendAngle = number(config.handleBendAngle,"Speaker handle bend angle",0,90);
   return normalizeSpeakerConfiguration(config);
 }
 const readers = { speaker: readSpeaker, case: readCase, stand: readStand, protector: readProtector, panel: readPanel, art: readArt };
