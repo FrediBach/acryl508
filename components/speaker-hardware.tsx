@@ -6,6 +6,7 @@ import { myndDrivers, speakerRoundedRect, type Speaker } from "@/lib/speaker";
 import { sheetThickness } from "@/lib/sheet-materials";
 import { speakerBoardPlacements, speakerFasteners, type HardwarePoint, type SpeakerFastener } from "@/lib/speaker-hardware";
 import manifest from "@/public/models/mynd/manifest.json";
+import { myndBoardMounts } from "@/lib/mynd-mounts";
 
 const modelUrls = Object.values(manifest.assets).map(asset => `/models/mynd/${asset.file}`);
 // Cached source GLBs remain immutable. Each placed assembly gets its own scene
@@ -40,7 +41,7 @@ function Screw({ length, radius = 2.75 }: { length: number; radius?: number }) {
   </group>;
 }
 function Fastener({ item }: { item: SpeakerFastener }) {
-  return <group name={item.id} position={item.position} rotation={[0, item.direction < 0 ? Math.PI : 0, 0]}>
+  return <group name={item.id} position={item.position} rotation={item.rotation ?? [0, item.direction < 0 ? Math.PI : 0, 0]}>
     {item.kind === "screw" ? <Screw length={item.length} radius={item.radius} /> : item.kind === "rod" ? <mesh rotation={[Math.PI / 2, 0, 0]}><cylinderGeometry args={[item.radius, item.radius, item.length, 12]} /><meshStandardMaterial color="#777d83" metalness={0.85} roughness={0.3} /></mesh> : <Annulus radius={item.radius} bore={item.bore} length={item.length} hex={item.kind === "nut" || item.kind === "spacer"} />}
   </group>;
 }
@@ -88,8 +89,7 @@ function SourceAssemblies({ speaker, exploded }: { speaker: Speaker; exploded: b
   const boards = speakerBoardPlacements(speaker, exploded);
   return <>
     {boards.map(board => {
-      const data = manifest.assets[board.id as keyof typeof manifest.assets];
-      const mounts = "mounts" in data ? data.mounts : [];
+      const mounts = myndBoardMounts[board.id] ?? [];
       return <group key={board.id} name={`MYND ${board.id} PCB`} position={board.position} rotation={board.rotation}>
         <SourceModel asset={board.asset} />
         {board.standoff > 0 && mounts.map(([x, y, diameter], i) => <group key={i} position={[x, y, 0]}>

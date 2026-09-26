@@ -14,7 +14,7 @@ test("MYND baffle keeps source driver centres, two radiators and mounting holes"
   assert.equal(myndDrivers.filter(d=>d.kind === "radiator").length,2);
   assert.deepEqual(myndDrivers.map(d=>[d.x,d.y]),[[0,-24],[-93,53.3],[93,53.3],[-82,-18],[82,-18]]);
   assert.equal(speaker.driverMounts.length,20);
-  assert.equal(baffle.polygons[0].length,1+5+20+4);
+  assert.equal(baffle.polygons[0].length,1+5+20+4+3);
   assert.deepEqual(createSpeaker({...defaults,width:400,height:260}).parts[0].polygons[0].slice(1,6),baffle.polygons[0].slice(1,6));
   // Resolve rings independently: overlapping holes or cuts outside a panel
   // would change the count or area and invalidate the direct polygon geometry.

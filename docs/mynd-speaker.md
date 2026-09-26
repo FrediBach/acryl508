@@ -104,8 +104,17 @@ washers, and PCB standoffs/screws at the source mounting centres. Profiles are
 illustrative M3 hardware, not a specified supplier part. Spacers fill the chosen
 gap less two 0.5 mm washers; rod reach and screw lengths follow the actual sheets.
 Items move with their attachment panels in exploded view and keep their physical
-length. Source PCB mounting locations are shown; mounting holes in the enclosure
-and required supports are still subject to the proposed internal arrangement.
+length. The same source mount coordinates now drive enclosure cuts and hardware:
+six Ø3.4 mm main-board holes in the bottom, ten Ø3.4 mm holes in the rear
+(amplifier, Bluetooth and battery connector), and three Ø3.4 mm connector-board
+holes in the baffle. The top has eight Ø3.5 mm HMI-cover mounting holes at
+X = −66, −22, 22, 66 and scene Z = ±22 mm. These are extracted from the
+released HMI cover's source X/Y centres (Y = 35.17 / 79.17 mm); its seating
+faces are source Z = 156.4 / 158.9 mm. The proposed top supports span 11.6 mm
+from the upper seating face to the sheet. Exterior washers/screws and the
+cover's interior screws are rendered on those axes. All holes appear in both
+3D and cutting exports, including mixed sheet thicknesses. Support lengths,
+thread engagement, pod sealing and the overall arrangement remain provisional.
 
 The manufacturer's [MYND specifications](https://hr.teufelaudio.com/mynd-107002004)
 identify one nominal 90 mm woofer, two nominal 20 mm tweeters and a three-channel

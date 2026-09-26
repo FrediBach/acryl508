@@ -2,6 +2,9 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
 import { loadTypescript } from "./load-typescript.mjs";
+import { Euler, Quaternion, Vector3 } from "three";
+import polygonClipping from "polygon-clipping";
+const { myndBoardMounts } = await loadTypescript("../lib/mynd-mounts.ts");
 const { createSpeaker, defaultSpeakerConfiguration } = await loadTypescript("../lib/speaker.ts");
 const { speakerFasteners, speakerBoardPlacements } = await loadTypescript("../lib/speaker-hardware.ts");
 const manifest = JSON.parse(readFileSync(new URL("../public/models/mynd/manifest.json", import.meta.url)));
@@ -11,8 +14,8 @@ test("every corner spacer fills the physical gap between the two washers", () =>
   for (const grilleGap of [8,12,25]) for (const depth of [110,220]) for (const thickness of [3,8]) {
     const s=createSpeaker({...defaultSpeakerConfiguration,grilleGap,depth,thickness});
     const f=speakerFasteners(s);
-    assert.equal(f.filter(p=>p.kind === "spacer").length,4);
-    assert.equal(f.filter(p=>p.kind === "screw").length,24);
+    assert.equal(f.filter(p=>p.kind === "spacer" && p.id.startsWith("corner-")).length,4);
+    assert.equal(f.filter(p=>p.kind === "screw").length,59);
     for(let i=1;i<=4;i++) {
       const get=suffix=>f.find(p=>p.id === `corner-${i}-${suffix}`);
       const spacer=get("spacer"), back=get("baffle-washer"), front=get("grille-inner-washer");
@@ -23,6 +26,49 @@ test("every corner spacer fills the physical gap between the two washers", () =>
       close(screw.position[2],depth/2+grilleGap+thickness+0.5);
       assert.ok(screw.position[2]-screw.length > rod.position[2]+rod.length/2, "Opposing threads do not overlap in the spacer");
       assert.ok(rod.position[2]-rod.length/2 < -depth/2-3, "Rod engages the rear nut");
+    }
+  }
+});
+
+test("source mounts, sheet cuts and screw axes coincide across sizes and mixed thicknesses", () => {
+  for (const [id,mounts] of Object.entries(myndBoardMounts)) assert.deepEqual(mounts,manifest.assets[id].mounts);
+  for (const depth of [110,220]) for (const height of [190,300]) for (const thickness of [3,8]) {
+    const s=createSpeaker({...defaultSpeakerConfiguration,depth,height,thickness,controlDepth:35,
+      individualSheetMaterials:true,sheetThicknesses:{baffle:3,rear:8,top:8,bottom:3}});
+    const fasteners=speakerFasteners(s);
+    assert.deepEqual(Object.fromEntries(["top","bottom","rear","baffle"].map(id=>[id,s.panelMounts.filter(m=>m.parent===id).length])),{top:8,bottom:6,rear:10,baffle:3});
+    for (const mount of s.panelMounts) {
+      const panel=s.parts.find(p=>p.id===mount.parent);
+      const inverse=new Quaternion().setFromEuler(new Euler(...panel.rotation)).invert();
+      const screw=fasteners.find(f=>f.id===`${mount.id}-sheet-screw`);
+      const local=new Vector3(...screw.position).sub(new Vector3(...panel.position)).applyQuaternion(inverse);
+      close(local.x,mount.position[0]);close(local.y,mount.position[1]);
+      close(Math.abs(local.z),panel.thickness/2+0.5);
+      const axis=new Vector3(0,0,1).applyEuler(new Euler(...screw.rotation));
+      assert.ok(new Vector3(...screw.position).sub(new Vector3(...panel.position)).dot(axis)>0,"Screw head faces outside");
+      const ring=panel.polygons[0].find(r=>Math.abs(Math.min(...r.map(p=>p[0]))-(mount.position[0]-mount.diameter/2))<1e-7 && Math.abs(Math.min(...r.map(p=>p[1]))-(mount.position[1]-mount.diameter/2))<1e-7);
+      assert.ok(ring,`${mount.id} is an actual cut`);
+    }
+    for(const board of speakerBoardPlacements(s).filter(b=>b.standoff)) {
+      const panel=s.parts.find(p=>p.id===board.parent);
+      const inverse=new Quaternion().setFromEuler(new Euler(...panel.rotation)).invert();
+      myndBoardMounts[board.id].forEach(([x,y],i)=>{
+        const foot=new Vector3(x,y,-0.8-board.standoff).applyEuler(new Euler(...board.rotation)).add(new Vector3(...board.position)).sub(new Vector3(...panel.position)).applyQuaternion(inverse);
+        const mount=s.panelMounts.find(m=>m.id===`pcb-${board.id}-${i}`);
+        close(foot.x,mount.position[0]);close(foot.y,mount.position[1]);close(Math.abs(foot.z),panel.thickness/2);
+      });
+    }
+    for (const panel of s.parts.filter(p=>p.id!=="grille")) {
+      const [outer,...holes]=panel.polygons[0];
+      const cut=polygonClipping.difference([[outer]],...holes.map(r=>[[r]]));
+      assert.equal(cut.length,1);assert.equal(cut[0].length,holes.length+1,`${panel.id}: all holes are enclosed and separate`);
+    }
+    for (const mount of s.panelMounts.filter(m=>m.parent==="top")) {
+      const get=suffix=>fasteners.find(f=>f.id===`${mount.id}-${suffix}`);
+      const support=get("support"),outer=get("sheet-screw"),inner=get("cover-screw");
+      close(support.position[1]+support.length/2,height/2-8);
+      close(support.position[1]-support.length/2,height/2-8-11.6);
+      assert.ok(outer.position[1]-outer.length>inner.position[1]+inner.length,"Opposing top screw tips stay apart");
     }
   }
 });
