@@ -171,7 +171,7 @@ function ControlsAndKeys({ layout, controls }: { layout: ExampleSynthLayout; con
 
 function SynthPatch({ layout, controls, patch, index }: { layout: ExampleSynthLayout; controls: Controls; patch: Controls["patches"][number]; index: number }) {
   const curve = useMemo(() => createExampleSynthPatchCurve(layout, controls, patch, index), [layout, controls, patch, index]);
-  return <mesh><tubeGeometry args={[curve, 40, Math.min(1.15, layout.controlHeight * 0.09), 8, false]} /><meshStandardMaterial color={patch.color} roughness={0.7} /></mesh>;
+  return <mesh castShadow><tubeGeometry args={[curve, 64, Math.min(1.15, layout.controlHeight * 0.09), 8, false]} /><meshStandardMaterial color={patch.color} roughness={0.7} /></mesh>;
 }
 
 export function ExampleSynth({ width, depth, height, heightReference = "envelope" }: { width: number; depth: number; height: number; heightReference?: "envelope" | "body" }) {

@@ -76,7 +76,7 @@ test("protector keys, wheels, and actual cable tubes fit the minimum 15 mm body-
     const controls = createExampleSynthControls(layout);
     for (const [index, patch] of controls.patches.entries()) {
       const curve = createExampleSynthPatchCurve(layout, controls, patch, index);
-      const tube = new TubeGeometry(curve, 40, Math.min(1.15, layout.controlHeight * 0.09), 8, false);
+      const tube = new TubeGeometry(curve, 64, Math.min(1.15, layout.controlHeight * 0.09), 8, false);
       tube.computeBoundingBox();
       const { min, max } = tube.boundingBox;
       assert.ok(min.y >= layout.panelTop, `${label}: cable stays above the panel`);
