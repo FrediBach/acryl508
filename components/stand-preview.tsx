@@ -8,6 +8,7 @@ import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import type { MultiPolygon } from "polygon-clipping";
 import { acrylicMaterial, acrylicEdgeOpacity, type AcrylicTint, type AcrylicTransparency } from "@/lib/acrylic-material";
 import { UploadedObject } from "@/components/uploaded-object";
+import { ExampleSynth } from "@/components/example-synth";
 import { sheetMaterial } from "@/lib/sheet-materials";
 import type { SynthStand, StandPart } from "@/lib/synth-stand";
 import { bentPanelGeometry, bentPanelEdges } from "@/lib/bent-panel-geometry";
@@ -47,12 +48,7 @@ function StandModel({ stand, exploded, instrument }: Pick<Props, "stand" | "expl
       <Sheet polygons={part.polygons} {...sheetMaterial(config, part.id)} />
     </group>)}
     {instrument && config.object ? (config.bentSheet ? <group position={[0, frontHeight * unit + lift * 1.5 + (exploded ? 0.7 : 0), 0]} rotation={[angle, 0, 0]}><UploadedObject object={config.object} angle={0} /></group> : <UploadedObject object={config.object} angle={config.angle} floor={frontHeight} lift={lift + (exploded ? 0.7 : 0)} />) : instrument && <group position={[0, frontHeight * unit + lift * (config.bentSheet ? 1.5 : 1) + (exploded ? 0.7 : 0), 0]} rotation={[angle, 0, 0]}>
-      <mesh position={[0, config.height * unit / 2, -config.depth * unit / 2]}>
-        <boxGeometry args={[config.width * unit, config.height * unit, config.depth * unit]} /><meshStandardMaterial color="#383c39" roughness={0.7} transparent opacity={0.72} />
-      </mesh>
-      <mesh position={[0, config.height * unit + 0.005, -config.depth * unit * 0.6]} rotation={[-Math.PI / 2, 0, 0]}>
-        <planeGeometry args={[config.width * unit * 0.7, config.depth * unit * 0.2]} /><meshStandardMaterial color="#676e64" roughness={0.8} />
-      </mesh>
+      <ExampleSynth width={config.width} depth={config.depth} height={config.height} />
     </group>}
   </group>;
 }

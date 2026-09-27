@@ -174,6 +174,14 @@ screws, adhesive or bent parts. Stand the braces slots-up, then lower the ribs
 slots-down. These open joints lift apart: remove the instrument before moving
 the stand.
 
+**Show synth envelope** adds a procedural analog-style instrument with walnut
+sides, labeled control sections, patch sockets and cords. Width and depth select
+a desktop module or a standard 25/32/37/49/61/73/88-key layout with fixed key
+pitch and pitch/mod wheels. Controls stay inside the specified height. The
+illustrative instrument follows the stand's tilt and exploded view; uploaded
+models continue to show the original object. Visual references are Moog's
+Matriarch and [Mother-32](https://www.moogmusic.com/synthesizers/mother-32/).
+
 **Bent sheet** is a third construction option: one angled tray, a small front
 lip formed 90° upward, a larger rear fold formed 90° downward, and exactly two
 perpendicular diagonal supports. Four square holes in the tray locate the
