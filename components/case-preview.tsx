@@ -20,6 +20,7 @@ import { TrolleyPreview } from "@/components/trolley-preview";
 import { SinusodaPreview } from "@/components/sinusoda-preview";
 import { CompactPwrPreview } from "@/components/compactpwr-preview";
 import { CompactPwrInletPreview } from "@/components/compactpwr-inlet-preview";
+import { ExampleModules } from "@/components/example-modules";
 
 import { EngravingSurface, LedStripPreview } from "./engraving-preview";
 import { mapPolygons, polygonsToShapes, type CutoutSide } from "@/lib/custom-cutouts";
@@ -84,17 +85,6 @@ function RailFastener({ side, width, thickness, y, z, explode }: { side: number;
     <Screw side position={[side * (face + 0.024), 0, 0]} />
   </group>;
 }
-function ExampleModules({ width, y, z, units, length }: { width: number; y: number; z: number; units: 1 | 3; length: number }) {
-  const count = Math.max(2, Math.floor(width / 0.43));
-  const panelWidth = width / count;
-  const panelLength = length - 0.0485;
-  const controls = units === 1 ? [0] : [-0.35, 0, 0.35];
-  return <group position={[0, y, z]}>{Array.from({ length: count }, (_, i) => <group key={i} position={[-width / 2 + (i + 0.5) * panelWidth, 0, 0]}>
-    <mesh castShadow><boxGeometry args={[panelWidth - 0.007, 0.02, panelLength]} /><meshStandardMaterial color={i % 4 === 2 ? "#242729" : "#c7c9c4"} metalness={0.5} roughness={0.45} /></mesh>
-    {controls.map((controlZ, j) => <group key={j} position={[0, 0.055, controlZ]}><mesh castShadow><cylinderGeometry args={[0.048, 0.058, 0.075, 24]} /><meshStandardMaterial color="#171a1a" roughness={0.62} /></mesh><mesh position={[0, 0.039, -0.023]}><boxGeometry args={[0.005, 0.002, 0.024]} /><meshStandardMaterial color="#dedbd2" /></mesh></group>)}
-    {[-1, 1].map(side => <Screw key={side} position={[0, 0.022, side * (panelLength / 2 - 0.0525)]} />)}
-  </group>)}</group>;
-}
 function RowPanelSheet({ rowPanel, explode }: { rowPanel: CasePanels["rowPanels"][number]; explode: number }) {
   const { panel, attachment } = rowPanel;
   const { config } = panel, thickness = config.thickness / 100;
@@ -131,8 +121,8 @@ function AcrylicCase({ config, panels, exploded, modules }: Pick<Props, "config"
       </group>)}
       {rackRowLayout(config).map(row => {
         const customPanel = panels.rowPanels.find(panel => panel.index === row.index);
-        const z = row.center * unit, railOffset = row.railOffset * unit, length = row.length * unit;
-        return <group key={row.index} position={[0, h + row.rise * unit, z]} rotation={[row.angle * Math.PI / 180, 0, 0]}>{!customPanel && [-1, 1].map(end => <group key={end}><Rail width={innerWidth} y={-0.07 + explode} z={end * railOffset} />{[-1, 1].map(side => <RailFastener key={side} side={side} width={innerWidth + 2 * (side === -1 ? t.left : t.right)} thickness={side === -1 ? t.left : t.right} y={-0.07} z={end * railOffset} explode={explode} />)}</group>)}{customPanel ? <RowPanelSheet rowPanel={customPanel} explode={explode} /> : modules && <ExampleModules width={innerWidth - 0.02} y={explode * 2} z={0} units={row.units} length={length} />}</group>;
+        const z = row.center * unit, railOffset = row.railOffset * unit;
+        return <group key={row.index} position={[0, h + row.rise * unit, z]} rotation={[row.angle * Math.PI / 180, 0, 0]}>{!customPanel && [-1, 1].map(end => <group key={end}><Rail width={innerWidth} y={-0.07 + explode} z={end * railOffset} />{[-1, 1].map(side => <RailFastener key={side} side={side} width={innerWidth + 2 * (side === -1 ? t.left : t.right)} thickness={side === -1 ? t.left : t.right} y={-0.07} z={end * railOffset} explode={explode} />)}</group>)}{customPanel ? <RowPanelSheet rowPanel={customPanel} explode={explode} /> : modules && <ExampleModules hp={config.hp} y={explode * 2} units={row.units} rowIndex={row.index} />}</group>;
       })}
       {config.busboard === "sinusoda" && panels.powerBoard?.fits && <SinusodaPreview baseTop={baseTop - explode} />}
       {config.busboard === "trolley" && panels.powerBoard?.fits && <TrolleyPreview baseTop={baseTop - explode} offsetX={panels.powerBoard.x} />}

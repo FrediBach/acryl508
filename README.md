@@ -28,6 +28,7 @@ This starter does not use `wrangler.jsonc`.
 - automatic slotted acrylic synth stands with solid ribs, three cross braces, 3D and cutting layouts, and JSON/SVG export
 - optional local STL/OBJ fitting for stands and protectors, with units, orientation and angle controls; protectors use a level cover above the posed model and individual contour-fitted feet with broad locating lips
 - interactive Three.js case preview with ordered, mix-and-match 1U/3U rows, live dimensions, and optional per-sheet acrylic colors and transparency
+- width-aware example modules with fixed HP sizes, labeled VCO/VCF/VCA/modulation panels, 1U utilities, and connected patch cables; enable them with **Show example modules** in the preview
 - interlocking case panels retained by rail-end screws, with stance and handles integral to the side panels
 - individual case-sheet thicknesses (3–6 mm), with matching joint slots, tab reach, ventilation, preview and fabrication stock grouping
 - adjustable side-panel retaining margins from the original 2× sheet thickness to a guarded near-flush 1× profile
