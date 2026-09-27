@@ -189,8 +189,8 @@ model scale, negative X/Y/Z rotations, offset, bottom-side flip, footprint rotat
 and footprint position, with KiCad's downward Y converted to upward Y.
 
 Board placements in the acrylic shell are proposed arrangements, not the stock
-assembly. The main board follows the internal floor, the amplifier/Bluetooth boards follow
-the internal backplate, control parts follow the top, port parts follow the left side and driver
+assembly. The main and Bluetooth boards follow the internal backplate, the amplifier
+follows the internal floor, control parts follow the top, port parts follow the left side and driver
 parts follow the baffle during explosion. Neither enclosure fit nor cable routing
 has been physically validated. The control and port openings now follow the donor geometry; sealing and
 physical fastening still require validation.
@@ -202,13 +202,14 @@ illustrative M3 hardware, not a specified supplier part. Spacers fill the chosen
 gap less two 0.5 mm washers; rod reach and screw lengths follow the actual sheets.
 Items move with their attachment panels in exploded view and keep their physical
 length. The 19 source PCB mounting coordinates now cut **two internal sheets**:
-ten Ø3.4 mm holes in `pcb-floor`, nine in `pcb-rear`. The amplifier sits on
-the right of the floor, alongside the main board (shifted 45 mm left). Its
+four Ø3.4 mm holes in `pcb-floor`, fifteen in `pcb-rear`. The main board stands
+on the backplate at X = −66, Y = −8 mm; Bluetooth sits beside its lower section
+at X = 5, Y = −45 mm. The amplifier remains on the right of the floor. Its
 `P2A` socket receives the `P2S` right-angle header on `Conn_Amp`; the bridge's
 `P1S` contact mates with `P1X` on `Conn_Baffle`. These are a rigid board-to-board
 connection, not a cable or a separately screwed bridge. The baffle connector
 is supported from the backplate, clear of the battery, on approximately
-48.84 mm standoffs. Main-board depth centres between that backplate and the baffle.
+48.84 mm standoffs. The upright main board sits 9 mm ahead of the backplate.
 Connector locations and header seating faces follow the pinned KiCad/STEP
 files; the nominal **10 mm spacing** between the two contact boards remains a
 preview assumption. Measure the donor's spring-contact engagement before
@@ -219,8 +220,8 @@ amp-to-baffle cable has been removed; the driver cable now ends at `P2X`.
 All nine PCB substrates use red solder mask, matching the donor photograph.
 Pads, silkscreen and component materials retain their separate colors. The
 asset generator uses the same red material as the shipped GLBs.
-The main board is turned 180° on its floor so its taller front-edge components
-face away from the woofer. The minimum body height increases to 210 mm for
+The main board stands vertically, with its component side facing the baffle, as
+seen in the teardown photos. The minimum body height remains 210 mm for
 the raised electronics; older compact designs normalize to this height. Control and port pods retain their own
 mounting positions. Board-side and carrier-side fasteners follow the carriers
 in exploded view.
@@ -236,7 +237,8 @@ the Eurorack case's tab-and-slot construction principle. Tab length follows the
 receiving side's thickness; slot thickness follows the carrier. The nominal
 paths are uncompensated: prototype the fit and apply kerf compensation once.
 Bond and seal these joints to preserve the acoustic chamber. Two floor openings
-and a lower backplate window provide wiring/air paths. Carrier removal requires
+and a smaller lower-right backplate window provide wiring/air paths without
+cutting through the relocated main-board mounting row. Carrier removal requires
 disassembling bonded joints; boards remain screw-serviceable through the rear.
 
 The top has eight Ø3.5 mm HMI-cover mounting holes at X = −66, −22, 22, 66 and
@@ -250,6 +252,39 @@ The manufacturer's [MYND specifications](https://hr.teufelaudio.com/mynd-1070020
 identify one nominal 90 mm woofer, two nominal 20 mm tweeters and a three-channel
 Class D amplifier. Reuse the complete donor electronics, protected battery,
 passive radiators, port/control assemblies and original wiring.
+
+## Photo-guided reconstruction (2026-09-27)
+
+Four user-supplied teardown photographs show the main board upright at the left,
+the amplifier above the Bluetooth board to its right, an upright black battery
+with a red pull tab, and foam sleeves around the wiring. The driver baffle shows
+a broad silver woofer back plate with a centre vent and dark ferrite band,
+metal straps across the tweeter backs, and dotted passive-radiator rear plates
+with two transverse retaining ribs.
+
+The preview now uses those visible construction details. Source baffle centres,
+mounting coordinates and PCB meshes remain authoritative. The reconstructed
+woofer magnet is approximately Ø81 mm, with an Ø11 mm vent and 43 mm total rear
+reach from the mounting face. The battery illustration is 48 × 90 × 22 mm;
+its centre is X = 98, Y = 49 mm, 13 mm ahead of the backplate. These numbers are
+**unmeasured visual estimates**, recorded in `lib/mynd-reconstruction.ts` and
+included in Design JSON. They must not be treated as fabrication measurements.
+Tweeter straps and battery foam pads illustrate the donor construction; their
+mounting adapters and restraint are still absent from the laser-cut sheets.
+Cable sleeves illustrate routing only, not electrical pin assignments.
+
+This remains an acrylic adaptation: the amplifier stays on the floor to retain
+the modelled rigid amplifier/bridge/contact-board fit. The photos show it on the
+donor rear wall, with the small baffle board attached to the driver assembly.
+Reproducing that whole arrangement requires measured connector engagement and
+new support geometry; the preview does not claim the stock assembly placement.
+The battery is raised to clear the long connector standoffs and sits outside
+the control-cover footprint. The main board and battery now stand upright; the Bluetooth and battery-connector
+boards have been repositioned to clear them. Mount holes, screws and exploded
+motion use the same placements. Tests check board and battery envelope separation,
+the enlarged woofer-magnet clearance, source connector engagement and valid sheet
+cuts at minimum/maximum settings and mixed carrier thicknesses. These checks
+validate the estimated model, not physical fit or cable reach.
 
 ## Construction and validation still required
 

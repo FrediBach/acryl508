@@ -6,6 +6,8 @@ import { Box3, Euler, Matrix4, Quaternion, Vector3 } from "three";
 import { loadTypescript } from "./load-typescript.mjs";
 const {createSpeaker,defaultSpeakerConfiguration:defaults,speakerExport}=await loadTypescript("../lib/speaker.ts");
 const {speakerBoardPlacements,speakerFasteners}=await loadTypescript("../lib/speaker-hardware.ts");
+const {myndReconstruction}=await loadTypescript("../lib/mynd-reconstruction.ts");
+const {myndBoardMounts}=await loadTypescript("../lib/mynd-mounts.ts");
 const {parseProject}=await loadTypescript("../lib/project.ts");
 const manifest=JSON.parse(readFileSync(new URL("../public/models/mynd/manifest.json",import.meta.url)));
 const close=(a,b)=>assert.ok(Math.abs(a-b)<1e-7,`${a} ≈ ${b}`);
@@ -36,8 +38,10 @@ test("internal carriers leave exterior PCB faces clean and every cap head inside
     }
     const main=speakerBoardPlacements(s).find(b=>b.id==="Main");
     const rearFront=parts["pcb-rear"].position[2]+parts["pcb-rear"].thickness/2;
-    assert.ok(main.position[2]-37.5>=rearFront+3-1e-8,"PCB clears the backplate at minimum depth");
-    assert.ok(main.position[2]+37.5<=depth/2-parts.baffle.thickness-3+1e-8);
+    assert.equal(main.parent,"pcb-rear");
+    assert.deepEqual(main.rotation,[0,0,0],"Photo-derived main board stands vertically");
+    assert.ok(main.position[2]+manifest.assets.Main.bounds[0][2]>=rearFront+2.9,"Underside components clear the backplate");
+    assert.ok(main.position[1]-68>floorBottom+parts["pcb-floor"].thickness+3,"Upright board clears the floor");
     const boxes=speakerBoardPlacements(s).filter(b=>b.parent.startsWith("pcb-")).map(board=>{
       const [min,max]=manifest.assets[board.id].bounds;
       const transform=new Matrix4().compose(new Vector3(...board.position),new Quaternion().setFromEuler(new Euler(...board.rotation)),new Vector3(1,1,1));
@@ -50,8 +54,36 @@ test("internal carriers leave exterior PCB faces clean and every cap head inside
       assert.equal(boxes[i].box.intersectsBox(boxes[j].box),false,`${boxes[i].id} clears ${boxes[j].id}`);
     }
     const connector=boxes.find(b=>b.id==="Conn_Baffle").box;
-    assert.ok(connector.min.x>36,"Relocated connector clears the battery width");
+    const battery=myndReconstruction.battery;
+    const batteryBox=new Box3(new Vector3(battery.x-battery.width/2,battery.y-battery.height/2,rearFront+battery.rearOffset-battery.depth/2),new Vector3(battery.x+battery.width/2,battery.y+battery.height/2,rearFront+battery.rearOffset+battery.depth/2));
+    for(const {id,box} of boxes)assert.equal(box.intersectsBox(batteryBox),false,`${id} clears the upright battery`);
+    for(const board of speakerBoardPlacements(s).filter(b=>b.standoff)) {
+      for(const [x,y] of myndBoardMounts[board.id]) {
+        const points=[-0.8,-0.8-board.standoff].map(z=>new Vector3(x,y,z).applyEuler(new Euler(...board.rotation)).add(new Vector3(...board.position)));
+        assert.equal(new Box3().setFromPoints(points).expandByScalar(2.5).intersectsBox(batteryBox),false,`${board.id} support clears battery, not just its board`);
+      }
+    }
     assert.ok(connector.max.y<height/2-parts.top.thickness-22.4-2,"Relocated connector remains below the HMI cover");
+  }
+});
+
+test("photo-derived woofer magnet clears electronics and battery across the supported envelope",()=>{
+  const {woofer,battery}=myndReconstruction;
+  for(const width of [280,420])for(const height of [210,300])for(const depth of [110,220])for(const thickness of [3,8]) {
+    const s=createSpeaker({...defaults,width,height,depth,thickness});
+    const parts=Object.fromEntries(s.parts.map(p=>[p.id,p]));
+    const rear=parts["pcb-rear"].position[2]+parts["pcb-rear"].thickness/2;
+    const front=parts.baffle.position[2]-parts.baffle.thickness/2;
+    const boxes=speakerBoardPlacements(s).map(board=>{
+      const [min,max]=manifest.assets[board.id].bounds;
+      return {id:board.id,box:new Box3(new Vector3(...min),new Vector3(...max)).applyMatrix4(new Matrix4().compose(new Vector3(...board.position),new Quaternion().setFromEuler(new Euler(...board.rotation)),new Vector3(1,1,1)))};
+    });
+    boxes.push({id:"battery",box:new Box3(new Vector3(battery.x-battery.width/2,battery.y-battery.height/2,rear+battery.rearOffset-battery.depth/2),new Vector3(battery.x+battery.width/2,battery.y+battery.height/2,rear+battery.rearOffset+battery.depth/2))});
+    for(const {id,box} of boxes) {
+      const overlapsDepth=box.max.z>=front-woofer.rearDepth&&box.min.z<=front-woofer.magnetFrontDepth;
+      const x=Math.max(box.min.x,Math.min(0,box.max.x)),y=Math.max(box.min.y,Math.min(-24,box.max.y));
+      assert.ok(!overlapsDepth||Math.hypot(x,y+24)>woofer.magnetRadius+1,`${id} clears enlarged magnet`);
+    }
   }
 });
 

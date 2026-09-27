@@ -87,7 +87,7 @@ test("source mounts, sheet cuts and screw axes coincide across sizes and mixed t
     const s=createSpeaker({...defaultSpeakerConfiguration,depth,height,thickness,controlDepth:35,
       individualSheetMaterials:true,sheetThicknesses:{baffle:3,rear:8,top:8,bottom:3}});
     const fasteners=speakerFasteners(s);
-    assert.deepEqual(Object.fromEntries(["top","bottom","rear","baffle","left","pcb-floor","pcb-rear"].map(id=>[id,s.panelMounts.filter(m=>m.parent===id).length])),{top:8,bottom:0,rear:0,baffle:0,left:4,"pcb-floor":10,"pcb-rear":9});
+    assert.deepEqual(Object.fromEntries(["top","bottom","rear","baffle","left","pcb-floor","pcb-rear"].map(id=>[id,s.panelMounts.filter(m=>m.parent===id).length])),{top:8,bottom:0,rear:0,baffle:0,left:4,"pcb-floor":4,"pcb-rear":15});
     for (const mount of s.panelMounts) {
       const panel=s.parts.find(p=>p.id===mount.parent);
       const inverse=new Quaternion().setFromEuler(new Euler(...panel.rotation)).invert();
