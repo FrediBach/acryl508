@@ -8,7 +8,7 @@ import type { MultiPolygon } from "polygon-clipping";
 import { polygonBounds, mapPolygons } from "./custom-cutouts";
 import { casePathData, caseSheetLayout, caseSheetMaterial } from "./svg-export";
 import { caseCanExport, type CasePanels } from "./case-panels";
-import { accessoryBendSpecification, rackRows, type CaseConfiguration } from "./configurator";
+import { accessoryBendSpecification, railRowCount, type CaseConfiguration } from "./configurator";
 import type { SynthStand } from "./synth-stand";
 import type { SynthProtector } from "./synth-protector";
 import type { DesignedPanel } from "./panel-designer";
@@ -42,7 +42,7 @@ export function caseFabrication(config: CaseConfiguration, panels: CasePanels): 
     return { id: item.id, label: item.label, polygons: item.polygons, engraving: item.engraving, thickness: material.thickness, material: materialLabel(material.tint, material.transparency) };
   }),
     warnings, thickness: config.thickness, clearance: 0, blocked: !caseCanExport(panels),
-    hardware: [...panels.rowPanels.map(({ label, panel }) => `${label}: ${panel.mounts.length} panel mounting screws and washers into the existing 1U rails; confirm thread engagement`), ...Object.entries(panels.faces).filter(([, face]) => face.led && !face.led.error).map(([side, face]) => `${side}: ${face.led!.strip.length} mm LED strip plus suitable supply, wiring and retention`), `${rackRows(config).length * 2} rails cut to ${config.hp} HP`, `${rackRows(config).length * 4} rail-end screws and load-spreading washers; confirm thread and engagement`, ...(panels.mountingHoles.length ? [`${panels.mountingHoles.length} board mounting holes; verify standoffs and required fasteners with the board maker`] : [])],
+    hardware: [...Object.entries(panels.faces).filter(([, face]) => face.led && !face.led.error).map(([side, face]) => `${side}: ${face.led!.strip.length} mm LED strip plus suitable supply, wiring and retention`), `${railRowCount(config) * 2} rails cut to ${config.hp} HP`, `${railRowCount(config) * 4} rail-end screws and load-spreading washers; confirm thread and engagement`, ...(panels.mountingHoles.length ? [`${panels.mountingHoles.length} board mounting holes; verify standoffs and required fasteners with the board maker`] : [])],
   };
 }
 export function standFabrication(stand: SynthStand, error?: string, busy?: boolean): Fabrication {

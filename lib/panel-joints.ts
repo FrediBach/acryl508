@@ -4,7 +4,7 @@ type SheetThicknesses = { bottom: number; front: number; rear: number; left: num
 
 type Band = { start: number; end: number };
 
-function bands(start: number, end: number, thickness: number, pitch: number): Band[] {
+export function bands(start: number, end: number, thickness: number, pitch: number): Band[] {
   const span = end - start;
   const count = Math.max(2, Math.ceil(span / pitch));
   const tabWidth = Math.min(Math.max(3 * thickness, 0.16), span / (2 * count + 1));
@@ -33,7 +33,7 @@ export function panelJointLayout(width: number, length: number, height: number, 
   };
 }
 
-function tabbedProfile(width: number, bottom: number, top: number, tabs: Band[], leftThickness: number, rightThickness: number, topEdge?: (shape: Shape) => void) {
+export function tabbedProfile(width: number, bottom: number, top: number, tabs: Band[], leftThickness: number, rightThickness: number, topEdge?: (shape: Shape) => void) {
   const shape = new Shape();
   const half = width / 2;
   shape.moveTo(-half, bottom);

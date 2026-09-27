@@ -104,6 +104,13 @@ export function rackRows(config: Pick<CaseConfiguration, "rows" | "rowUnits">): 
     ? config.rowUnits
     : Array.from({ length: config.rows }, () => 3 as const);
 }
+export function isCustomRow(config: Pick<CaseConfiguration, "rows" | "rowUnits" | "rowPanels">, index: number) {
+  const rows = rackRows(config);
+  return rows[index] === 1 && (index === 0 || index === rows.length - 1) && !!config.rowPanels?.[index];
+}
+export function railRowCount(config: CaseConfiguration) {
+  return rackRows(config).filter((_, index) => !isCustomRow(config, index)).length;
+}
 export function totalRackUnits(config: Pick<CaseConfiguration, "rows" | "rowUnits">) {
   return rackRows(config).reduce((total, units) => total + units, 0);
 }
@@ -139,15 +146,16 @@ export function rackRowLayout(config: RackLayoutConfiguration) {
     angle += increment;
     const radians = angle * Math.PI / 180;
     const length = units[index] === 3 ? 133.35 : rackUnitPitch;
-    // Attached Intellijel sheets use the panel designer’s exact 33.65 mm mounting pitch.
-    rows.push({ index, units: units[index], length, center: -(distance + length * Math.cos(radians) / 2), rise: rise + length * Math.sin(radians) / 2, angle, increment, gap, railOffset: units[index] === 1 && config.rowPanels?.[index] && (index === 0 || index === units.length - 1) ? 16.825 : length / 2 - 5.425 });
+    rows.push({ index, units: units[index], length, center: -(distance + length * Math.cos(radians) / 2), rise: rise + length * Math.sin(radians) / 2, angle, increment, gap, railOffset: length / 2 - 5.425 });
     distance += length * Math.cos(radians);
     rise += length * Math.sin(radians);
   }
-  // A tilted rail projects behind the rear module edge. Reserve its full
-  // 12 mm underside envelope before placing the vertical rear panel.
-  const rearRadians = angle * Math.PI / 180;
-  const rearClearance = Math.max(0, 12 * Math.sin(rearRadians) - 0.675 * Math.cos(rearRadians));
+  // Reserve the tilted underside before placing the vertical rear panel.
+  // A custom sheet is recessed by its thickness and has a 2.4 mm end inset.
+  const rearRadians = angle * Math.PI / 180, customRear = isCustomRow(config, 0);
+  const panelThickness = config.rowPanels?.[0]?.thickness ?? 3;
+  const rearDepth = customRear ? 2 * Math.max(1.5, Math.min(6, Number.isFinite(panelThickness) ? panelThickness : 3)) : 12;
+  const rearClearance = Math.max(0, rearDepth * Math.sin(rearRadians) - (customRear ? 2.4 : 0.675) * Math.cos(rearRadians));
   return rows.reverse().map(row => ({ ...row, center: row.center + (distance + rearClearance) / 2 }));
 }
 // Local offsets along a row and normal to its surface, in millimetres.
@@ -278,7 +286,7 @@ export function configurationExport(config: CaseConfiguration, cutoutReports: Cu
     acrylicParts: { enclosurePanels: 5, footPanels: 0, handlePanels: 0, totalPanels: panelCount(config) },
     panelAssembly: {
       method: "Base and end-panel tabs captured in closed side-panel slots; rail-end screws retain the side panels",
-      railCount: rackRows(config).length * 2, railEndScrewCount: rackRows(config).length * 4,
+      railCount: railRowCount(config) * 2, railEndScrewCount: railRowCount(config) * 4,
       additionalPanelFasteners: 0, adhesive: false,
       baseUndersideHeight: sidePanelMargin(config), endRetainingMargin: sidePanelMargin(config),
       slotCenterToEdge: sidePanelMargin(config) + jointThickness(config) / 2,

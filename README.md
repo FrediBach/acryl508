@@ -512,8 +512,11 @@ In **Rows & stance → Custom 1U panels**, add a top (rear) or bottom (front)
 1U acrylic panel, or change an existing outer 1U row from open to custom.
 **Edit panel holes & cutouts** opens the shared panel editor with component holes,
 rectangles, slots, SVG/text artwork, engraving, grid snapping and alignment.
-The sheet follows the case width (20–168 HP), uses Intellijel 1U height and four
-mounting openings, and attaches to the existing rails with panel screws and washers.
+The sheet spans the case width (20–168 HP) plus side tabs, with a 39.65 mm body
+height. Its tabs fit closed slots in the side panels, like the front and rear
+sheets; custom rows have no rails, rail-end holes, or panel mounting screws.
+The sheet sits one sheet thickness below the rim, leaving material above its slots.
+Cutouts that remove attachment tabs or their roots block fabrication.
 Its material and thickness are editable independently. The sheet follows row tilt,
 appears in the case and cutting previews, and is included in case SVG, JSON,
 fabrication layouts, project saves and undo/redo. Return with **Back to case**.

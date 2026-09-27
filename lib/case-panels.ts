@@ -28,6 +28,7 @@ export function createCasePanels(config: CaseConfiguration) {
   const w = dimensions.width / 100, l = dimensions.length / 100, h = dimensions.height / 100, t = thicknesses.bottom;
   const edgeMargin = sidePanelMargin(config) / 100;
   const rack = rackEnvelope(config), rows = rackRowLayout(config);
+  const rowPanels = createCaseRowPanels(config);
   const frontHeight = (config.depth + mm.bottom) / 100 + edgeMargin;
   const holder = cableHolderLayout(config);
   const angles = accessoryBendAngles(config);
@@ -63,9 +64,19 @@ export function createCasePanels(config: CaseConfiguration) {
   if (config.vents) base.holes.push(...ventilation.paths);
   for (const { x, y } of mountingHoles) hole(base, x / 100, y / 100, mountingRadius);
   const side = panels.side;
-  for (const row of rows) for (const end of [-1, 1]) {
+  for (const row of rows.filter(row => !rowPanels.some(panel => panel.index === row.index))) for (const end of [-1, 1]) {
     const point = rackRowPoint(row, end * row.railOffset, -7);
     hole(side, -point.z / 100, frontHeight + point.y / 100, 0.019);
+  }
+  for (const { index, attachment } of rowPanels) for (const tab of attachment.tabs) {
+    const slot = new Path();
+    const corners = [[tab.start, attachment.normal], [tab.end, attachment.normal], [tab.end, attachment.normal + attachment.thickness], [tab.start, attachment.normal + attachment.thickness]];
+    corners.forEach(([offset, normal], indexInSlot) => {
+      const point = rackRowPoint(rows[index], -offset, normal);
+      if (indexInSlot === 0) slot.moveTo(-point.z / 100, frontHeight + point.y / 100);
+      else slot.lineTo(-point.z / 100, frontHeight + point.y / 100);
+    });
+    slot.closePath(); side.holes.push(slot);
   }
   const rim = rack.angled ? [
     { x: l / 2, y: h },
@@ -139,7 +150,7 @@ export function createCasePanels(config: CaseConfiguration) {
     if (led && result.report.error) led.error ||= result.report.error;
     return [value, { ...result, original, shapes, engraving, led, direction, centerY }];
   })) as Record<CutoutSide, ReturnType<typeof subtractCutouts> & { original: ReturnType<typeof shapesToPolygons>; shapes: Shape[]; engraving: ReturnType<typeof resolveEngravings>; led: ReturnType<typeof ledSlot>; direction: number; centerY: number }>;
-  return { rowPanels: createCaseRowPanels(config), faces, bends, layout: panels.layout, ventilation, powerBoard, inlet, mountingHoles, mountingConflicts, reports: cutoutSides.map(({ value }) => faces[value].report) };
+  return { rowPanels, faces, bends, layout: panels.layout, ventilation, powerBoard, inlet, mountingHoles, mountingConflicts, reports: cutoutSides.map(({ value }) => faces[value].report) };
 }
 export type CasePanels = ReturnType<typeof createCasePanels>;
 

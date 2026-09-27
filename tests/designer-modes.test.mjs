@@ -895,10 +895,14 @@ test("mode switching preserves independent designs and routes material choices a
     await click("Add top 1U panel");
     await click("Edit top panel holes & cutouts");
     assert.equal(document.querySelector('select[aria-label="Panel format"]'), null);
+    assert.ok(![...document.querySelectorAll("label")].some(label => label.textContent.startsWith("Mounting openings")), "Attached panels have no rail mounting controls");
     await click("Jack");
     await click("Export case design JSON");
     const rowExport = JSON.parse(await downloads.at(-1).blob.text());
     assert.equal(rowExport.configuration.rowUnits[0], 1);
+    assert.equal(rowExport.rowPanels[0].mounting.length, 0);
+    assert.match(rowExport.rowPanels[0].attachment.method, /closed side-panel slots/);
+    assert.equal(rowExport.panelAssembly.railCount, (rowExport.configuration.rows - 1) * 2);
     assert.equal(rowExport.configuration.rowPanels[0].components.length, 1);
     assert.equal(rowExport.rowPanels[0].configuration.hp, rowExport.configuration.hp);
     await click("Export all case sheets as SVG");

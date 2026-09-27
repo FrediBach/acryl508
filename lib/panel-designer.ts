@@ -85,17 +85,19 @@ const within = (b: Bounds, width: number, height: number, margin = 0) => b.left 
 function asCutout(id: string, polygons: MultiPolygon): CustomCutout {
   return { id, name: id, source: { kind: "svg", fileName: "generated" }, side: "front", polygons, x: 0, y: 0, width: 1, rotation: 0 };
 }
-export function createPanel(input: PanelConfiguration, maxHp = 84) {
+export type PanelConstruction = { outline: MultiPolygon; width: number; height: number; protectedJoints: MultiPolygon };
+export function createPanel(input: PanelConfiguration, maxHp = 84, construction?: PanelConstruction) {
   const config = normalizePanelConfiguration(input, maxHp), format = panelFormats[config.format];
-  const width = panelRound(config.hp * 5.08 - config.widthClearance), height = format.height;
-  const original = panelRectangle(width, height), warnings: string[] = [];
+  const width = construction?.width ?? panelRound(config.hp * 5.08 - config.widthClearance), height = construction?.height ?? format.height;
+  const railReserve = construction ? 0 : 8;
+  const original = construction?.outline ?? panelRectangle(width, height), warnings: string[] = [];
   const pulp = config.format === "pulp-logic-1u";
   const leftX = -width / 2 + format.insetX;
   // Maintain an integer HP distance between columns, independently of width clearance.
   const rightX = leftX + (config.hp - (pulp ? 2 : 3)) * 5.08;
   const four = config.hp >= 4 && (config.mountingCount === "four" || (config.mountingCount === "auto" && (pulp || config.hp >= 12)));
   if (config.mountingCount === "four" && !four) warnings.push("This narrow panel only has room for one mounting column (two holes).");
-  const mounts = (four ? [leftX, rightX] : [leftX]).flatMap(x => [-1, 1].map(sign => {
+  const mounts = (construction ? [] : four ? [leftX, rightX] : [leftX]).flatMap(x => [-1, 1].map(sign => {
     const y = panelRound(sign * (height / 2 - format.insetY));
     // Limit slot extension at the panel edges, while retaining the hole centre.
     const travel = config.mounting === "slots" ? Math.max(0, Math.min(config.slotTravel, 2 * (width / 2 - Math.abs(x) - format.diameter / 2 - 0.5))) : 0;
@@ -108,7 +110,7 @@ export function createPanel(input: PanelConfiguration, maxHp = 84) {
   for (const c of components) {
     if (!within(polygonBounds(c.polygons), width, height, web)) warnings.push(`${c.name}: opening is outside the panel or leaves less than ${web} mm at an edge.`);
     const b = polygonBounds(c.body);
-    if (!within(b, width, height, 0) || b.top > height / 2 - 8 || b.bottom < -height / 2 + 8) warnings.push(`${c.name}: body clearance reaches an edge or the 8 mm rail reserve. Verify the actual hardware and rail profile.`);
+    if (!within(b, width, height, 0) || b.top > height / 2 - railReserve || b.bottom < -height / 2 + railReserve) warnings.push(construction ? `${c.name}: body clearance reaches the panel edge. Verify clearance inside the case.` : `${c.name}: body clearance reaches an edge or the 8 mm rail reserve. Verify the actual hardware and rail profile.`);
     if (c.maxPanelThickness > 0 && config.thickness > c.maxPanelThickness) warnings.push(`${c.name}: ${config.thickness} mm acrylic exceeds the specified ${c.maxPanelThickness} mm maximum panel thickness.`);
   }
   const plannedLed = ledSlot(original, config.ledStrip, config.thickness);
@@ -118,7 +120,7 @@ export function createPanel(input: PanelConfiguration, maxHp = 84) {
   const margin = Math.max(config.vents.margin, 2 * config.thickness);
   let pitch = Math.max(config.vents.pitch, config.vents.size + web);
   if (config.vents.enabled) {
-    const usableWidth = width - 2 * margin, usableHeight = height - 2 * Math.max(margin, 8);
+    const usableWidth = width - 2 * margin, usableHeight = height - 2 * Math.max(margin, railReserve);
     const count = (span: number) => Math.max(0, Math.floor((span - config.vents.size) / pitch) + 1);
     // Bound polygon work during dragging and slider edits on wide, dense panels.
     while (count(usableWidth) * count(usableHeight) > 600) pitch = panelRound(pitch + 0.25);
@@ -133,7 +135,7 @@ export function createPanel(input: PanelConfiguration, maxHp = 84) {
       const diameter = config.vents.size * Math.max(0.2, Math.min(1, size)), room = (pitch - web - diameter) / 2;
       const shape = config.vents.shape === "circles" ? disc(diameter) : config.vents.shape === "hexagons" ? disc(diameter, 6) : panelRectangle(diameter, Math.min(2, diameter), Math.min(1, diameter / 2));
       const polygons = transform(shape, x + Math.max(-1, Math.min(1, sx)) * room, y + Math.max(-1, Math.min(1, sy)) * room), b = polygonBounds(polygons);
-      if (within(b, width, height, margin) && b.top <= height / 2 - 8 && b.bottom >= -height / 2 + 8 && !reserved.some(r => boundsOverlap(b, r, web))) vents.push(polygons);
+      if (within(b, width, height, margin) && b.top <= height / 2 - railReserve && b.bottom >= -height / 2 + railReserve && !reserved.some(r => boundsOverlap(b, r, web))) vents.push(polygons);
     }
     if (!vents.length) warnings.push("No ventilation openings fit the available space. Reduce the margin or opening size, or widen the panel.");
   }
@@ -142,11 +144,12 @@ export function createPanel(input: PanelConfiguration, maxHp = 84) {
   const led = ledSlot(customResult.polygons, config.ledStrip, config.thickness);
   if (led && !led.error) {
     const bounds = polygonBounds(led.polygons);
-    if (bounds.bottom < -height / 2 + 8 || components.some(c => boundsOverlap(bounds, polygonBounds(c.body), web))) led.error = "Move the LED slot clear of component bodies and the 8 mm rail reserve.";
+    if (bounds.bottom < -height / 2 + railReserve || components.some(c => boundsOverlap(bounds, polygonBounds(c.body), web))) led.error = construction ? "Move the LED slot clear of component bodies and panel edges." : "Move the LED slot clear of component bodies and the 8 mm rail reserve.";
   }
   const result = led && !led.error ? subtractCutouts(original, [...cuts, led.cutout], "front") : customResult;
   if (led?.error) result.report.error = led.error;
   const { report, polygons } = result;
+  if (construction && geometryArea(clipping.difference(construction.protectedJoints, polygons)) > 1e-5) result.report.error = "Move cutouts clear of the side attachment tabs and their roots before exporting.";
   if (report.removedParts) warnings.push(`${report.removedParts} loose part(s) removed, including enclosed letter centres. Use stencil artwork for cut-through lettering.`);
   if (report.outside.length) warnings.push(`${report.outside.length} cutout(s) lie outside the panel and do not cut any acrylic.`);
   if (report.clipped.length) warnings.push(`${report.clipped.length} cutout(s) extend beyond the panel edge.`);
@@ -169,7 +172,7 @@ export function createPanel(input: PanelConfiguration, maxHp = 84) {
   });
   const engraving = resolveEngravings(polygons, config.artwork.filter(a => a.operation === "engrave"));
   if (engraving.error) { engravingError = true; warnings.push(engraving.error); }
-  return { config, width, height, original, polygons, mounts, components, engravings, engraving, led, vents, ventPitch: pitch, ventMargin: margin, warnings: [...new Set(warnings)], report, canExport: !report.empty && !report.error && !engravingError };
+  return { config, width, height, railReserve, original, polygons, mounts, components, engravings, engraving, led, vents, ventPitch: pitch, ventMargin: margin, warnings: [...new Set(warnings)], report, canExport: !report.empty && !report.error && !engravingError };
 }
 export type DesignedPanel = ReturnType<typeof createPanel>;
 export type PanelAlignment = "column" | "row" | "distribute-x" | "distribute-y" | "center-x" | "center-y";
@@ -200,10 +203,10 @@ export function panelSvg(panel: DesignedPanel) {
 export function panelExport(panel: DesignedPanel) {
   return { version: 1, mode: "panel-designer", units: "mm", configuration: panel.config,
     dimensions: { width: panel.width, height: panel.height, thickness: panel.config.thickness },
-    coordinates: "Panel centre; X right, Y up; front view. SVG uses Y down.", formatSource: panelFormats[panel.config.format].source,
+    coordinates: "Panel centre; X right, Y up; front view. SVG uses Y down.", formatSource: panel.railReserve ? panelFormats[panel.config.format].source : undefined,
     mounting: panel.mounts, components: panel.components, ventilation: { count: panel.vents.length, pitch: panel.ventPitch, margin: panel.ventMargin, polygons: panel.vents },
     layers: { cut: panel.polygons, engrave: panel.engravings }, warnings: panel.warnings, canExportSvg: panel.canExport,
-    fabrication: "Sampled outline vectors. Apply kerf once in CAM. Component presets are editable examples, not manufacturer specifications. Verify rail, washer, body and thread fit on a prototype.",
+    fabrication: panel.railReserve ? "Sampled outline vectors. Apply kerf once in CAM. Component presets are editable examples, not manufacturer specifications. Verify rail, washer, body and thread fit on a prototype." : "Sampled outline vectors. Side tabs seat in closed case slots. Apply kerf once in CAM and verify tab fit and component clearances on a prototype.",
   };
 }
 export const panelBuildNotes = [
