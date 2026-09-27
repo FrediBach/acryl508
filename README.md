@@ -290,6 +290,21 @@ outlines. JSON version 7 records the resolved grip count, size and integral stan
 legacy `handle` and `footShape` settings remain supported. Grip strength,
 loaded stability and fabrication tolerances still require prototype validation.
 
+## Back sheet hook
+
+Enable **Back sheet hook** in **Accessories** to extend the rear sheet upward,
+backward, then down through two 90° bends. Choose the full available width or
+one to eight narrower hooks, with a centred single hook or evenly spaced multiple
+hooks. Width and count adapt to the case width while retaining edge clearance.
+Set the rise, backward reach and downward return as straight lengths between
+bend curves. Rounded roots and tips stay integral to the same rear sheet.
+
+The formed preview preserves sheet thickness; SVG and stock layouts include
+both developed bend allowances. Project files and design JSON retain the hook
+settings. Hooks and patch cable fingers share the same rear edge, so enabling
+one disables the other. Custom cuts through either heating strip block cutting
+exports until resolved.
+
 ## Patch cable holder
 
 Enable **Patch cable holder** in **Accessories** to extend the rear plate into

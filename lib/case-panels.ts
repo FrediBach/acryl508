@@ -9,6 +9,7 @@ import { createSideProfile } from "./acrylic-profiles";
 import { createPanelProfiles } from "./panel-joints";
 import { createBottomVentLayout, type VentBounds } from "./bottom-vents";
 import { cableHolderLayout, cableHolderTopEdge } from "./cable-holder";
+import { backHookLayout, backHookBends, backHookTopEdge } from "./back-hook";
 import { sinusodaHoles, sinusodaJuice, sinusodaPlacement } from "./sinusoda";
 import { trolleyBus, trolleyMountingHoles, trolleyPlacement } from "./trolley";
 import { compactPwr, compactPwrHoles, compactPwrPlacement } from "./compactpwr";
@@ -30,9 +31,13 @@ export function createCasePanels(config: CaseConfiguration) {
   const holder = cableHolderLayout(config);
   const angles = accessoryBendAngles(config);
   const rearBend = bendAllowance(angles.holder, thicknesses.rear);
+  const hook = backHookLayout(config);
   const bends: Record<CutoutSide, AccessoryBend[]> = { front: [], rear: [], left: [], right: [], bottom: [] };
-  if (rearBend.angle) bends.rear.push({ start: h + rearBend.clearance, length: rearBend.length, angle: rearBend.angle, clearance: rearBend.clearance });
-  const panels = createPanelProfiles(w, l, frontHeight, t, edgeMargin, config.cableHolder ? shape => cableHolderTopEdge(shape, h, holder, rearBend.extra) : undefined, h, thicknesses);
+  if (hook.enabled) bends.rear.push(...backHookBends(h, hook));
+  else if (rearBend.angle) bends.rear.push({ start: h + rearBend.clearance, length: rearBend.length, angle: rearBend.angle, clearance: rearBend.clearance });
+  const rearTopEdge = hook.enabled ? (shape: Shape) => backHookTopEdge(shape, h, hook)
+    : config.cableHolder ? (shape: Shape) => cableHolderTopEdge(shape, h, holder, rearBend.extra) : undefined;
+  const panels = createPanelProfiles(w, l, frontHeight, t, edgeMargin, rearTopEdge, h, thicknesses);
   const { innerLength } = panels.layout;
   const base = panels.base;
   const boardDefinitions = {

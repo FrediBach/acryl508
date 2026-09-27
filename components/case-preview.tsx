@@ -9,6 +9,7 @@ import { patchBoardLayout, patchBoardSides } from "@/lib/patch-board";
 import { accessoryBendSpecification, caseDimensions, handleSides, handleDimensions, panelTint, panelThickness, panelTransparency, rackEnvelope, rackRowLayout, sidePanelMargin, type CaseConfiguration } from "@/lib/configurator";
 import { acrylicMaterial, acrylicEdgeOpacity } from "@/lib/acrylic-material";
 import { caseLift } from "@/lib/acrylic-profiles";
+import { backHookLayout } from "@/lib/back-hook";
 import { cableHolderLayout } from "@/lib/cable-holder";
 import type { CasePanels } from "@/lib/case-panels";
 import { bentPanelGeometry, bentPanelEdges } from "@/lib/bent-panel-geometry";
@@ -136,6 +137,7 @@ function CameraRig({ config, view, resetKey, exploded }: Pick<Props, "config" | 
   const feet = flatFeetLayout(config);
   const flatFeetRise = feet.enabled ? feet.height * unit : 0;
   const board = patchBoardLayout(config);
+  const hook = backHookLayout(config);
   const gripWidth = Math.max(config.handle ? handleSize.width * unit : 0, config.patchBoard ? board.width * unit : 0);
   const grips = handleSides(config), boards = patchBoardSides(config);
   const bendSpecs = accessoryBendSpecification(config);
@@ -144,7 +146,7 @@ function CameraRig({ config, view, resetKey, exploded }: Pick<Props, "config" | 
   const hasRearBend = bendSpecs.some(bend => bend.side === "rear");
   const gripRise = bendExtra + Math.max(...(["left", "right"] as const).map(side =>
     (grips.includes(side) ? handleSize.height * unit : 0) + (boards.includes(side) ? board.height * unit : 0)),
-    config.cableHolder ? cableHolderLayout(config).height * unit : 0);
+    config.backHook ? (hook.rise + hook.reach + hook.drop) * unit : config.cableHolder ? cableHolderLayout(config).height * unit : 0);
   useEffect(() => {
     const aspect = size.width / size.height;
     const radians = config.angle * Math.PI / 180;

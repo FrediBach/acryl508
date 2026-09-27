@@ -3,6 +3,7 @@ import { materialLabel, transparencyOption } from "@/lib/acrylic-material";
 import { ArrowDownToLine, ChevronDown } from "lucide-react";
 import { flatFeetLayout, flatFootStyles } from "@/lib/flat-feet";
 import { patchBoardLayout, patchBoardSides } from "@/lib/patch-board";
+import { backHookLayout } from "@/lib/back-hook";
 import { cableHolderLayout } from "@/lib/cable-holder";
 import { caseDimensions, caseThicknessLabel, panelThickness, footShapes, handleCount, handleSides, handleDimensions, panelCount, panelSides, panelTint, panelTransparency, rackFormatLabel, rackRowLayout, sidePanelMargin, ventStyles, type CaseConfiguration } from "@/lib/configurator";
 
@@ -10,6 +11,7 @@ export function BuildSummary({ config, canExportSvg = true, onExportJson, onExpo
   const dimensions = caseDimensions(config);
   const rows = rackRowLayout(config);
   const holder = cableHolderLayout(config);
+  const hook = backHookLayout(config);
   const board = patchBoardLayout(config);
   const feet = flatFeetLayout(config);
   return (
@@ -54,7 +56,8 @@ export function BuildSummary({ config, canExportSvg = true, onExportJson, onExpo
                 <div><dt>Handle size</dt><dd>{handleDimensions(config).width} × {handleDimensions(config).height} <small>mm</small></dd></div>
               </> : <div><dt>Handles</dt><dd>None</dd></div>}
               <div><dt>Patch cable board</dt><dd>{config.patchBoard ? `${board.width} × ${board.height} mm · ${board.holeCount * patchBoardSides(config).length} holes · ${patchBoardSides(config).join(" + ")}` : "None"}</dd></div>
-              <div><dt>Cable holder</dt><dd>{config.cableHolder ? `${holder.slitCount} × ${holder.slitWidth} mm slits · ${holder.height} mm rise` : "None"}</dd></div>
+              <div><dt>Cable holder</dt><dd>{config.cableHolder && !config.backHook ? `${holder.slitCount} × ${holder.slitWidth} mm slits · ${holder.height} mm rise` : "None"}</dd></div>
+              <div><dt>Back sheet hook</dt><dd>{hook.enabled ? `${hook.count} × ${hook.width.toFixed(1)} mm · ${hook.rise} mm rise · ${hook.reach} mm reach · ${hook.drop} mm return` : "None"}</dd></div>
             </dl>
           </div>
           <div className="case-summary-group">

@@ -12,6 +12,7 @@ import { CutoutControls } from "@/components/cutout-controls";
 import { VentControls } from "@/components/vent-controls";
 import { flatFeetLayout, flatFootStyles, flatFootHeightLimits } from "@/lib/flat-feet";
 import { patchBoardLayout, patchBoardLimits, patchBoardSides } from "@/lib/patch-board";
+import { backHookLayout, backHookLimits } from "@/lib/back-hook";
 import { cableHolderLayout, cableHolderLimits } from "@/lib/cable-holder";
 import type { CasePanels } from "@/lib/case-panels";
 import type { CutoutAction } from "@/lib/custom-cutouts";
@@ -42,6 +43,7 @@ export function ConfigurationPanel({ config, panels, onChange, onCutoutAction }:
   const handleSize = handleDimensions(config);
   const board = patchBoardLayout(config);
   const holder = cableHolderLayout(config);
+  const hook = backHookLayout(config);
   const bends = accessoryBendAngles(config);
   const feet = flatFeetLayout(config);
   const rackUnits = totalRackUnits(config);
@@ -71,7 +73,7 @@ export function ConfigurationPanel({ config, panels, onChange, onCutoutAction }:
     const tint = acrylicTints.find(option => option.id === tintId) ?? config.tint;
     onChange({ panelTints: { ...panelTintsFrom(config.tint), ...config.panelTints, [side]: tint } });
   }
-  const accessoriesSummary = [config.handle && `${handleCount(config)} ${handleCount(config) === 1 ? "handle" : "handles"}`, config.cableHolder && "Cable holder", config.patchBoard && "Patch cable board"].filter(Boolean).join(" · ") || "No accessories";
+  const accessoriesSummary = [config.handle && `${handleCount(config)} ${handleCount(config) === 1 ? "handle" : "handles"}`, config.cableHolder && !config.backHook && "Cable holder", config.backHook && `${hook.count} ${hook.count === 1 ? "back hook" : "back hooks"}`, config.patchBoard && "Patch cable board"].filter(Boolean).join(" · ") || "No accessories";
   const powerSummary = config.busboard !== "none" && !panels.powerBoard?.fits ? `${busboards[config.busboard]} · Does not fit` : `${busboards[config.busboard]}${panels.mountingConflicts > 0 ? " · Mount conflicts" : ""}`;
   return <aside className="control-panel accordion-control-panel case-control-panel" aria-label="Case controls">
     <div className="panel-heading"><h2>Your configuration</h2><span className="micro-label">01—07</span></div>
@@ -181,8 +183,8 @@ export function ConfigurationPanel({ config, panels, onChange, onCutoutAction }:
       </>}
       </div>
       <div className="config-group">
-      <div className="inline-field"><label htmlFor="cable-holder">Patch cable holder</label><button id="cable-holder" role="switch" aria-checked={Boolean(config.cableHolder)} aria-label="Patch cable holder" aria-describedby="cable-holder-note" className={`toggle ${config.cableHolder ? "toggle-on" : ""}`} onClick={() => onChange({ cableHolder: !config.cableHolder })}><span>{config.cableHolder ? <Plus size={10} /> : <Minus size={10} />}</span></button></div>
-      <p className="control-note" id="cable-holder-note">{config.cableHolder ? `${holder.slitCount} evenly spaced slits between rounded fingers on the back plate. Slits stay open at the top for dropping cables in.` : "Extend the back plate with evenly spaced fingers to hold patch cables."}</p>
+      <div className="inline-field"><label htmlFor="cable-holder">Patch cable holder</label><button id="cable-holder" role="switch" aria-checked={Boolean(config.cableHolder)} aria-label="Patch cable holder" aria-describedby="cable-holder-note" className={`toggle ${config.cableHolder ? "toggle-on" : ""}`} onClick={() => onChange({ cableHolder: !config.cableHolder, ...(!config.cableHolder ? { backHook: false } : {}) })}><span>{config.cableHolder ? <Plus size={10} /> : <Minus size={10} />}</span></button></div>
+      <p className="control-note" id="cable-holder-note">{config.cableHolder ? `${holder.slitCount} evenly spaced slits between rounded fingers on the back plate. Slits stay open at the top for dropping cables in.` : "Extend the back plate with evenly spaced fingers to hold patch cables. Replaces the back hook when enabled."}</p>
       {config.cableHolder && <>
         <RangeField label="Finger height" value={holder.height} min={cableHolderLimits.height.min} max={cableHolderLimits.height.max} unit="mm" onChange={cableHolderHeight => onChange({ cableHolderHeight })} />
         <RangeField label="Holder bend angle" value={bends.holder} min={0} max={90} unit="°" onChange={cableHolderBendAngle => onChange({ cableHolderBendAngle })} />
@@ -191,7 +193,23 @@ export function ConfigurationPanel({ config, panels, onChange, onCutoutAction }:
         <p className="control-note">Height above the rim. Choose a slit wider than the cable and narrower than its plug. Spacing adapts evenly to the case width.</p>
       </>}
       </div>
-      {(config.handle || config.patchBoard || config.cableHolder) && <p className="control-note">Bends add one sheet thickness of clearance plus the curve length, with an inside radius of twice the sheet thickness. Bent handles use a shorter root while preserving the grip opening. Preview shows the formed sheet; SVG and stock sheets stay flat. Validate the bend allowance with a sample before cutting.</p>}
+      <div className="config-group">
+      <div className="inline-field"><label htmlFor="back-hook">Back sheet hook</label><button id="back-hook" role="switch" aria-checked={Boolean(config.backHook)} aria-label="Back sheet hook" aria-describedby="back-hook-note" className={`toggle ${config.backHook ? "toggle-on" : ""}`} onClick={() => onChange({ backHook: !config.backHook, ...(!config.backHook ? { cableHolder: false } : {}) })}><span>{config.backHook ? <Plus size={10} /> : <Minus size={10} />}</span></button></div>
+      <p className="control-note" id="back-hook-note">Extend the back sheet upward, then bend it backward and down with two 90° bends. Replaces the patch cable holder on the same edge.</p>
+      {config.backHook && <>
+        <div className="segmented-control" role="group" aria-label="Back hook layout">{([{ value: "full", label: "Full width" }, { value: "segments", label: "Narrow parts" }] as const).map(option => <button key={option.value} className={`segment ${hook.mode === option.value ? "segment-active" : ""}`} aria-pressed={hook.mode === option.value} onClick={() => onChange({ backHookMode: option.value })}>{option.label}</button>)}</div>
+        {hook.mode === "segments" && <>
+          <RangeField label="Number of hooks" value={hook.count} min={1} max={hook.maxCount} unit="parts" onChange={backHookCount => onChange({ backHookCount })} />
+          <RangeField label="Hook width" value={hook.width} min={backHookLimits.width.min} max={hook.maxWidth} unit="mm" onChange={backHookWidth => onChange({ backHookWidth })} />
+        </>}
+        <p className="control-note">{hook.mode === "full" ? `${hook.availableWidth.toFixed(1)} mm across the available back edge.` : hook.count === 1 ? `One centred hook, ${hook.width.toFixed(1)} mm wide.` : `${hook.count} hooks, each ${hook.width.toFixed(1)} mm wide, with ${hook.gap.toFixed(1)} mm gaps.`} Width and count adapt to fit the case.</p>
+        <RangeField label="Hook rise" value={hook.rise} min={backHookLimits.rise.min} max={backHookLimits.rise.max} unit="mm" onChange={backHookRise => onChange({ backHookRise })} />
+        <RangeField label="Backward reach" value={hook.reach} min={backHookLimits.reach.min} max={backHookLimits.reach.max} unit="mm" onChange={backHookReach => onChange({ backHookReach })} />
+        <RangeField label="Downward return" value={hook.drop} min={backHookLimits.drop.min} max={backHookLimits.drop.max} unit="mm" onChange={backHookDrop => onChange({ backHookDrop })} />
+        <p className="control-note">Lengths describe the straight sections between the curves. The hook stays part of the back sheet, with rounded roots and tips.</p>
+      </>}
+      </div>
+      {(config.handle || config.patchBoard || config.cableHolder || config.backHook) && <p className="control-note">Bends include the curve length, with an inside radius of twice the sheet thickness. The first bend above an accessory root adds one sheet thickness of clearance; the hook’s return bend follows its backward reach. Bent handles use a shorter root while preserving the grip opening. Preview shows the formed sheet; SVG and stock sheets stay flat. Validate the bend allowance with a sample before cutting.</p>}
     </ConfigSection>
     <ConfigSection number="05" title="Ventilation" summary={config.vents ? `${ventStyles.find(style => style.value === config.ventStyle)?.label} · ${panels.ventilation.openings.length} openings` : "Off · Solid bottom panel"}>
       <VentControls config={config} panels={panels} onChange={onChange} />

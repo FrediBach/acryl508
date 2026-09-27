@@ -8,6 +8,7 @@ import { flatFeetLayout, type FlatFootStyle } from "./flat-feet";
 import { patchBoardLayout, patchBoardSides } from "./patch-board";
 import { bendAngle, bendAllowance, bentHandleTrim } from "./accessory-bends";
 import { cableHolderLayout } from "./cable-holder";
+import { backHookLayout } from "./back-hook";
 import { sinusodaHoles, sinusodaJuice, sinusodaPlacement } from "./sinusoda";
 import { trolleyBus, trolleyHoles, trolleyMountingHoles, trolleyPlacement } from "./trolley";
 import { compactPwr, compactPwrHoles, compactPwrPlacement, compactPwrInlet } from "./compactpwr";
@@ -36,6 +37,8 @@ export type CaseConfiguration = {
   flatFeet?: boolean; flatFootStyle?: FlatFootStyle; flatFootHeight?: number;
   patchBoard?: boolean; patchBoardSide?: "left" | "right" | "both"; patchBoardWidth?: number; patchBoardHeight?: number; patchBoardSpacing?: number; patchBoardBendAngle?: number;
   cableHolder?: boolean; cableHolderHeight?: number; cableHolderSlitWidth?: number; cableHolderBendAngle?: number;
+  backHook?: boolean; backHookMode?: "full" | "segments"; backHookCount?: number; backHookWidth?: number;
+  backHookRise?: number; backHookReach?: number; backHookDrop?: number;
   cutouts: CustomCutout[];
   engravings: CustomCutout[];
   ledStrips: Partial<Record<PanelSide, LedStrip>>;
@@ -90,6 +93,7 @@ export const defaultConfiguration: CaseConfiguration = {
   flatFeet: false, flatFootStyle: "pads", flatFootHeight: 15,
   patchBoard: false, patchBoardSide: "left", patchBoardWidth: 160, patchBoardHeight: 70, patchBoardSpacing: 15, patchBoardBendAngle: 0,
   cableHolder: false, cableHolderHeight: 35, cableHolderSlitWidth: 5, cableHolderBendAngle: 0,
+  backHook: false, backHookMode: "full", backHookCount: 2, backHookWidth: 40, backHookRise: 20, backHookReach: 30, backHookDrop: 25,
 };
 // `rows` remains in the exported format for backwards compatibility. A mismatched
 // legacy `rows` value is interpreted as that many 3U rows.
@@ -175,17 +179,17 @@ export function accessoryBendAngles(config: CaseConfiguration) {
   const stacked = handleSides(config).some(side => patchBoardSides(config).includes(side));
   const handleMax = 90 - (stacked ? board : 0);
   return { board, handle: config.handle ? Math.min(handleMax, bendAngle(config.handleBendAngle)) : 0,
-    holder: config.cableHolder ? bendAngle(config.cableHolderBendAngle) : 0, handleMax, stacked };
+    holder: config.cableHolder && !config.backHook ? bendAngle(config.cableHolderBendAngle) : 0, handleMax, stacked };
 }
 export function accessoryBendSpecification(config: CaseConfiguration) {
   const angles = accessoryBendAngles(config);
   return (["left", "right", "rear"] as const).flatMap(side => {
-    const entries = side === "rear" ? [["cableHolder", angles.holder] as const] : [
+    const entries = side === "rear" ? config.backHook ? [["backHookShoulder", 90] as const, ["backHookReturn", 90] as const] : [["cableHolder", angles.holder] as const] : [
       ["patchBoard", patchBoardSides(config).includes(side) ? angles.board : 0] as const,
       ["handle", handleSides(config).includes(side) ? angles.handle : 0] as const,
     ];
     return entries.filter(([, angle]) => angle > 0).map(([accessory, angle]) => {
-      const bend = bendAllowance(angle, panelThickness(config, side) / 100);
+      const bend = bendAllowance(angle, panelThickness(config, side) / 100, accessory === "backHookReturn" ? 0 : undefined);
       return { side, accessory, angleDegrees: angle, direction: "outward", innerRadiusMm: bend.innerRadius * 100,
         allowanceMm: bend.length * 100, clearanceMm: bend.clearance * 100, addedFlatLengthMm: bend.extra * 100,
         handleRootReductionMm: accessory === "handle" ? bentHandleTrim(panelThickness(config, side) / 100) * 100 : 0 };
@@ -209,10 +213,11 @@ export function caseDimensions(config: CaseConfiguration) {
 }
 export function configurationExport(config: CaseConfiguration, cutoutReports: CutoutReport[] = [], resolvedPanels: Partial<Record<CutoutSide, MultiPolygon>> = {}) {
   const holder = cableHolderLayout(config);
+  const hook = backHookLayout(config);
   const board = patchBoardLayout(config);
   const feet = flatFeetLayout(config);
   return {
-    product: "Acryl508", version: 12, units: "mm", status: "design-concept",
+    product: "Acryl508", version: 13, units: "mm", status: "design-concept",
     configuration: { ...config, flatFootStyle: feet.style, flatFootHeight: feet.height, transparency: config.transparency ?? defaultTransparency, patchBoardWidth: board.width, patchBoardHeight: board.height, patchBoardSpacing: board.spacing, handleWidth: handleDimensions(config).width, handleHeight: handleDimensions(config).height, ventLayout: config.ventLayout ?? "aligned", ventCoverage: config.ventCoverage ?? "bands", ventMix: config.ventMix ?? "checkerboard", ventDesign: normalizeVentDesign(config.ventDesign), material: "GS cast acrylic", fasteners: "Black socket-head screws", assembly: "Mechanical; no glue" },
     ventilation: {
       minimumWebMm: Math.max(3, panelThickness(config, "bottom")), borderMm: Math.max(8, 2 * panelThickness(config, "bottom")),
@@ -283,11 +288,12 @@ export function configurationExport(config: CaseConfiguration, cutoutReports: Cu
     },
     stance: { automaticFeet: rackEnvelope(config).angled, method: "Integral side-panel profile", angle: config.angle, shape: config.footShape, minimumWebMm: config.footShape === "sled" && config.angle > 0 ? sledWebThickness(Math.min(panelThickness(config, "left"), panelThickness(config, "right"))) : null, innerCorners: config.footShape === "sled" ? "Rounded" : null, additionalParts: 0 },
     patchBoard: { enabled: Boolean(config.patchBoard), method: "Integral side-panel extension with round cable storage holes", sides: patchBoardSides(config), widthMm: board.width, riseMm: board.height, holeDiameterMm: board.holeDiameter, spacingMm: board.spacing, columns: board.columns, rows: board.rows, holesPerSide: config.patchBoard ? board.holeCount : 0, holeCentersMm: config.patchBoard ? board.centers : [], holeCoordinates: "Relative to the centre of the board bottom, above any bend clearance and allowance", additionalParts: 0 },
-    accessoryBends: { bends: accessoryBendSpecification(config), flatPattern: true, neutralAxis: "Mid-sheet", radiusPolicy: "Inside radius = 2 × sheet thickness", angles: "Relative to preceding section; stacked bends limited to 90 degrees total" },
+    accessoryBends: { bends: accessoryBendSpecification(config), flatPattern: true, neutralAxis: "Mid-sheet", radiusPolicy: "Inside radius = 2 × sheet thickness", angles: "Relative to preceding section; side accessories limited to 90 degrees total; back hook uses two outward 90 degree bends" },
+    backHook: { enabled: hook.enabled, method: "Integral rear-sheet extensions bent backward then downward", mode: hook.mode, count: hook.enabled ? hook.count : 0, widthMm: hook.width, availableWidthMm: hook.availableWidth, segmentCentersMm: hook.enabled ? hook.centers : [], gapMm: hook.gap, riseMm: hook.rise, reachMm: hook.reach, dropMm: hook.drop, flatHeightMm: hook.flatHeight, coordinates: "Centred across the rear sheet; rise, reach and drop are straight lengths between bend arcs, excluding bend clearance", additionalParts: 0 },
     handles: { method: "Integral side-panel grips", mode: config.handleMode ?? "auto", count: handleCount(config), widthMm: handleDimensions(config).width, riseMm: handleDimensions(config).height, roundedRoots: true, sides: handleSides(config), additionalParts: 0 },
     flatFeet: { enabled: feet.enabled, style: feet.style, heightMm: feet.height, method: "Integral side-panel profiles", contactCount: feet.enabled ? feet.style === "runners" ? 2 : 4 : 0, additionalParts: 0 },
     footAttachment: null,
-    cableHolder: { enabled: Boolean(config.cableHolder), method: "Integral fingers along the rear panel top edge", heightMm: holder.height, slitWidthMm: holder.slitWidth, slitCount: config.cableHolder ? holder.slitCount : 0, fingerWidthMm: holder.fingerWidth, pitchMm: holder.pitch, slitCentersMm: config.cableHolder ? holder.slitCenters : [], roundedTips: true, roundedSlitRoots: true, additionalParts: 0 },
-    notes: ["Configuration specification only; not a cutting template.", "Outer dimensions describe the enclosure, excluding the integral grip, patch cable board, cable holder, feet and stance extensions.", "The minimum side margin uses a 1.5× slot-width centre-to-edge guardrail adapted from acrylic hole guidance; rectangular slots and the complete loaded assembly still require fabrication validation.", "Joint clearances, fasteners, load capacity and rail profiles require fabrication validation.", ...(config.busboard === "sinusoda" ? ["Sinusoda Juice envelope follows the supplied data sheet; the 28-hole pattern is photo-derived and approximate. Verify centres, diameters, mounting stack, module and electrical clearances against the physical board before fabrication."] : config.busboard === "trolley" ? ["Trolley Bus uses a 423 mm board and a conservative 435 mm installation envelope inferred from the setup drawing. Eight photo-estimated screw mounts adapt the manufacturer's adhesive mounting method; positions, diameters, insulation and clearances must be verified against hardware."] : config.busboard === "compactpwr" ? ["CompactPWR uses the manufacturer’s 174 × 79 × 20 mm envelope. Its four corner screw mounts are photo-derived estimates; verify centres, diameters, mounting stack and clearances against hardware before drilling."] : [])],
+    cableHolder: { enabled: Boolean(config.cableHolder && !config.backHook), method: "Integral fingers along the rear panel top edge", heightMm: holder.height, slitWidthMm: holder.slitWidth, slitCount: config.cableHolder && !config.backHook ? holder.slitCount : 0, fingerWidthMm: holder.fingerWidth, pitchMm: holder.pitch, slitCentersMm: config.cableHolder && !config.backHook ? holder.slitCenters : [], roundedTips: true, roundedSlitRoots: true, additionalParts: 0 },
+    notes: ["Configuration specification only; not a cutting template.", "Outer dimensions describe the enclosure, excluding the integral grip, patch cable board, cable holder, back hook, feet and stance extensions.", "The minimum side margin uses a 1.5× slot-width centre-to-edge guardrail adapted from acrylic hole guidance; rectangular slots and the complete loaded assembly still require fabrication validation.", "Joint clearances, fasteners, load capacity and rail profiles require fabrication validation.", ...(config.busboard === "sinusoda" ? ["Sinusoda Juice envelope follows the supplied data sheet; the 28-hole pattern is photo-derived and approximate. Verify centres, diameters, mounting stack, module and electrical clearances against the physical board before fabrication."] : config.busboard === "trolley" ? ["Trolley Bus uses a 423 mm board and a conservative 435 mm installation envelope inferred from the setup drawing. Eight photo-estimated screw mounts adapt the manufacturer's adhesive mounting method; positions, diameters, insulation and clearances must be verified against hardware."] : config.busboard === "compactpwr" ? ["CompactPWR uses the manufacturer’s 174 × 79 × 20 mm envelope. Its four corner screw mounts are photo-derived estimates; verify centres, diameters, mounting stack and clearances against hardware before drilling."] : [])],
   };
 }

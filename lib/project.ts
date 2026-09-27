@@ -8,6 +8,7 @@ import { defaultLedStrip, type LedStrip } from "./engravings";
 import { type CustomCutout } from "./custom-cutouts";
 import { validateObjectVertices, type StandObject } from "./stand-object";
 import { normalizeVentDesign } from "./vent-design";
+import { backHookLimits } from "./back-hook";
 import { type FontAsset } from "./project-fonts";
 import type { SheetMaterialConfiguration } from "./sheet-materials";
 
@@ -123,6 +124,13 @@ export function readCase(input: unknown): CaseConfiguration {
   config.footShape = choice(config.footShape, ["wedge", "arch", "sled"], "foot shape");
   config.patchBoardSide = choice(config.patchBoardSide, ["left", "right", "both"], "patch cable board side");
   config.handleMode = choice(config.handleMode, ["auto", "single", "left", "right", "pair"], "handle layout");
+  config.backHookMode = choice(config.backHookMode, ["full", "segments"], "back hook layout");
+  for (const [key, limits] of [
+    ["backHookCount", backHookLimits.count], ["backHookWidth", backHookLimits.width],
+    ["backHookRise", backHookLimits.rise], ["backHookReach", backHookLimits.reach], ["backHookDrop", backHookLimits.drop],
+  ] as const) config[key] = number(config[key], key, limits.min, limits.max);
+  if (!Number.isInteger(config.backHookCount)) throw new Error("Hook count must be a whole number.");
+  if (config.backHook) config.cableHolder = false;
   config.ventStyle = choice(config.ventStyle, ["long-slits", "short-slits", "round", "hexagonal", "mixed"], "vent shape");
   config.ventDensity = choice(config.ventDensity, ["low", "medium", "high"], "vent density");
   config.ventLayout = choice(config.ventLayout, ["aligned", "staggered"], "vent layout");
@@ -211,6 +219,6 @@ export function parseProject(source: string, current: Designs = initialDesigns, 
   // Existing single-designer JSON exports remain useful: import only that mode.
   const mode = data.mode === "speaker" ? "speaker" : data.mode === "art" ? "art" : data.mode === "synth-stand" ? "stand" : data.mode === "synth-protector" ? "protector" : data.mode === "panel-designer" ? "panel" : data.product === "Acryl508" && !data.mode ? "case" : undefined;
   if (!mode || data.units !== "mm") throw new Error("Choose an Acryl508 project or configuration JSON file.");
-  number(data.version, "Export version", 1, { case: 12, stand: 7, protector: 2, panel: 1, art: 1, speaker: 1 }[mode]);
+  number(data.version, "Export version", 1, { case: 13, stand: 7, protector: 2, panel: 1, art: 1, speaker: 1 }[mode]);
   return makeProject("Imported design", mode, { ...current, [mode]: readers[mode](data.configuration) }, currentFonts);
 }
