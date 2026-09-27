@@ -2,6 +2,7 @@ import polygonClipping, { type MultiPolygon, type Pair } from "polygon-clipping"
 import { bendPoint, type AccessoryBend } from "./accessory-bends";
 import { maxSheetThickness, sheetThickness } from "./sheet-materials";
 import type { StandPart, SynthStand } from "./synth-stand";
+import { cutStandTray } from "./stand-tray-cutouts";
 
 export type BentTray = {
   frontLip: number; rearFold: number; deckDepth: number; deckStart: number;
@@ -65,9 +66,10 @@ export function createBentStand(base: SynthStand, round: (outline: Pair[], radiu
   });
   const trayWidth = config.width + 2 * t;
   const holes = tray.holes.map(h => rect(h.x - h.size / 2, h.y - h.size / 2, h.x + h.size / 2, h.y + h.size / 2));
-  const polygons = polygonClipping.difference(round(rect(-trayWidth / 2, 0, trayWidth / 2, flatHeight)[0][0], radius), ...holes);
+  const blank = polygonClipping.difference(round(rect(-trayWidth / 2, 0, trayWidth / 2, flatHeight)[0][0], radius), ...holes);
+  const cutouts = cutStandTray(blank, tray, trayWidth, trayThickness, config.cutouts);
   const top: StandPart = { id: "bent-tray", label: "Bent top sheet", thickness: trayThickness, kind: "tray", family: "a", position: 0,
-    placement: { width: 0, depth: 0, yaw: 0 }, polygons, width: trayWidth, minX: -trayWidth / 2, height: flatHeight, slots: [], cableHoleCenters: [], tray };
+    placement: { width: 0, depth: 0, yaw: 0 }, polygons: cutouts.polygons, width: trayWidth, minX: -trayWidth / 2, height: flatHeight, slots: [], cableHoleCenters: [], tray };
   const parts = [...supports, top];
   const points = [0, flatHeight, deckStart, deckStart + config.depth, ...tray.bends.flatMap(b => Array.from({ length: 31 }, (_, i) => b.start + b.length * i / 30))]
     .flatMap(y => [0, trayThickness].map(z => bentTrayPoint(tray, trayThickness, config.angle, frontHeight, 0, y, z)));
@@ -77,7 +79,7 @@ export function createBentStand(base: SynthStand, round: (outline: Pair[], radiu
   }))));
   const front = Math.min(...points.map(p => p.z), ...footprint.map(p => p.z));
   const rear = Math.max(...points.map(p => p.z), ...footprint.map(p => p.z));
-  return { ...base, parts, frontHeight, stopHeight: frontLip, front, rear, ribCount: 2, braceCount: 0, ribPositions: [0, 0], bracePositions: [],
+  return { ...base, parts, cutoutPanels: cutouts.panels, canExport: cutouts.canExport, frontHeight, stopHeight: frontLip, front, rear, ribCount: 2, braceCount: 0, ribPositions: [0, 0], bracePositions: [],
     braceWidth: trayWidth, braceHeight: 0, reliefRadius: 0, supportSpacing: span, jointCenter: supports[0].slots[0].root - 0.1,
     diagonal: { enabled: true, angle: 45, intersectionAngle: 90 },
     cableHoles: { ...base.cableHoles, enabled: false, centers: [], centersByBrace: [], countPerBrace: 0, totalCount: 0 },
@@ -91,4 +93,5 @@ export const bentStandNotes = [
   "Three parts: one formed tray and two perpendicular diagonal supports. Join support B slots-up with A slots-down, then lower the tray over the four locating tabs. Square mortises allow clearance around the diagonal tabs; they locate the tray but are not captive fasteners. Lift the instrument off before moving the stand.",
   "Form the front lip 90 degrees upward and the larger rear fold 90 degrees downward relative to the deck. Flat pattern includes two bend allowances, each using an inside radius of twice the tray thickness and a mid-sheet neutral axis. Validate the forming allowance on a sample. Blue dashed SVG lines are bend-zone boundaries, not cuts; stock-sheet exports contain cut paths only.",
   "Two supports remain fixed in count. Tray overhang and deflection increase with instrument width. Prototype joint fit, bends, flex, grip and tipping before loading equipment; no load rating is calculated. Uploaded models set the tray envelope; the tray does not follow underside contours.",
+  "Custom SVG and text cutouts affect only the flat deck. Cuts retain two tray thicknesses of material around the deck edges, bend zones and locating holes, with connecting webs from each hole to the nearest side edge. Artwork crossing these borders is clipped; enclosed loose islands are removed. The preview, design SVG and stock sheets use the same resulting outline.",
 ];

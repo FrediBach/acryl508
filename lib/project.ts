@@ -145,7 +145,10 @@ export function readCase(input: unknown): CaseConfiguration {
   return config;
 }
 export function readStand(input: unknown): StandConfiguration {
-  return normalizeStandConfiguration({ ...sheetMaterials(material(base(input, defaultStandConfiguration)), /^(bent-tray|(rib|brace)-(?:[ab]-)?([1-9]|1[0-9]|20))$/, 5, 10), object: object(record(input, "Stand").object) });
+  const config = sheetMaterials(material(base(input, defaultStandConfiguration)), /^(bent-tray|(rib|brace)-(?:[ab]-)?([1-9]|1[0-9]|20))$/, 5, 10);
+  config.cutouts = cutouts(config.cutouts);
+  if (config.cutouts.some(cutout => cutout.side !== "bottom")) throw new Error("Stand custom cutouts must use the upper sheet.");
+  return normalizeStandConfiguration({ ...config, object: object(record(input, "Stand").object) });
 }
 export function readProtector(input: unknown): ProtectorConfiguration {
   return { ...sheetMaterials(material(base(input, defaultProtectorConfiguration)), /^(top-sheet|foot-(left|right|front|rear)-([1-9]|10)|strip-(left|right|front|rear))$/, 5, 10), object: object(record(input, "Protector").object) };

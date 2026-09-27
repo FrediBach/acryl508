@@ -12,6 +12,8 @@ type Props = {
   onAction: (action: CutoutAction) => void; operation?: "cut" | "engrave";
   sides?: readonly { value: CutoutSide; label: string }[];
   description?: string;
+  viewLabel?: string;
+  clippedNote?: string;
 };
 export type { FontOption } from "@/lib/project-fonts";
 import { addProjectFont, type FontOption } from "@/lib/project-fonts";
@@ -61,7 +63,7 @@ export function TextEditor({ cutout, fonts, onImport, onUpdate }: { cutout: Cust
   </div>;
 }
 
-export function CutoutControls({ config, panels, onAction, operation = "cut", sides = cutoutSides, description }: Props) {
+export function CutoutControls({ config, panels, onAction, operation = "cut", sides = cutoutSides, description, viewLabel, clippedNote }: Props) {
   const engraving = operation === "engrave";
   const items = engraving ? config.engravings ?? [] : config.cutouts;
   const noun = engraving ? "engraving" : "cutout";
@@ -116,7 +118,7 @@ export function CutoutControls({ config, panels, onAction, operation = "cut", si
     <p className="control-note">SVG up to 1 MB. Convert strokes to filled paths first. {limitReached && `Limit reached: 20 ${noun}s.`}</p>
     {error && <p className="cutout-warning" role="alert">{error}</p>}
     {items.length > 0 && <div className="cutout-list" aria-label={`Custom ${noun}s`}>{items.map(cutout => <div className="cutout-list-row" key={cutout.id}>
-      <button className={`cutout-choice ${cutout.id === selected?.id ? "cutout-selected" : ""}`} aria-pressed={cutout.id === selected?.id} onClick={() => setSelectedId(cutout.id)}><span>{cutout.name}</span><small>{cutoutSides.find(side => side.value === cutout.side)?.label}</small></button>
+      <button className={`cutout-choice ${cutout.id === selected?.id ? "cutout-selected" : ""}`} aria-pressed={cutout.id === selected?.id} onClick={() => setSelectedId(cutout.id)}><span>{cutout.name}</span><small>{sides.find(side => side.value === cutout.side)?.label}</small></button>
       <button className="icon-button" aria-label={`Duplicate ${cutout.name}`} disabled={limitReached} onClick={() => { const copy = { ...cutout, id: crypto.randomUUID(), name: `${cutout.name} copy` }; onAction({ type: "add", cutout: copy }); setSelectedId(copy.id); }}><Copy size={13} /></button>
       <button className="icon-button" aria-label={`Remove ${cutout.name}`} onClick={() => onAction({ type: "remove", id: cutout.id })}><Trash2 size={13} /></button>
     </div>)}</div>}
@@ -129,8 +131,8 @@ export function CutoutControls({ config, panels, onAction, operation = "cut", si
         <NumberControl label="Horizontal (mm)" value={selected.x} min={-1000} max={1000} onChange={x => update({ x })} />
         <NumberControl label="Vertical (mm)" value={selected.y} min={-1000} max={1000} onChange={y => update({ y })} />
       </div>
-      <div className="cutout-layout-heading"><span>OUTSIDE VIEW · {selected.side.toUpperCase()}</span><button onClick={() => update({ x: 0, y: 0 })}>Centre</button></div>
-      <svg className="cutout-layout" role="img" aria-label={`${selected.side} panel. Click or drag to position the selected ${noun}.`} viewBox={`${bounds.left - 5} ${-bounds.top - 5} ${bounds.width + 10} ${bounds.height + 10}`} onPointerDown={event => { event.currentTarget.setPointerCapture(event.pointerId); place(event); }} onPointerMove={event => { if (event.currentTarget.hasPointerCapture(event.pointerId)) place(event); }} onPointerUp={event => event.currentTarget.releasePointerCapture(event.pointerId)}>
+      <div className="cutout-layout-heading"><span>{viewLabel ?? `OUTSIDE VIEW · ${selected.side.toUpperCase()}`}</span><button onClick={() => update({ x: 0, y: 0 })}>Centre</button></div>
+      <svg className="cutout-layout" role="img" aria-label={`${viewLabel ?? `${selected.side} panel`}. Click or drag to position the selected ${noun}.`} viewBox={`${bounds.left - 5} ${-bounds.top - 5} ${bounds.width + 10} ${bounds.height + 10}`} onPointerDown={event => { event.currentTarget.setPointerCapture(event.pointerId); place(event); }} onPointerMove={event => { if (event.currentTarget.hasPointerCapture(event.pointerId)) place(event); }} onPointerUp={event => event.currentTarget.releasePointerCapture(event.pointerId)}>
         <path d={outlinePath(face.original)} className="cutout-original" fillRule="evenodd" />
         <path d={outlinePath(face.polygons)} className="cutout-material" fillRule="evenodd" />
         {engraving && face.engraving && <path d={outlinePath(face.engraving.polygons)} className="engraving-fill" fillRule="evenodd" />}
@@ -139,11 +141,11 @@ export function CutoutControls({ config, panels, onAction, operation = "cut", si
       <p className="control-note">Click or drag to place. Solid areas show retained acrylic. Position is measured from the panel centre: +X right, +Y up. Proportions stay locked.{selected.side === "bottom" && " Rear edge is at the top."}</p>
     </div>}
     <div aria-live="polite" aria-atomic="true">{warnings.map(report => <div className="cutout-warning" key={report.side}>
-      <AlertTriangle size={13} aria-hidden="true" /><div><strong>{cutoutSides.find(side => side.value === report.side)?.label} panel</strong>
+      <AlertTriangle size={13} aria-hidden="true" /><div><strong>{sides.find(side => side.value === report.side)?.label} panel</strong>
         {report.removedParts > 0 && <p>{report.removedParts} loose {report.removedParts === 1 ? "part" : "parts"} removed ({report.removedArea.toFixed(1)} mm²). Only the largest piece attached to the panel perimeter is kept. Enclosed letter centres fall out.</p>}
         {report.empty && <p>No acrylic remains. Reduce or move the cutouts on this panel.</p>}
         {report.outside.length > 0 && <p>{report.outside.length} {report.outside.length === 1 ? "cutout does" : "cutouts do"} not intersect the remaining acrylic.</p>}
-        {report.clipped.length > 0 && <p>Cutouts extend beyond this panel. Only the overlapping area is cut.</p>}
+        {report.clipped.length > 0 && <p>{clippedNote ?? "Cutouts extend beyond this panel. Only the overlapping area is cut."}</p>}
         {report.error && <p>{report.error}</p>}
       </div>
     </div>)}</div>

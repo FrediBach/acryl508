@@ -164,7 +164,7 @@ export function ConfiguratorShell() {
       return;
     }
     if (mode === "stand") {
-      if (standError || standBusy) return;
+      if (standError || standBusy || !stand.canExport) return;
       download(standSvg(stand), "image/svg+xml", `acryl508-stand-${stand.config.width}mm-${stand.config.angle}deg-sheets.svg`);
       showExported("SVG");
       return;

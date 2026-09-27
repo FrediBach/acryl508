@@ -3,12 +3,15 @@ import { objectContactCut, positionStandObject, trimContactSpikes, type StandObj
 import polygonClipping, { type MultiPolygon, type Pair } from "polygon-clipping";
 import { defaultTint, defaultTransparency, type AcrylicTint, type AcrylicTransparency } from "./acrylic-material";
 import { createBentStand, bentStandNotes, type BentTray } from "./bent-stand";
+import { maxCutouts, type CustomCutout } from "./custom-cutouts";
+import type { StandCutoutPanels } from "./stand-tray-cutouts";
 
 export type StandConfiguration = SheetMaterialConfiguration & {
   object?: StandObject;
   width: number; depth: number; height: number; angle: number;
   advancedMode: boolean;
   bentSheet?: boolean; frontLipHeight: number; rearFoldHeight: number;
+  cutouts: CustomCutout[];
   thickness: number; clearance: number; tint: AcrylicTint; transparency?: AcrylicTransparency;
   cableHoles: boolean; cableHoleDiameter: number;
   roundedEdges: boolean; cornerRadius: number;
@@ -28,6 +31,7 @@ export const defaultStandConfiguration: StandConfiguration = {
   width: 550, depth: 280, height: 70, angle: 25, thickness: 6, clearance: 0.15, tint: defaultTint, transparency: defaultTransparency,
   advancedMode: false,
   bentSheet: false, frontLipHeight: 15, rearFoldHeight: 60,
+  cutouts: [],
   cableHoles: false, cableHoleDiameter: 20,
   roundedEdges: false, cornerRadius: 3,
   frontExtension: false, frontExtensionLength: 15,
@@ -43,6 +47,7 @@ export type StandPart = {
 };
 export function normalizeStandConfiguration(input: StandConfiguration): StandConfiguration {
   const config = { ...input, bentSheet: input.bentSheet === true, advancedMode: input.bentSheet === true ? false : input.advancedMode === true, transparency: input.transparency ?? defaultTransparency, cableHoles: input.cableHoles === true, roundedEdges: input.roundedEdges === true, frontExtension: input.frontExtension === true };
+  config.cutouts = (input.cutouts ?? []).filter(cutout => cutout.side === "bottom").slice(0, maxCutouts);
   for (const key of Object.keys(standLimits) as (keyof typeof standLimits)[]) {
     const { min, max } = standLimits[key];
     config[key] = Math.max(min, Math.min(max, Number.isFinite(input[key]) ? input[key] : defaultStandConfiguration[key]));
@@ -150,7 +155,7 @@ function createStandardStand(input: StandConfiguration, fitted?: { width: number
     ...ribPositions.map((position, i): StandPart => ({ id: `rib-${i + 1}`, thickness: sheetThickness(config, `rib-${i + 1}`), label: `Support rib ${i + 1}`, kind: "rib", position, polygons: ribPolygons, width: rear - front, height: ribHeight, minX: front, family: "a", placement: { width: position, depth: 0, yaw: Math.PI / 2 }, cableHoleCenters: [], slots: bracePositions.map((center, j) => ({ center, root: jointCenter + 0.1, opens: "down", mate: `brace-${j + 1}`, width: sheetThickness(config, `brace-${j + 1}`) + clearance })) })),
     ...bracePositions.map((position, i): StandPart => ({ id: `brace-${i + 1}`, thickness: sheetThickness(config, `brace-${i + 1}`), label: `${["Front", "Middle", "Rear"][i]} cross brace`, kind: "brace", position, polygons: bracePolygons, width: braceWidth, height: braceHeight, minX: -braceWidth / 2, family: "b", placement: { width: 0, depth: position, yaw: 0 }, cableHoleCenters, slots: ribPositions.map((center, j) => ({ center, root: jointCenter - 0.1, opens: "up", mate: `rib-${j + 1}`, width: sheetThickness(config, `rib-${j + 1}`) + clearance })) })),
   ];
-  return { objectFit: null as null | { name: string; triangleCount: number; method: string; minimumTipWidth: number; frontStops: { partId: string; baseHeight: number; topHeight: number; contactX: number; outerX: number }[] }, config, parts, ribCount, braceCount: 3, ribPositions, bracePositions, braceWidth, braceHeight, frontHeight, stopHeight, front, rear,
+  return { cutoutPanels: null as StandCutoutPanels | null, canExport: true, objectFit: null as null | { name: string; triangleCount: number; method: string; minimumTipWidth: number; frontStops: { partId: string; baseHeight: number; topHeight: number; contactX: number; outerX: number }[] }, config, parts, ribCount, braceCount: 3, ribPositions, bracePositions, braceWidth, braceHeight, frontHeight, stopHeight, front, rear,
     slotWidth, reliefRadius, jointCenter, supportSpacing,
     diagonal: { enabled: false, angle: 0, intersectionAngle: 90 },
     frontExtension: { enabled: config.frontExtension, length: frontExtensionLength, stopOuterX, floorFrontX: front },
@@ -388,6 +393,7 @@ export function standSheetLayout(stand: SynthStand) {
   return { parts, width: right + margin, height: y + rowHeight + margin };
 }
 export function standSvg(stand: SynthStand) {
+  if (!stand.canExport) throw new Error("Resolve the upper-sheet cutout warnings before exporting cutting sheets.");
   const layout = standSheetLayout(stand);
   if (stand.config.bentSheet) return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${number(layout.width)}mm" height="${number(layout.height)}mm" viewBox="0 0 ${number(layout.width)} ${number(layout.height)}" fill="none" stroke="#000000" stroke-width="0.2" data-units="mm">
@@ -408,6 +414,8 @@ export function standExport(stand: SynthStand) {
     construction: { method: stand.config.bentSheet ? "Bent tray with four square locating mortises and crossed half-lap supports" : "Open half-lap slots", trayCount: stand.config.bentSheet ? 1 : 0, ribCount: stand.ribCount, braceCount: stand.braceCount, totalParts: stand.parts.length, hardware: 0, adhesive: false, supportSpacing: stand.supportSpacing, slotWidth: stand.slotWidth, slotRootReliefRadius: stand.reliefRadius, kerfCompensated: false, loadRating: null },
     objectFit: stand.objectFit,
     tray: stand.parts.find(p => p.tray)?.tray ?? null,
+    upperSheetCutouts: { enabled: !!stand.config.bentSheet, artwork: stand.config.cutouts, reports: stand.cutoutPanels?.reports ?? [], coordinates: "Flat deck centre; X right, Y toward the rear, viewed from above. Stored side bottom identifies the upper sheet in the shared artwork editor." },
+    canExport: stand.canExport,
     diagonal: stand.diagonal,
     assembly: stand.config.bentSheet ? "Form the front lip 90 degrees up and rear fold 90 degrees down. Cross support B slots-up with A slots-down, then lower the tray over four tabs." : stand.config.advancedMode ? "Place family B with slots up; lower family A with slots down. Both families contain main supports and low braces." : "Place braces slots up; lower support ribs slots down.",
     coordinates: stand.config.bentSheet ? "Support outlines use local X along the upright sheet, Y up, with the standard placement/yaw mapping. Tray outlines use X across width and Y from the front lip free edge toward the rear fold free edge. Tray bends use millimetres and radians, a mid-sheet neutral axis and the exported inside radius. Deck starts at tray.deckStart and extends tray.deckDepth. The tray upper contact plane begins at world depth 0, height frontHeight. Square hole centres are in flat-tray coordinates; tabs stop at or below the contact plane." : "placement is the sheet centre-plane origin in assembled width/depth millimetres; yaw is in radians. For local outline coordinate u and thickness coordinate v in [-t/2,t/2], width = placement.width + u*cos(yaw) + v*sin(yaw), depth = placement.depth + u*sin(yaw) - v*cos(yaw). Part outlines: X runs along the sheet and Y points up. In advanced mode position is the diagonal family offset and placement fully specifies the assembly. In standard mode rib X is front-to-rear depth and position is width-axis centre; brace X is width and position is front-to-rear depth. All part bottoms sit at Y=0. Manual instrument front underside is at depth=0 and Y=frontHeight. Uploaded models are oriented using the configured up axis and turn, tilted, then translated so their minimum depth is zero and minimum Y is frontHeight.",

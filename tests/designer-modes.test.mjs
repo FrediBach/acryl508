@@ -638,6 +638,17 @@ test("mode switching preserves independent designs and routes material choices a
     assert.equal(bentStand.tray.holes.length, 4);
     assert.equal(bentStand.configuration.bentSheet, true);
     assert.match(document.querySelector(".stand-mode-control").textContent, /90° front lip/);
+    await toggleSection("Upper sheet cutouts");
+    const trayUpload = document.querySelector('input[aria-label="Import SVG cutout"]');
+    Object.defineProperty(trayUpload, "files", { configurable: true, value: [{ name: "tray-mark.svg", size: 100, text: async () => '<svg xmlns="http://www.w3.org/2000/svg"><rect width="20" height="10" /></svg>' }] });
+    await actAndPreview(async () => trayUpload.dispatchEvent(new dom.window.Event("change", { bubbles: true })));
+    assert.match(document.querySelector(".cutout-layout-heading").textContent, /TOP VIEW · UPPER SHEET/);
+    await click("Export stand design JSON");
+    const cutTray = JSON.parse(await downloads.at(-1).blob.text());
+    assert.equal(cutTray.configuration.cutouts.length, 1);
+    assert.notDeepEqual(cutTray.parts.find(p => p.tray).polygons, bentStand.parts.find(p => p.tray).polygons);
+    await click("Duplicate tray-mark");
+    await click("Remove tray-mark copy");
     await click("Cutting layout");
     assert.equal(document.querySelectorAll('.stand-cutting-layout [data-operation="bend-guide"]').length, 4);
     await click("Synth protector");
@@ -646,6 +657,11 @@ test("mode switching preserves independent designs and routes material choices a
     await click("Standard");
     await click("Export stand design JSON");
     assert.deepEqual(JSON.parse(await downloads.at(-1).blob.text()).parts, standardStand.parts);
+    await click("Bent sheet");
+    await click("Export stand design JSON");
+    assert.deepEqual(JSON.parse(await downloads.at(-1).blob.text()).configuration.cutouts, cutTray.configuration.cutouts);
+    await click("Remove tray-mark");
+    await click("Standard");
     // Keep real parsing, fitting and controls; emulate only the worker transport.
     previous.set("Worker", Object.getOwnPropertyDescriptor(globalThis, "Worker"));
     const { createSynthStand } = load(path.join(project, "lib/synth-stand.ts"));

@@ -43,7 +43,12 @@ export function caseFabrication(config: CaseConfiguration, panels: CasePanels): 
 }
 export function standFabrication(stand: SynthStand, error?: string, busy?: boolean): Fabrication {
   return { parts: stand.parts.map(part => ({ id: part.id, label: part.label, polygons: down(part.polygons), thickness: part.thickness, material: materialLabel(sheetMaterial(stand.config, part.id).tint, sheetMaterial(stand.config, part.id).transparency) })),
-    warnings: [...(stand.config.bentSheet ? bentStandNotes : []), "Validate joint fit, grip, flex and loaded stability on a prototype.", ...(error ? [error] : []), ...(busy ? ["Model fitting is in progress."] : [])], hardware: [stand.config.bentSheet ? "No screws or adhesive. Heat-form the tray, cross the supports, then seat the tray over the four locating tabs." : "No screws or adhesive; complementary slots join the parts."], thickness: stand.config.thickness, clearance: stand.config.clearance, blocked: !!error || !!busy };
+    warnings: [...(stand.config.bentSheet ? bentStandNotes : []), ...(stand.cutoutPanels?.reports ?? []).flatMap(report => [
+      ...(report.error ? [report.error] : []), ...(report.empty ? ["Upper sheet: no acrylic remains."] : []),
+      ...(report.removedParts ? [`Upper sheet: ${report.removedParts} loose parts removed.`] : []),
+      ...(report.clipped.length ? [`Upper sheet: ${report.clipped.length} cutouts clipped at protected borders or locating holes.`] : []),
+      ...(report.outside.length ? [`Upper sheet: ${report.outside.length} cutouts outside the editable deck.`] : []),
+    ]), "Validate joint fit, grip, flex and loaded stability on a prototype.", ...(error ? [error] : []), ...(busy ? ["Model fitting is in progress."] : [])], hardware: [stand.config.bentSheet ? "No screws or adhesive. Heat-form the tray, cross the supports, then seat the tray over the four locating tabs." : "No screws or adhesive; complementary slots join the parts."], thickness: stand.config.thickness, clearance: stand.config.clearance, blocked: !stand.canExport || !!error || !!busy };
 }
 export function protectorFabrication(protector: SynthProtector, error?: string, busy?: boolean): Fabrication {
   return { parts: protector.parts.map(part => ({ id: part.id, label: part.label, polygons: down(part.polygons), thickness: part.thickness, material: materialLabel(sheetMaterial(protector.config, part.id).tint, sheetMaterial(protector.config, part.id).transparency) })),

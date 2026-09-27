@@ -192,6 +192,16 @@ a prototype; two supports do not establish a load rating for wide trays.
 Uploaded models set a flat tray envelope, not an underside contour, and must
 be at least 180 mm wide and 120 mm deep for this variation.
 
+Under **Upper sheet cutouts**, use the same SVG and text editor as the case
+designer to decorate or open the flat deck. Import a font, drag artwork into
+position, change its width and rotation, duplicate it or centre it. The editor
+looks down onto the tray, with the rear edge at the top. Cuts preserve two tray
+thicknesses around deck edges, bends and square locating holes, with connecting
+webs from the holes to the side edges; artwork crossing
+these borders is clipped with a warning. Loose letter centres are removed.
+The 3D preview, cutting layout and fabrication exports share the resulting
+outline. Artwork survives saved projects and switching stand variations.
+
 In Standard mode, optional **Cable holes in braces** adds one round opening between each pair of
 ribs, aligned through all three braces. Requested diameter is adjustable from
 8–32 mm (20 mm default); the resolved diameter is reduced if needed to leave
