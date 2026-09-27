@@ -7,6 +7,8 @@ export type ExampleSynthLayout = {
   keyCount: number;
   whiteKeyPitch: number;
   cheekWidth: number;
+  /** Level front/rear contact edges in body-height mode; zero for a stand envelope. */
+  rimWidth: number;
   controlHeight: number;
   panelTop: number;
   frontTop: number;
@@ -38,11 +40,13 @@ const standardKeyCounts = [88, 73, 61, 49, 37, 32, 25];
  * Keep full-size keys at a fixed pitch; spare width becomes case margins.
  * Z=0 is the front edge, Y=0 is the underside, and X=0 is the centre.
  */
-export function createExampleSynthLayout(inputWidth: number, inputDepth: number, inputHeight: number): ExampleSynthLayout {
+export function createExampleSynthLayout(inputWidth: number, inputDepth: number, inputHeight: number, heightReference: "envelope" | "body" = "envelope"): ExampleSynthLayout {
   const width = dimension(inputWidth, 180, 1400, 550);
   const depth = dimension(inputDepth, 120, 600, 280);
-  const height = dimension(inputHeight, 20, 200, 70);
-  const cheekWidth = clamp(width * 0.022, 10, 18);
+  const measuredHeight = dimension(inputHeight, 20, 200, 70);
+  const bodyHeight = heightReference === "body";
+  const rimWidth = bodyHeight ? 12 : 0;
+  const cheekWidth = clamp(width * 0.022, bodyHeight ? rimWidth : 10, 18);
   const whiteKeyPitch = 23.5;
   const edgeGap = 6;
   const wheelBayWidth = 60;
@@ -51,14 +55,16 @@ export function createExampleSynthLayout(inputWidth: number, inputDepth: number,
     ? standardKeyCounts.find(count => whiteCount(count) * whiteKeyPitch + wheelBayWidth <= insideWidth) ?? 0
     : 0;
   const kind = keyCount ? "keyboard" : "desktop";
-  // Knob and socket relief is part of the user's height, even for thin devices.
-  const controlHeight = Math.min(16, height * 0.24);
+  // Stand height includes controls; protector height is the foot contact plane.
+  const controlHeight = bodyHeight ? 16 : Math.min(16, measuredHeight * 0.24);
+  const height = measuredHeight + (bodyHeight ? controlHeight : 0);
   const panelTop = height - controlHeight;
-  const frontTop = keyCount ? height * 0.38 : panelTop;
-  const frontGap = 8;
+  const whiteHeight = Math.min(8, measuredHeight * 0.12);
+  const frontTop = keyCount ? (bodyHeight ? panelTop - whiteHeight : height * 0.38) : panelTop;
+  const frontGap = bodyHeight ? rimWidth + 2 : 8;
   const keyDepth = clamp(depth * 0.46, 120, 145);
-  const panelFront = keyCount ? -(frontGap + keyDepth + 8) : -8;
-  const panelRear = -depth + 8;
+  const panelFront = keyCount ? -(frontGap + keyDepth + 8) : -frontGap;
+  const panelRear = -depth + (bodyHeight ? rimWidth : 8);
   const panel = { x: 0, z: (panelFront + panelRear) / 2, width: insideWidth, depth: panelFront - panelRear };
   const keys: ExampleSynthLayout["keys"] = [];
   const wheels: ExampleSynthLayout["wheels"] = [];
@@ -68,8 +74,7 @@ export function createExampleSynthLayout(inputWidth: number, inputDepth: number,
     const spareWidth = insideWidth - keyboardWidth - wheelBayWidth;
     const wheelBayLeft = -width / 2 + cheekWidth + edgeGap + spareWidth / 2;
     const keyLeft = wheelBayLeft + wheelBayWidth;
-    const whiteHeight = Math.min(8, height * 0.12);
-    const blackHeight = Math.min(10, height * 0.16);
+    const blackHeight = Math.min(10, measuredHeight * 0.16);
     const whiteTop = frontTop + whiteHeight;
     const blackDepth = keyDepth * 0.61;
     let whites = 0;
@@ -88,7 +93,7 @@ export function createExampleSynthLayout(inputWidth: number, inputDepth: number,
       });
       if (!black) whites += 1;
     }
-    const radius = Math.min(16, height * 0.22);
+    const radius = Math.min(16, measuredHeight * 0.22);
     for (const offset of [20, 40]) wheels.push({
       x: wheelBayLeft + offset,
       y: Math.max(radius, frontTop + whiteHeight / 2),
@@ -98,5 +103,5 @@ export function createExampleSynthLayout(inputWidth: number, inputDepth: number,
     });
   }
 
-  return { width, depth, height, kind, keyCount, whiteKeyPitch, cheekWidth, controlHeight, panelTop, frontTop, panel, keys, wheels };
+  return { width, depth, height, kind, keyCount, whiteKeyPitch, cheekWidth, rimWidth, controlHeight, panelTop, frontTop, panel, keys, wheels };
 }

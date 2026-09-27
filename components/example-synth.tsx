@@ -94,6 +94,13 @@ function Chassis({ layout }: { layout: ExampleSynthLayout }) {
     shape.lineTo(0, layout.frontTop); shape.closePath();
     return shape;
   }, [layout]);
+  const cheekProfile = useMemo(() => {
+    if (!layout.rimWidth) return profile;
+    const shape = new Shape();
+    shape.moveTo(0, 0); shape.lineTo(-layout.depth, 0); shape.lineTo(-layout.depth, layout.panelTop);
+    shape.lineTo(0, layout.panelTop); shape.closePath();
+    return shape;
+  }, [layout, profile]);
   const { width, cheekWidth } = layout;
   return <>
     <mesh position={[width / 2 - cheekWidth, 0, 0]} rotation={[0, -Math.PI / 2, 0]} castShadow receiveShadow>
@@ -101,9 +108,13 @@ function Chassis({ layout }: { layout: ExampleSynthLayout }) {
       <meshStandardMaterial color="#202728" roughness={0.5} metalness={0.35} />
     </mesh>
     {[width / 2, -width / 2 + cheekWidth].map(x => <mesh key={x} position={[x, 0, 0]} rotation={[0, -Math.PI / 2, 0]} castShadow>
-      <extrudeGeometry args={[profile, { depth: cheekWidth, bevelEnabled: false }]} />
+      <extrudeGeometry args={[cheekProfile, { depth: cheekWidth, bevelEnabled: false }]} />
       <meshStandardMaterial map={wood} color={wood ? "#ffffff" : "#825638"} roughness={0.48} />
     </mesh>)}
+    {layout.rimWidth > 0 && layout.kind === "keyboard" && <mesh position={[0, layout.panelTop / 2, -layout.rimWidth / 2]} castShadow receiveShadow>
+      <boxGeometry args={[width - cheekWidth * 2, layout.panelTop, layout.rimWidth]} />
+      <meshStandardMaterial color="#202728" roughness={0.5} metalness={0.35} />
+    </mesh>}
     <mesh position={[0, layout.frontTop * 0.55, -0.35]}><boxGeometry args={[width - cheekWidth * 2, Math.min(6, layout.frontTop * 0.25), 0.5]} /><meshStandardMaterial color="#303838" metalness={0.5} roughness={0.4} /></mesh>
   </>;
 }
@@ -141,7 +152,7 @@ function ControlsAndKeys({ layout, controls }: { layout: ExampleSynthLayout; con
     }
     // Recessed fasteners sit in the narrow frame outside the printed panel.
     for (const x of [-layout.width / 2 + layout.cheekWidth + 2.5, layout.width / 2 - layout.cheekWidth - 2.5]) {
-      for (const z of [-layout.depth + 4, layout.panel.z + layout.panel.depth / 2 - 4]) {
+      for (const z of [-layout.depth + layout.rimWidth + 4, layout.panel.z + layout.panel.depth / 2 - 4]) {
         metal.push({ position: [x, layout.panelTop + 0.25, z], scale: [1.8, 0.5, 1.8], color: "#a1a99f" });
         boxes.push({ position: [x, layout.panelTop + 0.55, z], scale: [2.2, 0.1, 0.5], color: "#293333" });
       }
@@ -163,8 +174,8 @@ function SynthPatch({ layout, controls, patch, index }: { layout: ExampleSynthLa
   return <mesh><tubeGeometry args={[curve, 40, Math.min(1.15, layout.controlHeight * 0.09), 8, false]} /><meshStandardMaterial color={patch.color} roughness={0.7} /></mesh>;
 }
 
-export function ExampleSynth({ width, depth, height }: { width: number; depth: number; height: number }) {
-  const layout = useMemo(() => createExampleSynthLayout(width, depth, height), [width, depth, height]);
+export function ExampleSynth({ width, depth, height, heightReference = "envelope" }: { width: number; depth: number; height: number; heightReference?: "envelope" | "body" }) {
+  const layout = useMemo(() => createExampleSynthLayout(width, depth, height, heightReference), [width, depth, height, heightReference]);
   const controls = useMemo(() => createExampleSynthControls(layout), [layout]);
   const texture = useMemo(() => controlTexture(layout, controls), [layout, controls]);
   useEffect(() => () => texture?.dispose(), [texture]);

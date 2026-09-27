@@ -6,6 +6,7 @@ import { ContactShadows, Environment, Lightformer, OrbitControls } from "@react-
 import { Vector3 } from "three";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { UploadedObject } from "@/components/uploaded-object";
+import { ExampleSynth } from "@/components/example-synth";
 import { Sheet, PreviewBoundary, type StandView } from "./stand-preview";
 import { sheetMaterial } from "@/lib/sheet-materials";
 import type { SynthProtector } from "@/lib/synth-protector";
@@ -25,10 +26,8 @@ function ProtectorModel({ protector, exploded, instrument }: Props) {
         </group>
       </group>;
     })}
-    {instrument && config.object ? <UploadedObject object={config.object} angle={config.angle} centeredDepth /> : instrument && <group>
-      <mesh position={[0, config.height * unit / 2, 0]}><boxGeometry args={[config.width * unit, config.height * unit, config.depth * unit]} /><meshStandardMaterial color="#383c39" roughness={0.8} /></mesh>
-      <mesh position={[0, config.height * unit + 0.006, config.depth * unit * 0.2]} rotation={[-Math.PI / 2, 0, 0]}><planeGeometry args={[(config.width - 45) * unit, config.depth * unit * 0.35]} /><meshStandardMaterial color="#73796e" /></mesh>
-      {[-0.3, -0.1, 0.1, 0.3].map(x => <mesh key={x} position={[config.width * x * unit, (config.height + 6) * unit, -config.depth * 0.2 * unit]}><cylinderGeometry args={[0.045, 0.045, 0.12, 16]} /><meshStandardMaterial color="#91978b" roughness={0.6} /></mesh>)}
+    {instrument && config.object ? <UploadedObject object={config.object} angle={config.angle} centeredDepth /> : instrument && <group position={[0, 0, config.depth * unit / 2]}>
+      <ExampleSynth width={config.width} depth={config.depth} height={config.height} heightReference="body" />
     </group>}
   </group>;
 }
