@@ -506,6 +506,20 @@ All four mounts share their coordinates with bottom geometry and exports.
 Vents retain a sheet-thickness web around the holes, and nearby custom cuts
 trigger a warning. JSON and SVG retain the source, estimates and fit limitations.
 
+### Custom 1U case panels
+
+In **Rows & stance → Custom 1U panels**, add a top (rear) or bottom (front)
+1U acrylic panel, or change an existing outer 1U row from open to custom.
+**Edit panel holes & cutouts** opens the shared panel editor with component holes,
+rectangles, slots, SVG/text artwork, engraving, grid snapping and alignment.
+The sheet follows the case width (20–168 HP), uses Intellijel 1U height and four
+mounting openings, and attaches to the existing rails with panel screws and washers.
+Its material and thickness are editable independently. The sheet follows row tilt,
+appears in the case and cutting previews, and is included in case SVG, JSON,
+fabrication layouts, project saves and undo/redo. Return with **Back to case**.
+Custom panels remain at the outer rows; switch one to an open module row before
+adding another row beyond it.
+
 ### Angled case rows
 
 Each row behind the front row has an independent extra-angle control. Increments

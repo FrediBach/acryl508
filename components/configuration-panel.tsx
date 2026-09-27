@@ -1,3 +1,4 @@
+import { caseRowPanelConfiguration } from "@/lib/case-row-panels";
 import { ArrowDown, ArrowUp, ChevronDown, Minus, Plus, Trash2 } from "lucide-react";
 import { useId, useState, type CSSProperties } from "react";
 import { accessoryBendAngles, acrylicTints, busboards, footShapes, handleCount, handleSides, handleDimensions, handleSizeLimits, sledWebThickness, maxRackUnits, maxSideMarginRatio, minSideMarginRatio, panelSides, panelThickness, panelThicknessesFrom, caseThicknessLabel, jointThickness, panelTint, panelTintsFrom, panelTransparency, panelTransparenciesFrom, rackFormatLabel, rackRows, rackRowAngles, rackRowLayout, maxRowAngle, maxTotalRowAngle, ventStyles, sidePanelMargin, totalRackUnits, type CaseConfiguration, type PanelSide, type RackUnit } from "@/lib/configurator";
@@ -17,7 +18,7 @@ import { cableHolderLayout, cableHolderLimits } from "@/lib/cable-holder";
 import type { CasePanels } from "@/lib/case-panels";
 import type { CutoutAction } from "@/lib/custom-cutouts";
 
-type Props = { panels: CasePanels; onCutoutAction: (action: CutoutAction) => void; config: CaseConfiguration; onChange: (update: Partial<CaseConfiguration>) => void };
+type Props = { onEditRowPanel?: (index: number) => void; panels: CasePanels; onCutoutAction: (action: CutoutAction) => void; config: CaseConfiguration; onChange: (update: Partial<CaseConfiguration>) => void };
 function RangeField({ label, value, min, max, unit, onChange }: { label: string; value: number; min: number; max: number; unit: string; onChange: (value: number) => void }) {
   const id = useId();
   const [draft, setDraft] = useState(String(value));
@@ -34,7 +35,7 @@ function SideMarginField({ config, onChange }: { config: CaseConfiguration; onCh
   const margin = sidePanelMargin(config);
   return <div className="range-field"><div className="field-heading"><label htmlFor="side-margin">Side panel edge margin</label><output className="margin-value" htmlFor="side-margin">{margin.toFixed(1)} mm</output></div><input id="side-margin" className="range-input" type="range" min={minSideMarginRatio} max={maxSideMarginRatio} step={0.1} value={value} aria-describedby="side-margin-note" aria-valuetext={`${margin.toFixed(1)} millimetres`} style={{ "--range-progress": `${(value - minSideMarginRatio) / (maxSideMarginRatio - minSideMarginRatio) * 100}%` } as CSSProperties} onChange={event => onChange(event.currentTarget.valueAsNumber)} /><div className="range-labels"><span>Near flush · {jointThickness(config)} mm</span><span>Original · {jointThickness(config) * 2} mm</span></div><p className="control-note" id="side-margin-note">Material retained beyond the end slots and below the base. The minimum keeps each slot centre 1.5× its width from the sheet edge; fabrication validation is still required.</p></div>;
 }
-export function ConfigurationPanel({ config, panels, onChange, onCutoutAction }: Props) {
+export function ConfigurationPanel({ config, panels, onChange, onCutoutAction, onEditRowPanel }: Props) {
   const rows = rackRows(config);
   const rowAngles = rackRowAngles(config);
   const rowLayout = rackRowLayout(config);
@@ -47,16 +48,24 @@ export function ConfigurationPanel({ config, panels, onChange, onCutoutAction }:
   const bends = accessoryBendAngles(config);
   const feet = flatFeetLayout(config);
   const rackUnits = totalRackUnits(config);
-  function updateRows(nextRows: RackUnit[], nextAngles = rowAngles) {
-    const update = { rows: nextRows.length, rowUnits: nextRows, rowAngles: nextAngles };
+  function updateRows(nextRows: RackUnit[], nextAngles = rowAngles, nextPanels = config.rowPanels ?? []) {
+    const update = { rows: nextRows.length, rowUnits: nextRows, rowAngles: nextAngles, rowPanels: nextRows.map((units, index) => units === 1 && (index === 0 || index === nextRows.length - 1) ? nextPanels[index] ?? null : null) };
     onChange({ ...update, rowAngles: rackRowAngles({ ...config, ...update }) });
   }
   function replaceRow(index: number, units: RackUnit) { updateRows(rows.map((row, rowIndex) => rowIndex === index ? units : row)); }
+  function canMoveRow(index: number, direction: -1 | 1) {
+    const target = index + direction;
+    if (target < 0 || target >= rows.length) return false;
+    const panels = rows.map((_, i) => config.rowPanels?.[i] ?? null);
+    [panels[index], panels[target]] = [panels[target], panels[index]];
+    return panels.every((panel, i) => !panel || i === 0 || i === rows.length - 1);
+  }
   function moveRow(index: number, direction: -1 | 1) {
-    const next = [...rows], nextAngles = [...rowAngles], target = index + direction;
+    const next = [...rows], nextAngles = [...rowAngles], nextPanels = rows.map((_, i) => config.rowPanels?.[i] ?? null), target = index + direction;
     [next[index], next[target]] = [next[target], next[index]];
     [nextAngles[index], nextAngles[target]] = [nextAngles[target], nextAngles[index]];
-    updateRows(next, nextAngles);
+    [nextPanels[index], nextPanels[target]] = [nextPanels[target], nextPanels[index]];
+    updateRows(next, nextAngles, nextPanels);
   }
   function selectTint(tint: typeof acrylicTints[number]) {
     onChange({ tint, ...(config.individualPanelTints ? { panelTints: panelTintsFrom(tint) } : {}) });
@@ -93,13 +102,27 @@ export function ConfigurationPanel({ config, panels, onChange, onCutoutAction }:
           <div className="rack-size" role="group" aria-label={`Row ${index + 1} size`}>
             {([1, 3] as const).map(option => <button key={option} className={units === option ? "rack-size-active" : ""} aria-pressed={units === option} disabled={option > units && rackUnits - units + option > maxRackUnits} onClick={() => replaceRow(index, option)}>{option}U</button>)}
           </div>
-          <button className="rack-icon" aria-label={`Move row ${index + 1} toward rear`} title="Move toward rear" disabled={index === 0} onClick={() => moveRow(index, -1)}><ArrowUp size={13} /></button>
-          <button className="rack-icon" aria-label={`Move row ${index + 1} toward front`} title="Move toward front" disabled={index === rows.length - 1} onClick={() => moveRow(index, 1)}><ArrowDown size={13} /></button>
-          <button className="rack-icon rack-remove" aria-label={`Remove row ${index + 1}`} title="Remove row" disabled={rows.length === 1} onClick={() => updateRows(rows.filter((_, rowIndex) => rowIndex !== index), rowAngles.filter((_, rowIndex) => rowIndex !== index))}><Trash2 size={13} /></button>
+          <button className="rack-icon" aria-label={`Move row ${index + 1} toward rear`} title="Move toward rear" disabled={!canMoveRow(index, -1)} onClick={() => moveRow(index, -1)}><ArrowUp size={13} /></button>
+          <button className="rack-icon" aria-label={`Move row ${index + 1} toward front`} title="Move toward front" disabled={!canMoveRow(index, 1)} onClick={() => moveRow(index, 1)}><ArrowDown size={13} /></button>
+          <button className="rack-icon rack-remove" aria-label={`Remove row ${index + 1}`} title="Remove row" disabled={rows.length === 1} onClick={() => updateRows(rows.filter((_, rowIndex) => rowIndex !== index), rowAngles.filter((_, rowIndex) => rowIndex !== index), rows.flatMap((_, rowIndex) => rowIndex === index ? [] : [config.rowPanels?.[rowIndex] ?? null]))}><Trash2 size={13} /></button>
         </div>)}
         <span className="rack-edge">FRONT</span>
       </div>
-      <div className="rack-add"><span>Add row</span>{([1, 3] as const).map(units => <button key={units} disabled={rackUnits + units > maxRackUnits} onClick={() => updateRows([...rows, units])}><Plus size={11} />{units}U</button>)}</div>
+      <div className="rack-add"><span>Add row</span>{([1, 3] as const).map(units => <button key={units} disabled={rackUnits + units > maxRackUnits || (rows.length > 1 && !!config.rowPanels?.[rows.length - 1])} onClick={() => updateRows([...rows, units])}><Plus size={11} />{units}U</button>)}</div>
+      <div className="config-group">
+        <h4 className="config-group-title">Custom 1U panels</h4>
+        <p className="control-note">Cover a top (rear) or bottom (front) 1U row with a full-width acrylic sheet. Add holes, cutouts and artwork in the panel editor. Four screws attach it to the usual 1U rails. Custom panels stay at the outer rows; switch one to an open row before inserting a row beyond it.</p>
+        {rows.map((units, index) => units === 1 && (index === 0 || index === rows.length - 1) ? <div key={index} className="cutout-editor">
+          <label className="cutout-field">{index === 0 ? "Top / rear" : "Bottom / front"} 1U row<select aria-label={`Row ${index + 1} surface`} value={config.rowPanels?.[index] ? "panel" : "open"} onChange={event => onChange({ rowPanels: rows.map((_, i) => i === index ? event.target.value === "panel" ? caseRowPanelConfiguration(config, index) : null : config.rowPanels?.[i] ?? null) })}><option value="open">Open module row</option><option value="panel">Custom acrylic panel</option></select></label>
+          {config.rowPanels?.[index] && <button className="cutout-button" onClick={() => onEditRowPanel?.(index)}>Edit {index === 0 ? "top" : "bottom"} panel holes & cutouts</button>}
+        </div> : null)}
+        <div className="cutout-actions">{(["top", "bottom"] as const).map(position => <button key={position} className="cutout-button" disabled={rackUnits + 1 > maxRackUnits || (rows.length > 1 && !!config.rowPanels?.[position === "top" ? 0 : rows.length - 1])} onClick={() => {
+          const index = position === "top" ? 0 : rows.length;
+          const existing = rows.map((_, i) => config.rowPanels?.[i] ?? null);
+          const panel = caseRowPanelConfiguration({ ...config, rowPanels: [] }, index);
+          updateRows(position === "top" ? [1, ...rows] : [...rows, 1], position === "top" ? [0, ...rowAngles] : [...rowAngles, 0], position === "top" ? [panel, ...existing] : [...existing, panel]);
+        }}><Plus size={12} />Add {position} 1U panel</button>)}</div>
+      </div>
       </div>
       <div className="config-group">
         <h4 className="config-group-title">Stance</h4>

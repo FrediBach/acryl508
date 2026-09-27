@@ -114,6 +114,11 @@ export function readCase(input: unknown): CaseConfiguration {
     if (value !== 1 && value !== 3) throw new Error("Rows must be 1U or 3U."); return value;
   });
   if (config.rowUnits.length !== config.rows || config.rowUnits.reduce<number>((a, b) => a + b, 0) > 9) throw new Error("The row layout must match the row count and fit within 9U.");
+  config.rowPanels = data.rowPanels === undefined ? [] : list(data.rowPanels, "row panels", 9).map((value, index) => {
+    if (value === null) return null;
+    if (config.rowUnits[index] !== 1 || (index !== 0 && index !== config.rows - 1)) throw new Error("Custom panels must occupy a top or bottom 1U row.");
+    return readPanel({ ...record(value, "Row panel"), format: "intellijel-1u", hp: config.hp, mountingCount: "four" }, 168);
+  });
   config.rowAngles = data.rowAngles === undefined ? [] : list(data.rowAngles, "row angles", 9).map(value => number(value, "Row angle", 0, 60));
   for (const key of ["handleBendAngle", "patchBoardBendAngle", "cableHolderBendAngle"] as const) config[key] = number(config[key] ?? 0, key, 0, 90);
   config.angle = number(config.angle, "Stance angle", 0, 30);
@@ -161,7 +166,7 @@ export function readStand(input: unknown): StandConfiguration {
 export function readProtector(input: unknown): ProtectorConfiguration {
   return { ...sheetMaterials(material(base(input, defaultProtectorConfiguration)), /^(top-sheet|foot-(left|right|front|rear)-([1-9]|10)|strip-(left|right|front|rear))$/, 5, 10), object: object(record(input, "Protector").object) };
 }
-export function readPanel(input: unknown): PanelConfiguration {
+export function readPanel(input: unknown, maxHp = 84): PanelConfiguration {
   const config = material(base(input, defaultPanelConfiguration));
   config.ledStrip = readLedStrip(config.ledStrip);
   config.format = choice(config.format, ["3u", "intellijel-1u", "pulp-logic-1u"], "panel format");
@@ -176,7 +181,7 @@ export function readPanel(input: unknown): PanelConfiguration {
   config.artwork = cutouts(artworks).map((a, index) => ({ ...a, operation: choice(record(artworks[index], "Artwork").operation, ["cut", "engrave"], "artwork operation") }));
   const vents = base(config.vents, defaultPanelConfiguration.vents);
   config.vents = { ...vents, shape: choice(vents.shape, ["circles", "slots", "hexagons"], "panel vents"), design: normalizeVentDesign(record(vents.design, "Vent design")) };
-  return normalizePanelConfiguration(config);
+  return normalizePanelConfiguration(config, maxHp);
 }
 export function readArt(input: unknown): ArtConfiguration {
   const config = sheetMaterials(material(base(input, defaultArtConfiguration)), /^(shelf-)?[ab]-([1-9]|10)$/, 3, 6);

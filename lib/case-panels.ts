@@ -1,3 +1,4 @@
+import { createCaseRowPanels } from "./case-row-panels";
 import { ledSlot, resolveEngravings } from "./engravings";
 import { Path, type Shape } from "three";
 import clipping, { type MultiPolygon } from "polygon-clipping";
@@ -138,10 +139,10 @@ export function createCasePanels(config: CaseConfiguration) {
     if (led && result.report.error) led.error ||= result.report.error;
     return [value, { ...result, original, shapes, engraving, led, direction, centerY }];
   })) as Record<CutoutSide, ReturnType<typeof subtractCutouts> & { original: ReturnType<typeof shapesToPolygons>; shapes: Shape[]; engraving: ReturnType<typeof resolveEngravings>; led: ReturnType<typeof ledSlot>; direction: number; centerY: number }>;
-  return { faces, bends, layout: panels.layout, ventilation, powerBoard, inlet, mountingHoles, mountingConflicts, reports: cutoutSides.map(({ value }) => faces[value].report) };
+  return { rowPanels: createCaseRowPanels(config), faces, bends, layout: panels.layout, ventilation, powerBoard, inlet, mountingHoles, mountingConflicts, reports: cutoutSides.map(({ value }) => faces[value].report) };
 }
 export type CasePanels = ReturnType<typeof createCasePanels>;
 
 export function caseCanExport(panels: CasePanels) {
-  return panels.reports.every(report => !report.empty && !report.error);
+  return panels.rowPanels.every(({ panel }) => panel.canExport) && panels.reports.every(report => !report.empty && !report.error);
 }

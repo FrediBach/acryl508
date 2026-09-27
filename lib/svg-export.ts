@@ -7,7 +7,8 @@ import { trolleyBus } from "./trolley";
 import { compactPwr, compactPwrInlet } from "./compactpwr";
 
 type SvgPart = {
-  id: PanelSide;
+  id: PanelSide | `row-${number}`;
+  panel?: CasePanels["rowPanels"][number]["panel"];
   label: string;
   polygons: MultiPolygon;
   engraving?: MultiPolygon;
@@ -42,15 +43,15 @@ function part(id: PanelSide, label: string, shapes: Shape[], fallback?: MultiPol
 }
 
 function caseParts(panels: CasePanels) {
-  const parts: SvgPart[] = [
+  const parts = [
     part("bottom", "Bottom", panels.faces.bottom.shapes, panels.faces.bottom.original),
     part("front", "Front", panels.faces.front.shapes, panels.faces.front.original),
     part("rear", "Rear", panels.faces.rear.shapes, panels.faces.rear.original),
     part("left", "Left side", panels.faces.left.shapes, panels.faces.left.original),
     part("right", "Right side", panels.faces.right.shapes, panels.faces.right.original),
   ];
-  return parts.map(item => {
-    const face = panels.faces[item.id];
+  const sheets: SvgPart[] = parts.map(item => {
+    const face = panels.faces[item.id as PanelSide];
     if (!face.engraving.polygons.length) return item;
     // Lay engraved sheets outside-face up. Reflect the whole cutting profile
     // alongside the artwork so rear, left and underside lettering stays readable.
@@ -58,6 +59,14 @@ function caseParts(panels: CasePanels) {
     const engraving = mapPolygons(face.engraving.polygons, (x, y) => [x, -y - face.centerY * 100]);
     return { ...item, polygons, engraving, bounds: polygonBounds(polygons) };
   });
+  return [...sheets, ...panels.rowPanels.map(({ id, label, panel }) => {
+    const polygons = mapPolygons(panel.polygons, (x, y) => [x, -y]);
+    return { id, label, panel, polygons, engraving: mapPolygons(panel.engraving.polygons, (x, y) => [x, -y]), bounds: polygonBounds(polygons) };
+  })];
+}
+
+export function caseSheetMaterial(config: CaseConfiguration, item: SvgPart) {
+  return item.panel?.config ?? { thickness: panelThickness(config, item.id as PanelSide), tint: panelTint(config, item.id as PanelSide), transparency: panelTransparency(config, item.id as PanelSide) };
 }
 
 export function caseSheetLayout(panels: CasePanels) {
@@ -92,9 +101,10 @@ export function configurationSvg(config: CaseConfiguration, panels: CasePanels) 
   const bendNote = accessoryBendSpecification(config).map(bend => ` ${bend.side} ${bend.accessory}: bend ${bend.angleDegrees} degrees outward, inside radius ${number(bend.innerRadiusMm)} mm; flat allowance ${number(bend.allowanceMm)} mm plus ${bend.clearanceMm} mm clearance.`).join("");
   const { parts: placed, width, height } = caseSheetLayout(panels);
   const groups = placed.map(({ item, x: translateX, y: translateY }) => {
+    const material = caseSheetMaterial(config, item);
     const path = casePathData(item.polygons);
     const engraving = item.engraving?.length ? `\n    <g id="engrave-${item.id}" data-operation="engrave" fill="#2563eb" fill-rule="evenodd" stroke="none"><path d="${casePathData(item.engraving)}" /></g>` : "";
-    return `  <g id="panel-${item.id}" data-part="${item.id}" data-thickness-mm="${panelThickness(config, item.id)}" data-color="${escapeXml(panelTint(config, item.id).label)}" data-transparency="${panelTransparency(config, item.id)}"${path ? "" : ' data-empty="true"'} transform="translate(${number(translateX)} ${number(translateY)})">\n    <title>${escapeXml(item.label)} · ${panelThickness(config, item.id)} mm</title>${path ? `\n    <path d="${path}" data-operation="cut" />` : ""}${engraving}\n  </g>`;
+    return `  <g id="panel-${item.id}" data-part="${item.id}" data-thickness-mm="${material.thickness}" data-color="${escapeXml(material.tint.label)}" data-transparency="${material.transparency}"${path ? "" : ' data-empty="true"'} transform="translate(${number(translateX)} ${number(translateY)})">\n    <title>${escapeXml(item.label)} · ${material.thickness} mm</title>${path ? `\n    <path d="${path}" data-operation="cut" />` : ""}${engraving}\n  </g>`;
   }).join("\n");
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${number(width)}mm" height="${number(height)}mm" viewBox="0 0 ${number(width)} ${number(height)}" fill="none" stroke="#000000" stroke-width="0.2" stroke-linecap="round" stroke-linejoin="round" data-units="mm">

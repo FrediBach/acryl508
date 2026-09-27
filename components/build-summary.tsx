@@ -29,7 +29,7 @@ export function BuildSummary({ config, canExportSvg = true, onExportJson, onExpo
       <dl className="case-summary-overview">
         <div><dt>Case footprint</dt><dd>{dimensions.width.toFixed(1)} × {dimensions.length.toFixed(1)} <small>mm</small></dd></div>
         <div><dt>Material</dt><dd>{caseThicknessLabel(config)} mm GS <span className="spec-colors" aria-label={config.individualPanelTints ? "Individual sheet materials" : materialLabel(config.tint, config.transparency)}>{(config.individualPanelTints ? panelSides : panelSides.slice(0, 1)).map(side => { const tint = panelTint(config, side.value); return <span key={side.value} className="spec-color" style={{ background: tint.color }} title={`${side.label}: ${panelThickness(config, side.value)} mm · ${materialLabel(tint, panelTransparency(config, side.value))}`} />; })}</span></dd></div>
-        <div><dt>Construction</dt><dd>{panelCount()} panels · {handleCount(config) ? `${handleCount(config)} integral ${handleCount(config) === 1 ? "grip" : "grips"}` : "no handles"}</dd></div>
+        <div><dt>Construction</dt><dd>{panelCount(config)} panels · {handleCount(config) ? `${handleCount(config)} integral ${handleCount(config) === 1 ? "grip" : "grips"}` : "no handles"}</dd></div>
       </dl>
       {!canExportSvg && <p className="cutout-warning" role="alert">Resolve empty panels and cutout errors before exporting SVG.</p>}
       <details className="case-summary-details">

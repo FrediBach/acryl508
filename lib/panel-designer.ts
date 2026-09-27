@@ -35,9 +35,9 @@ export const defaultPanelConfiguration: PanelConfiguration = {
 };
 const bounded = (value: number, fallback: number, min: number, max: number) => Number.isFinite(value) ? Math.max(min, Math.min(max, value)) : fallback;
 export const panelRound = (value: number) => Math.round(value * 10000) / 10000;
-export function normalizePanelConfiguration(input: PanelConfiguration): PanelConfiguration {
+export function normalizePanelConfiguration(input: PanelConfiguration, maxHp = 84): PanelConfiguration {
   const format = panelFormats[input.format] ? input.format : "3u";
-  const hp = bounded(input.hp, 12, format === "pulp-logic-1u" ? 6 : 2, 84);
+  const hp = bounded(input.hp, 12, format === "pulp-logic-1u" ? 6 : 2, maxHp);
   return {
     ...input, ledStrip: { ...defaultPanelConfiguration.ledStrip, ...input.ledStrip }, format, hp: format === "pulp-logic-1u" ? Math.round(hp / 6) * 6 : Math.round(hp),
     thickness: bounded(input.thickness, 3, 1.5, 6), widthClearance: bounded(input.widthClearance, 0.3, 0.1, 0.5),
@@ -85,8 +85,8 @@ const within = (b: Bounds, width: number, height: number, margin = 0) => b.left 
 function asCutout(id: string, polygons: MultiPolygon): CustomCutout {
   return { id, name: id, source: { kind: "svg", fileName: "generated" }, side: "front", polygons, x: 0, y: 0, width: 1, rotation: 0 };
 }
-export function createPanel(input: PanelConfiguration) {
-  const config = normalizePanelConfiguration(input), format = panelFormats[config.format];
+export function createPanel(input: PanelConfiguration, maxHp = 84) {
+  const config = normalizePanelConfiguration(input, maxHp), format = panelFormats[config.format];
   const width = panelRound(config.hp * 5.08 - config.widthClearance), height = format.height;
   const original = panelRectangle(width, height), warnings: string[] = [];
   const pulp = config.format === "pulp-logic-1u";

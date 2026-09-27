@@ -891,6 +891,33 @@ test("mode switching preserves independent designs and routes material choices a
     await click("Download project");
     assert.equal(JSON.parse(await downloads.at(-1).blob.text()).fonts[0].data, fontProject.fonts[0].data);
 
+    await click("Case designer");
+    await click("Add top 1U panel");
+    await click("Edit top panel holes & cutouts");
+    assert.equal(document.querySelector('select[aria-label="Panel format"]'), null);
+    await click("Jack");
+    await click("Export case design JSON");
+    const rowExport = JSON.parse(await downloads.at(-1).blob.text());
+    assert.equal(rowExport.configuration.rowUnits[0], 1);
+    assert.equal(rowExport.configuration.rowPanels[0].components.length, 1);
+    assert.equal(rowExport.rowPanels[0].configuration.hp, rowExport.configuration.hp);
+    await click("Export all case sheets as SVG");
+    assert.match(await downloads.at(-1).blob.text(), /id="panel-row-1"/);
+    await click("← Back to case");
+    await click("Cutting layout");
+    assert.ok(document.querySelector('[data-part="row-1"]'));
+    await click("Edit top panel holes & cutouts");
+    assert.ok(document.querySelector('button[aria-label="Remove Jack"]'), "Reopening the attached editor retains openings");
+    await click("← Back to case");
+    await click("Add bottom 1U panel");
+    await click("Edit bottom panel holes & cutouts");
+    await click("Display");
+    await click("Export case design JSON");
+    const bothRows = JSON.parse(await downloads.at(-1).blob.text());
+    assert.equal(bothRows.rowPanels.length, 2);
+    assert.equal(bothRows.configuration.rowPanels[0].components[0].kind, "jack");
+    assert.equal(bothRows.configuration.rowPanels.at(-1).components[0].kind, "display");
+    await click("← Back to case");
 
   } finally {
     await actAndPreview(async () => root.unmount());

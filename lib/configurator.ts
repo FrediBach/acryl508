@@ -1,3 +1,4 @@
+import type { PanelConfiguration } from "./panel-designer";
 import { caseThicknesses, panelThickness, jointThickness, type SheetThicknessConfiguration } from "./sheet-thickness";
 export { caseThicknesses, panelThickness, panelThicknessesFrom, caseThicknessLabel, jointThickness, type SheetThicknessConfiguration } from "./sheet-thickness";
 import type { LedStrip } from "./engravings";
@@ -26,6 +27,7 @@ export type VentLayout = "aligned" | "staggered";
 export type VentCoverage = "bands" | "field";
 export type VentMix = "checkerboard" | "rows" | "columns";
 export type CaseConfiguration = {
+  rowPanels?: (PanelConfiguration | null)[];
   hp: number; rows: number; rowUnits: RackUnit[]; depth: number; thickness: number; sideMarginRatio: number;
   tint: AcrylicTint; transparency?: AcrylicTransparency; panelTransparencies?: Partial<Record<PanelSide, AcrylicTransparency>>; individualPanelTints?: boolean; panelThicknesses?: Partial<Record<PanelSide, number>>; panelTints?: Partial<Record<PanelSide, AcrylicTint>>;
   angle: number; rowAngles?: number[]; vents: boolean; busboard: Busboard;
@@ -108,7 +110,7 @@ export function totalRackUnits(config: Pick<CaseConfiguration, "rows" | "rowUnit
 export function rackFormatLabel(config: Pick<CaseConfiguration, "rows" | "rowUnits">) {
   return rackRows(config).map(units => `${units}U`).join(" + ");
 }
-type RackLayoutConfiguration = Pick<CaseConfiguration, "rows" | "rowUnits"> & Partial<Pick<CaseConfiguration, "angle" | "rowAngles" | "thickness" | "individualPanelTints" | "panelThicknesses">>;
+type RackLayoutConfiguration = Pick<CaseConfiguration, "rows" | "rowUnits"> & Partial<Pick<CaseConfiguration, "angle" | "rowAngles" | "rowPanels" | "thickness" | "individualPanelTints" | "panelThicknesses">>;
 export const maxRowAngle = 60;
 export const maxTotalRowAngle = 75;
 // Increments are stored rear-to-front, like rowUnits. The front row is the
@@ -137,7 +139,8 @@ export function rackRowLayout(config: RackLayoutConfiguration) {
     angle += increment;
     const radians = angle * Math.PI / 180;
     const length = units[index] === 3 ? 133.35 : rackUnitPitch;
-    rows.push({ index, units: units[index], length, center: -(distance + length * Math.cos(radians) / 2), rise: rise + length * Math.sin(radians) / 2, angle, increment, gap, railOffset: length / 2 - 5.425 });
+    // Attached Intellijel sheets use the panel designer’s exact 33.65 mm mounting pitch.
+    rows.push({ index, units: units[index], length, center: -(distance + length * Math.cos(radians) / 2), rise: rise + length * Math.sin(radians) / 2, angle, increment, gap, railOffset: units[index] === 1 && config.rowPanels?.[index] && (index === 0 || index === units.length - 1) ? 16.825 : length / 2 - 5.425 });
     distance += length * Math.cos(radians);
     rise += length * Math.sin(radians);
   }
@@ -202,7 +205,7 @@ export function handleDimensions(config: Pick<CaseConfiguration, "handleWidth" |
   return { width: bounded(config.handleWidth, 160, handleSizeLimits.width), height: bounded(config.handleHeight, 70, handleSizeLimits.height) };
 }
 export function sledWebThickness(thickness: number) { return Math.max(12, thickness * 2.5); }
-export function panelCount() { return 5; }
+export function panelCount(config?: CaseConfiguration) { return 5 + (config ? rackRows(config).filter((units, index, rows) => units === 1 && (index === 0 || index === rows.length - 1) && config.rowPanels?.[index]).length : 0); }
 // All dimensions are millimetres; the preview converts these to scene units.
 export function caseDimensions(config: CaseConfiguration) {
   const rack = rackEnvelope(config);
@@ -272,7 +275,7 @@ export function configurationExport(config: CaseConfiguration, cutoutReports: Cu
       outlineStatus: "Sampled outlines for the concept preview; not fabrication-ready cutting paths.",
     },
     sheetMaterials: panelSides.map(({ value: side, label }) => ({ side, label, thicknessMm: panelThickness(config, side), tint: panelTint(config, side), transparency: panelTransparency(config, side) })),
-    acrylicParts: { enclosurePanels: 5, footPanels: 0, handlePanels: 0, totalPanels: panelCount() },
+    acrylicParts: { enclosurePanels: 5, footPanels: 0, handlePanels: 0, totalPanels: panelCount(config) },
     panelAssembly: {
       method: "Base and end-panel tabs captured in closed side-panel slots; rail-end screws retain the side panels",
       railCount: rackRows(config).length * 2, railEndScrewCount: rackRows(config).length * 4,
