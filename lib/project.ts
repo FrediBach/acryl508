@@ -145,7 +145,7 @@ export function readCase(input: unknown): CaseConfiguration {
   return config;
 }
 export function readStand(input: unknown): StandConfiguration {
-  return normalizeStandConfiguration({ ...sheetMaterials(material(base(input, defaultStandConfiguration)), /^(rib|brace)-(?:[ab]-)?([1-9]|1[0-9]|20)$/, 5, 10), object: object(record(input, "Stand").object) });
+  return normalizeStandConfiguration({ ...sheetMaterials(material(base(input, defaultStandConfiguration)), /^(bent-tray|(rib|brace)-(?:[ab]-)?([1-9]|1[0-9]|20))$/, 5, 10), object: object(record(input, "Stand").object) });
 }
 export function readProtector(input: unknown): ProtectorConfiguration {
   return { ...sheetMaterials(material(base(input, defaultProtectorConfiguration)), /^(top-sheet|foot-(left|right|front|rear)-([1-9]|10)|strip-(left|right|front|rear))$/, 5, 10), object: object(record(input, "Protector").object) };
@@ -208,6 +208,6 @@ export function parseProject(source: string, current: Designs = initialDesigns, 
   // Existing single-designer JSON exports remain useful: import only that mode.
   const mode = data.mode === "speaker" ? "speaker" : data.mode === "art" ? "art" : data.mode === "synth-stand" ? "stand" : data.mode === "synth-protector" ? "protector" : data.mode === "panel-designer" ? "panel" : data.product === "Acryl508" && !data.mode ? "case" : undefined;
   if (!mode || data.units !== "mm") throw new Error("Choose an Acryl508 project or configuration JSON file.");
-  number(data.version, "Export version", 1, { case: 12, stand: 6, protector: 2, panel: 1, art: 1, speaker: 1 }[mode]);
+  number(data.version, "Export version", 1, { case: 12, stand: 7, protector: 2, panel: 1, art: 1, speaker: 1 }[mode]);
   return makeProject("Imported design", mode, { ...current, [mode]: readers[mode](data.configuration) }, currentFonts);
 }

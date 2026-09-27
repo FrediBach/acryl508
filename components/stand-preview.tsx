@@ -8,7 +8,8 @@ import type { MultiPolygon } from "polygon-clipping";
 import { acrylicMaterial, acrylicEdgeOpacity, type AcrylicTint, type AcrylicTransparency } from "@/lib/acrylic-material";
 import { UploadedObject } from "@/components/uploaded-object";
 import { sheetMaterial } from "@/lib/sheet-materials";
-import type { SynthStand } from "@/lib/synth-stand";
+import type { SynthStand, StandPart } from "@/lib/synth-stand";
+import { bentPanelGeometry, bentPanelEdges } from "@/lib/bent-panel-geometry";
 import { panelEdgePoints } from "@/lib/panel-edges";
 
 export type StandView = "perspective" | "side" | "top";
@@ -36,15 +37,15 @@ export function Sheet({ polygons, thickness, tint, transparency }: { polygons: M
 function StandModel({ stand, exploded, instrument }: Pick<Props, "stand" | "exploded" | "instrument">) {
   const { config, frontHeight } = stand;
   const center = (stand.front + stand.rear) / 2 * unit;
-  const lift = exploded ? (config.advancedMode ? stand.dimensions.height : stand.braceHeight) * unit + 0.4 : 0;
+  const lift = exploded ? (config.advancedMode || config.bentSheet ? stand.dimensions.height : stand.braceHeight) * unit + 0.4 : 0;
   const angle = config.angle * Math.PI / 180;
   return <group position={[0, 0, center]}>
-    {stand.parts.map(part => <group key={part.id}
+    {stand.parts.map(part => part.tray ? <group key={part.id} position={[0, lift * 1.5, 0]}><TraySheet part={part} stand={stand} /></group> : <group key={part.id}
       position={[part.placement.width * unit - Math.sin(part.placement.yaw) * part.thickness * unit / 2, part.family === "a" ? lift : 0, -part.placement.depth * unit - Math.cos(part.placement.yaw) * part.thickness * unit / 2]}
       rotation={[0, part.placement.yaw, 0]}>
       <Sheet polygons={part.polygons} {...sheetMaterial(config, part.id)} />
     </group>)}
-    {instrument && config.object ? <UploadedObject object={config.object} angle={config.angle} floor={frontHeight} lift={lift + (exploded ? 0.7 : 0)} /> : instrument && <group position={[0, frontHeight * unit + lift + (exploded ? 0.7 : 0), 0]} rotation={[angle, 0, 0]}>
+    {instrument && config.object ? (config.bentSheet ? <group position={[0, frontHeight * unit + lift * 1.5 + (exploded ? 0.7 : 0), 0]} rotation={[angle, 0, 0]}><UploadedObject object={config.object} angle={0} /></group> : <UploadedObject object={config.object} angle={config.angle} floor={frontHeight} lift={lift + (exploded ? 0.7 : 0)} />) : instrument && <group position={[0, frontHeight * unit + lift * (config.bentSheet ? 1.5 : 1) + (exploded ? 0.7 : 0), 0]} rotation={[angle, 0, 0]}>
       <mesh position={[0, config.height * unit / 2, -config.depth * unit / 2]}>
         <boxGeometry args={[config.width * unit, config.height * unit, config.depth * unit]} /><meshStandardMaterial color="#383c39" roughness={0.7} transparent opacity={0.72} />
       </mesh>
@@ -54,12 +55,40 @@ function StandModel({ stand, exploded, instrument }: Pick<Props, "stand" | "expl
     </group>}
   </group>;
 }
+function TraySheet({ part, stand }: { part: StandPart; stand: SynthStand }) {
+  const { thickness, tint, transparency } = sheetMaterial(stand.config, part.id);
+  const { geometry, edges } = useMemo(() => {
+    const tray = part.tray!, shapes = shapesFrom(part.polygons);
+    const bends = tray.bends.map(b => ({ ...b, start: b.start * unit, length: b.length * unit }));
+    const geometry = bentPanelGeometry(shapes, thickness * unit, bends, 1);
+    // The bend generator starts along the front lip. Rotate its formed output
+    // into the playing plane; map edges with the same transformation.
+    const a = stand.config.angle * Math.PI / 180;
+    const world = (x: number, y: number, z: number): [number, number, number] => {
+      const d = -tray.neutralRadius * unit + z - thickness * unit / 2;
+      const n = (tray.neutralRadius + tray.frontLip - thickness / 2) * unit - y;
+      return [x, stand.frontHeight * unit + d * Math.sin(a) + n * Math.cos(a), -d * Math.cos(a) + n * Math.sin(a)];
+    };
+    const positions = geometry.getAttribute("position"), normals = geometry.getAttribute("normal");
+    for (let i = 0; i < positions.count; i++) {
+      positions.setXYZ(i, ...world(positions.getX(i), positions.getY(i), positions.getZ(i)));
+      const ny = normals.getY(i), nz = normals.getZ(i);
+      normals.setXYZ(i, normals.getX(i), -ny * Math.cos(a) + nz * Math.sin(a), -ny * Math.sin(a) - nz * Math.cos(a));
+    }
+    geometry.computeBoundingBox(); geometry.computeBoundingSphere();
+    const edges = bentPanelEdges(panelEdgePoints(shapes, thickness * unit, 12, 15), thickness * unit, bends, 1).map(p => world(...p));
+    return { geometry, edges };
+  }, [part, thickness, stand.config.angle, stand.frontHeight]);
+  useEffect(() => () => geometry.dispose(), [geometry]);
+  const opacity = acrylicEdgeOpacity(transparency);
+  return <mesh geometry={geometry}><meshPhysicalMaterial {...acrylicMaterial(tint, thickness * unit, transparency)} /><Line points={edges} segments color={tint.color} transparent={opacity < 1} opacity={opacity} depthWrite={opacity === 1} raycast={() => null} /></mesh>;
+}
 function CameraRig({ stand, view, resetKey, exploded, instrument }: Omit<Props, "dark">) {
   const controls = useRef<OrbitControlsImpl>(null);
   const { camera, size, invalidate } = useThree();
   const width = Math.max(stand.config.width, stand.dimensions.width) * unit;
   const depth = stand.dimensions.depth * unit;
-  const height = (instrument ? stand.synthTop : stand.dimensions.height) * unit + (exploded ? (stand.config.advancedMode ? stand.dimensions.height : stand.braceHeight) * unit + 1.1 : 0);
+  const height = Math.max(instrument ? stand.synthTop : 0, stand.dimensions.height) * unit + (exploded ? ((stand.config.advancedMode || stand.config.bentSheet ? stand.dimensions.height : stand.braceHeight) * unit + 0.4) * (stand.config.bentSheet ? 1.5 : 1) + 0.7 : 0);
   useEffect(() => {
     const aspect = size.width / Math.max(1, size.height);
     const span = view === "side" ? depth : view === "top" ? width : Math.hypot(width, depth);

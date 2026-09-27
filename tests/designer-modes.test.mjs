@@ -629,6 +629,23 @@ test("mode switching preserves independent designs and routes material choices a
     assert.equal(document.querySelector('input[aria-label="Diagonal sweep in °"]'), null);
     await click("Export stand design JSON");
     assert.deepEqual(JSON.parse(await downloads.at(-1).blob.text()).parts, standardStand.parts);
+    await click("Bent sheet");
+    assert.equal(button("Bent sheet").getAttribute("aria-pressed"), "true");
+    assert.equal(button("Standard").getAttribute("aria-pressed"), "false");
+    await click("Export stand design JSON");
+    const bentStand = JSON.parse(await downloads.at(-1).blob.text());
+    assert.equal(bentStand.parts.length, 3);
+    assert.equal(bentStand.tray.holes.length, 4);
+    assert.equal(bentStand.configuration.bentSheet, true);
+    assert.match(document.querySelector(".stand-mode-control").textContent, /90° front lip/);
+    await click("Cutting layout");
+    assert.equal(document.querySelectorAll('.stand-cutting-layout [data-operation="bend-guide"]').length, 4);
+    await click("Synth protector");
+    await click("Synth stand");
+    assert.equal(button("Bent sheet").getAttribute("aria-pressed"), "true");
+    await click("Standard");
+    await click("Export stand design JSON");
+    assert.deepEqual(JSON.parse(await downloads.at(-1).blob.text()).parts, standardStand.parts);
     // Keep real parsing, fitting and controls; emulate only the worker transport.
     previous.set("Worker", Object.getOwnPropertyDescriptor(globalThis, "Worker"));
     const { createSynthStand } = load(path.join(project, "lib/synth-stand.ts"));

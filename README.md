@@ -173,6 +173,25 @@ screws, adhesive or bent parts. Stand the braces slots-up, then lower the ribs
 slots-down. These open joints lift apart: remove the instrument before moving
 the stand.
 
+**Bent sheet** is a third construction option: one angled tray, a small front
+lip formed 90° upward, a larger rear fold formed 90° downward, and exactly two
+perpendicular diagonal supports. Four square holes in the tray locate the
+support tabs, which stay below the instrument contact plane. Set the straight
+front-lip and rear-fold lengths under **Playing angle**. The rear fold stays at
+least one sheet thickness longer than the front lip; deck height increases when
+needed to keep it above the floor. An optional front extension lengthens the
+diagonal support feet. Cable-brace options apply to the other constructions.
+
+The bent tray uses an inside radius of twice its thickness and a mid-sheet
+neutral axis. Its flat blank includes both bend allowances. Blue dashed lines
+in the cutting layout and design SVG mark bend-zone boundaries, not cuts.
+Stock-sheet SVGs contain cut paths only. Form the tray, cross support B slots-up
+with A slots-down, then lower the tray over all four tabs. These locating joints
+are not captive. Validate the forming allowance, fit and loaded stability with
+a prototype; two supports do not establish a load rating for wide trays.
+Uploaded models set a flat tray envelope, not an underside contour, and must
+be at least 180 mm wide and 120 mm deep for this variation.
+
 In Standard mode, optional **Cable holes in braces** adds one round opening between each pair of
 ribs, aligned through all three braces. Requested diameter is adjustable from
 8–32 mm (20 mm default); the resolved diameter is reduced if needed to leave

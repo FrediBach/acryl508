@@ -253,7 +253,7 @@ test("crossed mode has load-bearing sheets and low braces in both perpendicular 
   }
   assert.deepEqual(createSynthStand({ ...stand.config, advancedMode: false, cableHoles: false }).parts, standard.parts);
   const data = standExport(stand);
-  assert.equal(data.version, 6);
+  assert.equal(data.version, 7);
   assert.deepEqual(data.parts, stand.parts);
   assert.equal(data.construction.braceCount, 4);
   assert.equal(data.cableManagement.aligned, false);

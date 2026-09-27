@@ -1,3 +1,4 @@
+import { bentStandNotes } from "./bent-stand";
 import { speakerBuildNotes, speakerHardware, myndSource, myndRevision, type Speaker } from "./speaker";
 import { speakerDampingMaterial } from "./speaker-damping";
 import { speakerBendNotes } from "./speaker-bends";
@@ -42,7 +43,7 @@ export function caseFabrication(config: CaseConfiguration, panels: CasePanels): 
 }
 export function standFabrication(stand: SynthStand, error?: string, busy?: boolean): Fabrication {
   return { parts: stand.parts.map(part => ({ id: part.id, label: part.label, polygons: down(part.polygons), thickness: part.thickness, material: materialLabel(sheetMaterial(stand.config, part.id).tint, sheetMaterial(stand.config, part.id).transparency) })),
-    warnings: ["Validate joint fit, grip, flex and loaded stability on a prototype.", ...(error ? [error] : []), ...(busy ? ["Model fitting is in progress."] : [])], hardware: ["No screws or adhesive; complementary slots join the parts."], thickness: stand.config.thickness, clearance: stand.config.clearance, blocked: !!error || !!busy };
+    warnings: [...(stand.config.bentSheet ? bentStandNotes : []), "Validate joint fit, grip, flex and loaded stability on a prototype.", ...(error ? [error] : []), ...(busy ? ["Model fitting is in progress."] : [])], hardware: [stand.config.bentSheet ? "No screws or adhesive. Heat-form the tray, cross the supports, then seat the tray over the four locating tabs." : "No screws or adhesive; complementary slots join the parts."], thickness: stand.config.thickness, clearance: stand.config.clearance, blocked: !!error || !!busy };
 }
 export function protectorFabrication(protector: SynthProtector, error?: string, busy?: boolean): Fabrication {
   return { parts: protector.parts.map(part => ({ id: part.id, label: part.label, polygons: down(part.polygons), thickness: part.thickness, material: materialLabel(sheetMaterial(protector.config, part.id).tint, sheetMaterial(protector.config, part.id).transparency) })),

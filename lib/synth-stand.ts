@@ -2,11 +2,13 @@ import { defaultSheetMaterials, maxSheetThickness, normalizeSheetThicknesses, sh
 import { objectContactCut, positionStandObject, trimContactSpikes, type StandObject } from "./stand-object";
 import polygonClipping, { type MultiPolygon, type Pair } from "polygon-clipping";
 import { defaultTint, defaultTransparency, type AcrylicTint, type AcrylicTransparency } from "./acrylic-material";
+import { createBentStand, bentStandNotes, type BentTray } from "./bent-stand";
 
 export type StandConfiguration = SheetMaterialConfiguration & {
   object?: StandObject;
   width: number; depth: number; height: number; angle: number;
   advancedMode: boolean;
+  bentSheet?: boolean; frontLipHeight: number; rearFoldHeight: number;
   thickness: number; clearance: number; tint: AcrylicTint; transparency?: AcrylicTransparency;
   cableHoles: boolean; cableHoleDiameter: number;
   roundedEdges: boolean; cornerRadius: number;
@@ -19,17 +21,20 @@ export const standLimits = {
   cableHoleDiameter: { min: 8, max: 32 },
   cornerRadius: { min: 1, max: 10 },
   frontExtensionLength: { min: 5, max: 100 },
+  frontLipHeight: { min: 8, max: 50 }, rearFoldHeight: { min: 30, max: 150 },
 };
 export const defaultStandConfiguration: StandConfiguration = {
   ...defaultSheetMaterials,
   width: 550, depth: 280, height: 70, angle: 25, thickness: 6, clearance: 0.15, tint: defaultTint, transparency: defaultTransparency,
   advancedMode: false,
+  bentSheet: false, frontLipHeight: 15, rearFoldHeight: 60,
   cableHoles: false, cableHoleDiameter: 20,
   roundedEdges: false, cornerRadius: 3,
   frontExtension: false, frontExtensionLength: 15,
 };
 export type StandPart = {
-  id: string; label: string; thickness: number; kind: "rib" | "brace"; position: number;
+  id: string; label: string; thickness: number; kind: "rib" | "brace" | "tray"; position: number;
+  tray?: BentTray;
   polygons: MultiPolygon; width: number; height: number; minX: number;
   family: "a" | "b";
   placement: { width: number; depth: number; yaw: number };
@@ -37,7 +42,7 @@ export type StandPart = {
   cableHoleCenters: { x: number; y: number }[];
 };
 export function normalizeStandConfiguration(input: StandConfiguration): StandConfiguration {
-  const config = { ...input, advancedMode: input.advancedMode === true, transparency: input.transparency ?? defaultTransparency, cableHoles: input.cableHoles === true, roundedEdges: input.roundedEdges === true, frontExtension: input.frontExtension === true };
+  const config = { ...input, bentSheet: input.bentSheet === true, advancedMode: input.bentSheet === true ? false : input.advancedMode === true, transparency: input.transparency ?? defaultTransparency, cableHoles: input.cableHoles === true, roundedEdges: input.roundedEdges === true, frontExtension: input.frontExtension === true };
   for (const key of Object.keys(standLimits) as (keyof typeof standLimits)[]) {
     const { min, max } = standLimits[key];
     config[key] = Math.max(min, Math.min(max, Number.isFinite(input[key]) ? input[key] : defaultStandConfiguration[key]));
@@ -344,6 +349,15 @@ function createObjectStand(input: StandConfiguration): SynthStand {
   };
 }
 export function createSynthStand(input: StandConfiguration) {
+  if (input.bentSheet) {
+    const config = normalizeStandConfiguration(input);
+    if (config.object) {
+      const posed = positionStandObject(config.object, 0, 0);
+      if (posed.dimensions.width < standLimits.width.min || posed.dimensions.depth < standLimits.depth.min) throw new Error("Bent sheet mode needs an instrument at least 180 mm wide and 120 mm deep. Use Standard for a smaller model.");
+      return createBentStand(createStandardStand(config, posed.dimensions), roundedOutline);
+    }
+    return createBentStand(createStandardStand(config), roundedOutline);
+  }
   if (input.object) return createObjectStand(input);
   const standard = createStandardStand(input);
   return standard.config.advancedMode ? createCrossStand(standard) : standard;
@@ -375,6 +389,12 @@ export function standSheetLayout(stand: SynthStand) {
 }
 export function standSvg(stand: SynthStand) {
   const layout = standSheetLayout(stand);
+  if (stand.config.bentSheet) return `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="${number(layout.width)}mm" height="${number(layout.height)}mm" viewBox="0 0 ${number(layout.width)} ${number(layout.height)}" fill="none" stroke="#000000" stroke-width="0.2" data-units="mm">
+<title>Acryl508 bent sheet synth stand / ${stand.config.angle} degrees / 3 parts</title>
+<desc>${bentStandNotes.join(" ")} Finished cut edges; apply kerf compensation once in CAM.</desc>
+${layout.parts.map(({ part, x, y }) => `  <g id="${part.id}" ${sheetMaterialAttributes(stand.config, part.id)} transform="translate(${number(x)} ${number(y)})"><title>${part.label}</title><path data-operation="cut" d="${standPathData(part.polygons)}" />${part.tray?.bends.map((bend, i) => `<g data-operation="bend-guide" data-angle-degrees="${i === 0 ? 90 : -90}" data-inner-radius-mm="${part.tray!.innerRadius}" stroke="#2563eb" stroke-dasharray="2 2"><title>${i === 0 ? "Front lip: 90 degrees up" : "Rear fold: 90 degrees down"}; bend zone, do not cut</title>${[bend.start, bend.start + bend.length].map(y => `<path d="M${number(part.minX)} ${number(-y)}H${number(part.minX + part.width)}" />`).join("")}</g>`).join("") ?? ""}</g>`).join("\n")}
+</svg>\n`;
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${number(layout.width)}mm" height="${number(layout.height)}mm" viewBox="0 0 ${number(layout.width)} ${number(layout.height)}" fill="none" stroke="#000000" stroke-width="0.2" data-units="mm">
   <title>Acryl508 synth stand / ${stand.config.angle} degrees / ${stand.objectFit ? "model contour / " : ""}${stand.diagonal.enabled ? "orthogonal diagonal cross" : "standard"} / ${stand.parts.length} parts</title>
@@ -383,16 +403,17 @@ ${layout.parts.map(({ part, x, y }) => `  <g id="${part.id}" ${sheetMaterialAttr
 </svg>\n`;
 }
 export function standExport(stand: SynthStand) {
-  return { product: "Acryl508", mode: "synth-stand", version: 6, units: "mm", status: "unvalidated-prototype",
+  return { product: "Acryl508", mode: "synth-stand", version: 7, units: "mm", status: "unvalidated-prototype",
     configuration: stand.config, sheetMaterials: sheetMaterialExport(stand.config, stand.parts), material: "GS cast acrylic", dimensions: stand.dimensions,
-    construction: { method: "Open half-lap slots", ribCount: stand.ribCount, braceCount: stand.braceCount, totalParts: stand.parts.length, hardware: 0, adhesive: false, supportSpacing: stand.supportSpacing, slotWidth: stand.slotWidth, slotRootReliefRadius: stand.reliefRadius, kerfCompensated: false, loadRating: null },
+    construction: { method: stand.config.bentSheet ? "Bent tray with four square locating mortises and crossed half-lap supports" : "Open half-lap slots", trayCount: stand.config.bentSheet ? 1 : 0, ribCount: stand.ribCount, braceCount: stand.braceCount, totalParts: stand.parts.length, hardware: 0, adhesive: false, supportSpacing: stand.supportSpacing, slotWidth: stand.slotWidth, slotRootReliefRadius: stand.reliefRadius, kerfCompensated: false, loadRating: null },
     objectFit: stand.objectFit,
+    tray: stand.parts.find(p => p.tray)?.tray ?? null,
     diagonal: stand.diagonal,
-    assembly: stand.config.advancedMode ? "Place family B with slots up; lower family A with slots down. Both families contain main supports and low braces." : "Place braces slots up; lower support ribs slots down.",
-    coordinates: "placement is the sheet centre-plane origin in assembled width/depth millimetres; yaw is in radians. For local outline coordinate u and thickness coordinate v in [-t/2,t/2], width = placement.width + u*cos(yaw) + v*sin(yaw), depth = placement.depth + u*sin(yaw) - v*cos(yaw). Part outlines: X runs along the sheet and Y points up. In advanced mode position is the diagonal family offset and placement fully specifies the assembly. In standard mode rib X is front-to-rear depth and position is width-axis centre; brace X is width and position is front-to-rear depth. All part bottoms sit at Y=0. Manual instrument front underside is at depth=0 and Y=frontHeight. Uploaded models are oriented using the configured up axis and turn, tilted, then translated so their minimum depth is zero and minimum Y is frontHeight.",
-    cableManagement: { ...stand.cableHoles, requestedDiameter: stand.config.cableHoleDiameter, method: stand.cableHoles.aligned ? "Round closed holes between ribs, aligned across all three braces" : "Round closed holes in clear bays of both diagonal brace families; route cables between them", coordinates: "Brace-local X right and Y up, in millimetres" },
+    assembly: stand.config.bentSheet ? "Form the front lip 90 degrees up and rear fold 90 degrees down. Cross support B slots-up with A slots-down, then lower the tray over four tabs." : stand.config.advancedMode ? "Place family B with slots up; lower family A with slots down. Both families contain main supports and low braces." : "Place braces slots up; lower support ribs slots down.",
+    coordinates: stand.config.bentSheet ? "Support outlines use local X along the upright sheet, Y up, with the standard placement/yaw mapping. Tray outlines use X across width and Y from the front lip free edge toward the rear fold free edge. Tray bends use millimetres and radians, a mid-sheet neutral axis and the exported inside radius. Deck starts at tray.deckStart and extends tray.deckDepth. The tray upper contact plane begins at world depth 0, height frontHeight. Square hole centres are in flat-tray coordinates; tabs stop at or below the contact plane." : "placement is the sheet centre-plane origin in assembled width/depth millimetres; yaw is in radians. For local outline coordinate u and thickness coordinate v in [-t/2,t/2], width = placement.width + u*cos(yaw) + v*sin(yaw), depth = placement.depth + u*sin(yaw) - v*cos(yaw). Part outlines: X runs along the sheet and Y points up. In advanced mode position is the diagonal family offset and placement fully specifies the assembly. In standard mode rib X is front-to-rear depth and position is width-axis centre; brace X is width and position is front-to-rear depth. All part bottoms sit at Y=0. Manual instrument front underside is at depth=0 and Y=frontHeight. Uploaded models are oriented using the configured up axis and turn, tilted, then translated so their minimum depth is zero and minimum Y is frontHeight.",
+    cableManagement: { ...stand.cableHoles, requestedDiameter: stand.config.cableHoleDiameter, method: stand.config.bentSheet ? "No cable braces in bent sheet mode" : stand.cableHoles.aligned ? "Round closed holes between ribs, aligned across all three braces" : "Round closed holes in clear bays of both diagonal brace families; route cables between them", coordinates: "Brace-local X right and Y up, in millimetres" },
     edgeRounding: { enabled: stand.config.roundedEdges, requestedRadius: stand.config.cornerRadius, method: "Convex outer corners of flat cutting outlines; tangent circular fillets limited to 45% of each adjacent edge", preserves: "Joint slots, slot-root relief, concave synth-contact corners and cable holes", throughThicknessBevel: false, maximumArcStepDegrees: 5 },
-    frontExtension: { ...stand.frontExtension, requestedLength: stand.config.frontExtensionLength, measurement: stand.objectFit ? "Horizontal distance beyond the compact model footprint; zero when disabled" : "Horizontal distance beyond the outside of the integral front stop; zero when disabled" },
-    frontHeight: stand.frontHeight, parts: stand.parts, notes: [...(stand.objectFit ? ["Model fit uses the mesh lower envelope across the full sheet thickness. Dimensions and contours depend on mesh accuracy and chosen units. Empty regions stay at tie height. Integral front retaining lips are backed outward from the mesh and capped above the local underside. The front footprint includes material for these lips. Check the contact and restraint against sliding on the real object. Thin contact tips are trimmed to a minimum span of two sheet thicknesses, removing material only. Optional rounding also softens convex contact corners; joint slots are cut afterwards to preserve their fit. Verify vents, feet, balance and load capacity with a prototype."] : standBuildNotes), ...(stand.cableHoles.enabled ? ["Cable holes retain at least two sheet thicknesses to brace edges and joint relief. Diameter is reduced automatically to preserve this web. Check the widest connector fits the resolved hole diameter; holes are closed and require threading the cable through. These geometry limits do not establish strength."] : [])],
+    frontExtension: { ...stand.frontExtension, requestedLength: stand.config.frontExtensionLength, measurement: stand.config.bentSheet ? "Horizontal extension from the compact diagonal support ends" : stand.objectFit ? "Horizontal distance beyond the compact model footprint; zero when disabled" : "Horizontal distance beyond the outside of the integral front stop; zero when disabled" },
+    frontHeight: stand.frontHeight, parts: stand.parts, notes: [...(stand.config.bentSheet ? bentStandNotes : stand.objectFit ? ["Model fit uses the mesh lower envelope across the full sheet thickness. Dimensions and contours depend on mesh accuracy and chosen units. Empty regions stay at tie height. Integral front retaining lips are backed outward from the mesh and capped above the local underside. The front footprint includes material for these lips. Check the contact and restraint against sliding on the real object. Thin contact tips are trimmed to a minimum span of two sheet thicknesses, removing material only. Optional rounding also softens convex contact corners; joint slots are cut afterwards to preserve their fit. Verify vents, feet, balance and load capacity with a prototype."] : standBuildNotes), ...(stand.cableHoles.enabled ? ["Cable holes retain at least two sheet thicknesses to brace edges and joint relief. Diameter is reduced automatically to preserve this web. Check the widest connector fits the resolved hole diameter; holes are closed and require threading the cable through. These geometry limits do not establish strength."] : [])],
   };
 }

@@ -42,7 +42,7 @@ export function bendPoint(x: number, y: number, z: number, depth: number, bends:
 
 export function bendSlices(bends: AccessoryBend[]) {
   return bends.flatMap(bend => {
-    const count = Math.max(1, Math.ceil(bend.angle / (Math.PI / 60)));
+    const count = Math.max(1, Math.ceil(Math.abs(bend.angle) / (Math.PI / 60)));
     return Array.from({ length: count + 1 }, (_, i) => bend.start + bend.length * i / count);
   });
 }
