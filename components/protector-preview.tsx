@@ -1,4 +1,5 @@
 "use client";
+import { usePresentationCamera } from "@/components/use-presentation-camera";
 import { Suspense, useEffect, useRef } from "react";
 import { Canvas, useThree } from "@react-three/fiber";
 import { ContactShadows, Environment, Lightformer, OrbitControls } from "@react-three/drei";
@@ -9,7 +10,7 @@ import { Sheet, PreviewBoundary, type StandView } from "./stand-preview";
 import { sheetMaterial } from "@/lib/sheet-materials";
 import type { SynthProtector } from "@/lib/synth-protector";
 const unit = 0.01;
-type Props = { protector: SynthProtector; dark: boolean; exploded: boolean; instrument: boolean; view: StandView; resetKey: number };
+type Props = { presentation: boolean; protector: SynthProtector; dark: boolean; exploded: boolean; instrument: boolean; view: StandView; resetKey: number };
 function ProtectorModel({ protector, exploded, instrument }: Props) {
   const { config } = protector;
   return <group>
@@ -31,7 +32,7 @@ function ProtectorModel({ protector, exploded, instrument }: Props) {
     </group>}
   </group>;
 }
-function CameraRig({ protector, view, resetKey, exploded }: Props) {
+function CameraRig({ presentation, protector, view, resetKey, exploded }: Props) {
   const controls = useRef<OrbitControlsImpl>(null);
   const { camera, size, invalidate } = useThree();
   const width = protector.dimensions.width * unit, depth = protector.dimensions.depth * unit;
@@ -46,7 +47,8 @@ function CameraRig({ protector, view, resetKey, exploded }: Props) {
     if (controls.current) { controls.current.target.copy(target); controls.current.update(); }
     invalidate();
   }, [camera, size.width, size.height, width, depth, height, view, resetKey, invalidate]);
-  return <OrbitControls ref={controls} makeDefault enablePan={false} minDistance={1} maxDistance={80} maxPolarAngle={Math.PI / 2} />;
+  usePresentationCamera(controls, presentation);
+  return <OrbitControls ref={controls} enabled={!presentation} enableDamping={!presentation} makeDefault enablePan={false} minDistance={1} maxDistance={80} maxPolarAngle={Math.PI / 2} />;
 }
 export function ProtectorPreview(props: Props) {
   return <PreviewBoundary><Canvas camera={{ position: [5, 4, 6], fov: 34, near: 0.01, far: 150 }} dpr={[1, 1.75]} frameloop="demand" gl={{ alpha: true, antialias: true }} fallback={<div className="preview-fallback">WebGL is unavailable. Select Cutting layout to inspect your parts.</div>}>

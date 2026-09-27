@@ -1,4 +1,5 @@
 "use client";
+import { usePresentationCamera } from "@/components/use-presentation-camera";
 import { Component, Suspense, useEffect, useMemo, useRef, type ReactNode } from "react";
 import { ContactShadows, Environment, Lightformer, Line, OrbitControls } from "@react-three/drei";
 import { Canvas, useThree } from "@react-three/fiber";
@@ -34,7 +35,7 @@ function SheetEngraving({ side, panels, config }: { side: CutoutSide; panels: Ca
 }
 
 export type CameraView = "perspective" | "front" | "top";
-type Props = { panels: CasePanels; config: CaseConfiguration; dark: boolean; view: CameraView; resetKey: number; exploded: boolean; modules: boolean };
+type Props = { presentation: boolean; panels: CasePanels; config: CaseConfiguration; dark: boolean; view: CameraView; resetKey: number; exploded: boolean; modules: boolean };
 const unit = 0.01;
 
 const noBends: AccessoryBend[] = [];
@@ -140,7 +141,7 @@ function AcrylicCase({ config, panels, exploded, modules }: Pick<Props, "config"
     </group>
   </group>;
 }
-function CameraRig({ config, view, resetKey, exploded }: Pick<Props, "config" | "view" | "resetKey" | "exploded">) {
+function CameraRig({ presentation, config, view, resetKey, exploded }: Pick<Props, "config" | "view" | "resetKey" | "exploded" | "presentation">) {
   const controls = useRef<OrbitControlsImpl>(null);
   const { camera, size, invalidate } = useThree();
   const dimensions = caseDimensions(config);
@@ -172,7 +173,8 @@ function CameraRig({ config, view, resetKey, exploded }: Pick<Props, "config" | 
     if (controls.current) { controls.current.target.copy(target); controls.current.update(); }
     invalidate();
   }, [camera, size.width, size.height, width, length, height, config.angle, automaticFeet, flatFeetRise, gripWidth, gripRise, hasSideBend, hasRearBend, view, resetKey, exploded, invalidate]);
-  return <OrbitControls ref={controls} makeDefault enablePan={false} enableDamping minDistance={1.3} maxDistance={28} maxPolarAngle={Math.PI / 2 - 0.03} />;
+  usePresentationCamera(controls, presentation);
+  return <OrbitControls ref={controls} enabled={!presentation} enableDamping={!presentation} makeDefault enablePan={false} minDistance={1.3} maxDistance={28} maxPolarAngle={Math.PI / 2 - 0.03} />;
 }
 class PreviewBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
   state = { failed: false };

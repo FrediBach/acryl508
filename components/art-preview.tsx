@@ -1,4 +1,5 @@
 "use client";
+import { usePresentationCamera } from "@/components/use-presentation-camera";
 import { Suspense, useEffect, useMemo, useRef } from "react";
 import { Canvas, useThree } from "@react-three/fiber";
 import { ContactShadows, Environment, Lightformer, Line, OrbitControls } from "@react-three/drei";
@@ -11,7 +12,7 @@ import { sheetMaterial } from "@/lib/sheet-materials";
 import { artPartPoint, type Art, type ArtPart } from "@/lib/art";
 import { PreviewBoundary } from "./stand-preview";
 export type ArtView = "perspective" | "side" | "top";
-type Props = { art: Art; dark: boolean; exploded: boolean; view: ArtView; resetKey: number };
+type Props = { presentation: boolean; art: Art; dark: boolean; exploded: boolean; view: ArtView; resetKey: number };
 function ArtSheet({ part, art }: { part: ArtPart; art: Art }) {
   const { thickness, tint, transparency } = sheetMaterial(art.config, part.id);
   const { geometry, edges } = useMemo(() => {
@@ -47,7 +48,7 @@ function ArtSheet({ part, art }: { part: ArtPart; art: Art }) {
   const opacity = acrylicEdgeOpacity(transparency);
   return <mesh geometry={geometry}><meshPhysicalMaterial {...acrylicMaterial(tint, thickness / 100, transparency)} />{edges.length > 0 && <Line points={edges} segments color={tint.color} transparent={opacity < 1} opacity={opacity} depthWrite={opacity === 1} raycast={() => null} />}</mesh>;
 }
-function CameraRig({ art, view, exploded, resetKey }: Omit<Props, "dark">) {
+function CameraRig({ presentation, art, view, exploded, resetKey }: Omit<Props, "dark">) {
   const controls = useRef<OrbitControlsImpl>(null), { camera, size, invalidate } = useThree();
   const width = art.dimensions.width / 100, depth = art.dimensions.depth / 100;
   const height = art.dimensions.height / 100 + (exploded ? art.baseHeight / 100 + 0.5 : 0);
@@ -61,7 +62,8 @@ function CameraRig({ art, view, exploded, resetKey }: Omit<Props, "dark">) {
     if (controls.current) { controls.current.target.copy(target); controls.current.update(); }
     invalidate();
   }, [camera, size.width, size.height, width, depth, height, view, resetKey, invalidate]);
-  return <OrbitControls ref={controls} makeDefault enablePan={false} minDistance={1} maxDistance={80} maxPolarAngle={Math.PI / 2} />;
+  usePresentationCamera(controls, presentation);
+  return <OrbitControls ref={controls} enabled={!presentation} enableDamping={!presentation} makeDefault enablePan={false} minDistance={1} maxDistance={80} maxPolarAngle={Math.PI / 2} />;
 }
 export function ArtPreview(props: Props) {
   const { art, exploded, dark } = props;

@@ -1,4 +1,5 @@
 "use client";
+import { usePresentationCamera } from "@/components/use-presentation-camera";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { Canvas, useThree } from "@react-three/fiber";
 import { ContactShadows, Environment, Lightformer, OrbitControls } from "@react-three/drei";
@@ -12,14 +13,14 @@ import { SpeakerHardware } from "./speaker-hardware";
 import { SpeakerModelMessage, type SpeakerModelStatus } from "./speaker-model-status";
 import { speakerPartGeometry } from "@/lib/speaker-bends";
 export type SpeakerView = "perspective" | "front" | "rear";
-type Props = { speaker: Speaker; dark: boolean; exploded: boolean; hardware: boolean; view: SpeakerView; resetKey: number };
+type Props = { presentation: boolean; speaker: Speaker; dark: boolean; exploded: boolean; hardware: boolean; view: SpeakerView; resetKey: number };
 function Sheet({ part, speaker, exploded }: { part: SpeakerPart; speaker: Speaker; exploded: boolean }) {
   const geometry = useMemo(() => speakerPartGeometry(part),[part]);
   useEffect(()=>()=>geometry.dispose(),[geometry]);
   const material=sheetMaterial(speaker.config,part.id);
   return <mesh geometry={geometry} position={part.position.map((v,i)=>(v+(exploded ? part.explode[i] : 0))/100) as [number,number,number]} rotation={part.rotation}>{part.id.startsWith("damping-") ? <meshStandardMaterial color="#292b2c" roughness={0.95} /> : <meshPhysicalMaterial {...acrylicMaterial(material.tint,part.thickness/100,material.transparency)} />}</mesh>;
 }
-function Camera({ speaker,view,resetKey,exploded }: Omit<Props,"dark"|"hardware">) {
+function Camera({ presentation, speaker,view,resetKey,exploded }: Omit<Props,"dark"|"hardware">) {
   const controls=useRef<OrbitControlsImpl>(null),{camera,size,invalidate}=useThree();
   const {overallWidth:width,leftX,rightX,totalHeight,overallDepth,floorY,topY,rearZ,frontZ}=speaker;
   useEffect(()=>{
@@ -30,7 +31,8 @@ function Camera({ speaker,view,resetKey,exploded }: Omit<Props,"dark"|"hardware"
     camera.position.copy(direction.multiplyScalar(distance).add(target));camera.lookAt(target);
     if(controls.current){controls.current.target.copy(target);controls.current.update();}invalidate();
   },[camera,size.width,size.height,width,leftX,rightX,totalHeight,overallDepth,floorY,topY,rearZ,frontZ,exploded,view,resetKey,invalidate]);
-  return <OrbitControls ref={controls} makeDefault enablePan={false} minDistance={1} maxDistance={30} />;
+  usePresentationCamera(controls, presentation);
+  return <OrbitControls ref={controls} enabled={!presentation} enableDamping={!presentation} makeDefault enablePan={false} minDistance={1} maxDistance={30} />;
 }
 export function SpeakerPreview(props: Props) {
   const {speaker,dark,exploded,hardware}=props;

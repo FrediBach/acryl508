@@ -1,4 +1,5 @@
 "use client";
+import { usePresentationCamera } from "@/components/use-presentation-camera";
 import { Component, Suspense, useEffect, useMemo, useRef, type ReactNode } from "react";
 import { Canvas, useThree } from "@react-three/fiber";
 import { ContactShadows, Environment, Lightformer, Line, OrbitControls } from "@react-three/drei";
@@ -13,7 +14,7 @@ import { bentPanelGeometry, bentPanelEdges } from "@/lib/bent-panel-geometry";
 import { panelEdgePoints } from "@/lib/panel-edges";
 
 export type StandView = "perspective" | "side" | "top";
-type Props = { stand: SynthStand; dark: boolean; exploded: boolean; instrument: boolean; view: StandView; resetKey: number };
+type Props = { presentation: boolean; stand: SynthStand; dark: boolean; exploded: boolean; instrument: boolean; view: StandView; resetKey: number };
 const unit = 0.01;
 function shapesFrom(polygons: MultiPolygon) {
   return polygons.map(polygon => {
@@ -83,7 +84,7 @@ function TraySheet({ part, stand }: { part: StandPart; stand: SynthStand }) {
   const opacity = acrylicEdgeOpacity(transparency);
   return <mesh geometry={geometry}><meshPhysicalMaterial {...acrylicMaterial(tint, thickness * unit, transparency)} /><Line points={edges} segments color={tint.color} transparent={opacity < 1} opacity={opacity} depthWrite={opacity === 1} raycast={() => null} /></mesh>;
 }
-function CameraRig({ stand, view, resetKey, exploded, instrument }: Omit<Props, "dark">) {
+function CameraRig({ presentation, stand, view, resetKey, exploded, instrument }: Omit<Props, "dark">) {
   const controls = useRef<OrbitControlsImpl>(null);
   const { camera, size, invalidate } = useThree();
   const width = Math.max(stand.config.width, stand.dimensions.width) * unit;
@@ -100,7 +101,8 @@ function CameraRig({ stand, view, resetKey, exploded, instrument }: Omit<Props, 
     if (controls.current) { controls.current.target.copy(target); controls.current.update(); }
     invalidate();
   }, [camera, size.width, size.height, width, depth, height, view, resetKey, invalidate]);
-  return <OrbitControls ref={controls} makeDefault enablePan={false} minDistance={1} maxDistance={80} maxPolarAngle={Math.PI / 2} />;
+  usePresentationCamera(controls, presentation);
+  return <OrbitControls ref={controls} enabled={!presentation} enableDamping={!presentation} makeDefault enablePan={false} minDistance={1} maxDistance={80} maxPolarAngle={Math.PI / 2} />;
 }
 export class PreviewBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
   state = { failed: false };
