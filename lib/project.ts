@@ -5,7 +5,7 @@ import { defaultStandConfiguration, normalizeStandConfiguration, type StandConfi
 import { defaultProtectorConfiguration, type ProtectorConfiguration } from "./synth-protector";
 import { defaultPanelConfiguration, normalizePanelConfiguration, type PanelConfiguration } from "./panel-designer";
 import { defaultLedStrip, type LedStrip } from "./engravings";
-import { type CustomCutout } from "./custom-cutouts";
+import { geometryArea, polygonBounds, type CustomCutout } from "./custom-cutouts";
 import { validateObjectVertices, type StandObject } from "./stand-object";
 import { normalizeVentDesign } from "./vent-design";
 import { backHookLimits } from "./back-hook";
@@ -174,8 +174,17 @@ export function readPanel(input: unknown, maxHp = 84): PanelConfiguration {
   config.mountingCount = choice(config.mountingCount, ["auto", "two", "four"], "mounting count");
   config.components = list(config.components, "components", 64).map(value => {
     const c = record(value, "Component");
+    let label: PanelConfiguration["components"][number]["label"];
+    if (c.label === null) label = null;
+    else if (c.label !== undefined) {
+      const data = record(c.label, "Component label"), labelText = text(data.text, "Label text", 60);
+      if (!labelText.trim() || /[\r\n\t]/.test(labelText)) throw new Error("Component labels must be a nonempty single line.");
+      const [outline] = cutouts([{ id: "label", name: labelText, source: { kind: "text", text: labelText, fontId: "helvetiker", fontName: "Helvetiker · Sans" }, side: "front", polygons: data.polygons, width: 1, x: 0, y: 0, rotation: 0 }]);
+      if (polygonBounds(outline.polygons).height <= 0 || geometryArea(outline.polygons) <= 0) throw new Error("Component label has no filled outlines.");
+      label = { text: labelText, polygons: outline.polygons, height: number(data.height, "Label height", 0.5, 8), gap: number(data.gap, "Label gap", 0, 20), position: choice(data.position, ["above", "below"], "label position") };
+    }
     const numeric = Object.fromEntries(["x", "y", "width", "height", "radius", "rotation", "bodyWidth", "bodyHeight", "maxPanelThickness"].map(key => [key, number(c[key], key, -1000, 1000)]));
-    return { ...numeric, id: text(c.id, "component ID"), name: text(c.name, "component name"), kind: choice(c.kind, ["jack", "pot", "switch", "display", "custom"], "component kind"), shape: choice(c.shape, ["circle", "rectangle", "slot"], "component shape") } as PanelConfiguration["components"][number];
+    return { ...numeric, ...(label !== undefined ? { label } : {}), id: text(c.id, "component ID"), name: text(c.name, "component name"), kind: choice(c.kind, ["jack", "pot", "switch", "display", "custom"], "component kind"), shape: choice(c.shape, ["circle", "rectangle", "slot"], "component shape") } as PanelConfiguration["components"][number];
   });
   const artworks = list(config.artwork, "artwork", 20);
   config.artwork = cutouts(artworks).map((a, index) => ({ ...a, operation: choice(record(artworks[index], "Artwork").operation, ["cut", "engrave"], "artwork operation") }));

@@ -897,6 +897,21 @@ test("mode switching preserves independent designs and routes material choices a
     assert.equal(document.querySelector('select[aria-label="Panel format"]'), null);
     assert.ok(![...document.querySelectorAll("label")].some(label => label.textContent.startsWith("Mounting openings")), "Attached panels have no rail mounting controls");
     await click("Jack");
+    const rowLabelInput = field("Engraved label text");
+    assert.equal(rowLabelInput.disabled, false);
+    await actAndPreview(async () => {
+      Object.getOwnPropertyDescriptor(dom.window.HTMLInputElement.prototype, "value").set.call(rowLabelInput, "INPUT");
+      rowLabelInput.dispatchEvent(new dom.window.Event("input", { bubbles: true }));
+    });
+    assert.ok(document.querySelector('[data-layer="engrave"]'), "Typing a component label creates engraving without an Apply action");
+    await click("Undo design change");
+    assert.equal(field("Engraved label text").value, "");
+    await click("Redo design change");
+    assert.equal(field("Engraved label text").value, "INPUT");
+    await setPanelNumber("X from centre", 25);
+    const rowArtworkUpload = document.querySelector('[aria-label="Import panel artwork SVG"]');
+    Object.defineProperty(rowArtworkUpload, "files", { configurable: true, value: [{ name: "logo.svg", size: 100, text: async () => '<svg xmlns="http://www.w3.org/2000/svg"><rect width="10" height="4" /></svg>' }] });
+    await actAndPreview(async () => rowArtworkUpload.dispatchEvent(new dom.window.Event("change", { bubbles: true })));
     await click("Export case design JSON");
     const rowExport = JSON.parse(await downloads.at(-1).blob.text());
     assert.equal(rowExport.configuration.rowUnits[0], 1);
@@ -904,9 +919,13 @@ test("mode switching preserves independent designs and routes material choices a
     assert.match(rowExport.rowPanels[0].attachment.method, /closed side-panel slots/);
     assert.equal(rowExport.panelAssembly.railCount, (rowExport.configuration.rows - 1) * 2);
     assert.equal(rowExport.configuration.rowPanels[0].components.length, 1);
+    assert.equal(rowExport.configuration.rowPanels[0].components[0].label.text, "INPUT");
+    assert.equal(rowExport.rowPanels[0].layers.engrave.length, 2, "Custom artwork and automatic labels share the engraving output");
+    assert.equal(rowExport.rowPanels[0].components[0].x, 25);
     assert.equal(rowExport.rowPanels[0].configuration.hp, rowExport.configuration.hp);
     await click("Export all case sheets as SVG");
     assert.match(await downloads.at(-1).blob.text(), /id="panel-row-1"/);
+    assert.match(await downloads.at(-1).blob.text(), /id="engrave-row-1"/);
     await click("← Back to case");
     await click("Cutting layout");
     assert.ok(document.querySelector('[data-part="row-1"]'));

@@ -520,6 +520,17 @@ Cutouts that remove attachment tabs or their roots block fabrication.
 Its material and thickness are editable independently. The sheet follows row tilt,
 appears in the case and cutting previews, and is included in case SVG, JSON,
 fabrication layouts, project saves and undo/redo. Return with **Back to case**.
+For engraving, combine either or both approaches:
+
+- **Artwork & labels:** add custom text or import filled SVG artwork, then choose
+  **Engrave surface**. Position and size it independently.
+- **Components & layout:** select a jack, pot, switch, display or custom opening
+  and enter **Engraved label text**. Set text height, above/below placement and
+  gap from the component's body/knob box. Labels follow moves, rotation,
+  duplication and alignment; removing a component removes its label. Clear the
+  text to use custom artwork alone. Label outlines are saved with the project,
+  included in the blue engraving export, and reserved from ventilation cuts.
+
 Custom panels remain at the outer rows; switch one to an open module row before
 adding another row beyond it.
 

@@ -10,7 +10,11 @@ export const panelFormats = {
   "pulp-logic-1u": { label: "Pulp Logic 1U", height: 43.18, insetY: 2.9972, insetX: 5.08, diameter: 3.175, source: "https://pulplogic.com/1u_tiles/" },
 } as const;
 export type PanelFormat = keyof typeof panelFormats;
+export type ComponentLabel = {
+  text: string; polygons: MultiPolygon; height: number; gap: number; position: "above" | "below";
+};
 export type PanelComponent = {
+  label?: ComponentLabel | null;
   id: string; name: string; kind: "jack" | "pot" | "switch" | "display" | "custom";
   shape: "circle" | "rectangle" | "slot";
   x: number; y: number; width: number; height: number; radius: number; rotation: number;
@@ -43,6 +47,7 @@ export function normalizePanelConfiguration(input: PanelConfiguration, maxHp = 8
     thickness: bounded(input.thickness, 3, 1.5, 6), widthClearance: bounded(input.widthClearance, 0.3, 0.1, 0.5),
     slotTravel: bounded(input.slotTravel, 2, 0, 4),
     components: input.components.slice(0, maxPanelComponents).map(c => ({ ...c,
+      ...(c.label ? { label: { ...c.label, text: c.label.text.slice(0, 60), height: bounded(c.label.height, 2.5, 0.5, 8), gap: bounded(c.label.gap, 1.5, 0, 20), position: c.label.position === "below" ? "below" as const : "above" as const } } : {}),
       x: bounded(c.x, 0, -500, 500), y: bounded(c.y, 0, -500, 500), rotation: bounded(c.rotation, 0, -180, 180),
       width: bounded(c.width, 6, 1, 150), height: bounded(c.height, 6, 1, 150), radius: bounded(c.radius, 1, 0, 30),
       bodyWidth: bounded(c.bodyWidth, 10, 1, 200), bodyHeight: bounded(c.bodyHeight, 10, 1, 200), maxPanelThickness: bounded(c.maxPanelThickness, 0, 0, 10),
@@ -79,6 +84,21 @@ export function newPanelComponent(kind: PanelComponent["kind"], id: string): Pan
   const [width, height, bodyWidth, bodyHeight] = presets[kind];
   return { id, name: { jack: "Jack", pot: "Pot", switch: "Switch", display: "Display", custom: "Custom opening" }[kind], kind, shape: kind === "display" ? "rectangle" : "circle", x: 0, y: 0, width, height, radius: 1, rotation: 0, bodyWidth, bodyHeight, maxPanelThickness: 0 };
 }
+// Label outlines are saved with the component so all previews and exports can
+// resolve them synchronously, without loading fonts or creating detached artwork.
+export function componentLabelArtwork(component: PanelComponent): PanelArtwork | null {
+  const label = component.label;
+  if (!label?.text.trim() || !label.polygons.length) return null;
+  const bounds = polygonBounds(label.polygons);
+  if (bounds.height <= 0 || bounds.width <= 0) return null;
+  const height = component.shape === "circle" ? component.width : component.height;
+  const offset = (Math.max(height, component.bodyHeight) / 2 + label.gap + label.height / 2) * (label.position === "below" ? -1 : 1);
+  const angle = component.rotation * Math.PI / 180;
+  return { id: `component-label:${component.id}`, name: `${component.name}: ${label.text}`, operation: "engrave", side: "front",
+    source: { kind: "text", text: label.text, fontId: "helvetiker", fontName: "Helvetiker · Sans" },
+    polygons: mapPolygons(label.polygons, (x, y) => [x - (bounds.left + bounds.right) / 2, y - (bounds.bottom + bounds.top) / 2]), width: label.height / bounds.height,
+    x: panelRound(component.x - offset * Math.sin(angle)), y: panelRound(component.y + offset * Math.cos(angle)), rotation: component.rotation };
+}
 type Bounds = ReturnType<typeof polygonBounds>;
 const boundsOverlap = (a: Bounds, b: Bounds, gap = 0) => a.left < b.right + gap && a.right > b.left - gap && a.bottom < b.top + gap && a.top > b.bottom - gap;
 const within = (b: Bounds, width: number, height: number, margin = 0) => b.left >= -width / 2 + margin - 1e-6 && b.right <= width / 2 - margin + 1e-6 && b.bottom >= -height / 2 + margin - 1e-6 && b.top <= height / 2 - margin + 1e-6;
@@ -105,13 +125,19 @@ export function createPanel(input: PanelConfiguration, maxHp = 84, construction?
   }));
   if (config.mounting === "slots" && mounts.some(m => m.travel < config.slotTravel - 1e-4)) warnings.push("Mounting slots were shortened to keep at least 0.5 mm at the side edge. Check the narrow mounting web on a prototype.");
   const components = config.components.map(component => ({ ...component, polygons: componentOutline(component), body: componentOutline(component, true) }));
-  const artworks = config.artwork.map(art => ({ ...art, placed: placedCutout(art) }));
+  const labels = config.components.flatMap(component => { const label = componentLabelArtwork(component); return label ? [label] : []; });
+  const allArtwork = [...config.artwork, ...labels];
+  const artworks = allArtwork.map(art => ({ ...art, placed: placedCutout(art) }));
   const web = Math.max(2, config.thickness);
   for (const c of components) {
     if (!within(polygonBounds(c.polygons), width, height, web)) warnings.push(`${c.name}: opening is outside the panel or leaves less than ${web} mm at an edge.`);
     const b = polygonBounds(c.body);
     if (!within(b, width, height, 0) || b.top > height / 2 - railReserve || b.bottom < -height / 2 + railReserve) warnings.push(construction ? `${c.name}: body clearance reaches the panel edge. Verify clearance inside the case.` : `${c.name}: body clearance reaches an edge or the 8 mm rail reserve. Verify the actual hardware and rail profile.`);
     if (c.maxPanelThickness > 0 && config.thickness > c.maxPanelThickness) warnings.push(`${c.name}: ${config.thickness} mm acrylic exceeds the specified ${c.maxPanelThickness} mm maximum panel thickness.`);
+  }
+  for (const label of labels) {
+    const bounds = polygonBounds(placedCutout(label));
+    if (components.some(component => label.id !== `component-label:${component.id}` && boundsOverlap(bounds, polygonBounds(component.body)))) warnings.push(`${label.name}: label overlaps a component body or knob area. Adjust label size, gap or position.`);
   }
   const plannedLed = ledSlot(original, config.ledStrip, config.thickness);
   const reserved = [...components.map(c => polygonBounds(c.body)), ...artworks.map(a => polygonBounds(a.placed)), ...mounts.map(m => polygonBounds(m.polygons))];
@@ -170,9 +196,9 @@ export function createPanel(input: PanelConfiguration, maxHp = 84, construction?
       return { id: a.id, name: a.name, polygons: engraved };
     } catch { engravingError = true; warnings.push(`${a.name}: engraving could not be resolved. Simplify the artwork before exporting.`); return { id: a.id, name: a.name, polygons: [] as MultiPolygon }; }
   });
-  const engraving = resolveEngravings(polygons, config.artwork.filter(a => a.operation === "engrave"));
+  const engraving = resolveEngravings(polygons, allArtwork.filter(a => a.operation === "engrave"));
   if (engraving.error) { engravingError = true; warnings.push(engraving.error); }
-  return { config, width, height, railReserve, original, polygons, mounts, components, engravings, engraving, led, vents, ventPitch: pitch, ventMargin: margin, warnings: [...new Set(warnings)], report, canExport: !report.empty && !report.error && !engravingError };
+  return { config, width, height, railReserve, original, polygons, mounts, components, labels, engravings, engraving, led, vents, ventPitch: pitch, ventMargin: margin, warnings: [...new Set(warnings)], report, canExport: !report.empty && !report.error && !engravingError };
 }
 export type DesignedPanel = ReturnType<typeof createPanel>;
 export type PanelAlignment = "column" | "row" | "distribute-x" | "distribute-y" | "center-x" | "center-y";
