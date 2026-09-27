@@ -893,7 +893,13 @@ test("mode switching preserves independent designs and routes material choices a
 
     await click("Case designer");
     await click("Add top 1U panel");
-    await click("Edit top panel holes & cutouts");
+    const rowMaterialSelect = label => document.querySelector(`select[aria-label="${label}"]`) ?? document.getElementById([...document.querySelectorAll("label")].find(element => element.textContent === label)?.htmlFor);
+    await selectValue(rowMaterialSelect("Top 1U panel color"), "blue");
+    await selectValue(rowMaterialSelect("Top 1U panel transparency"), "opaque");
+    await selectValue(rowMaterialSelect("Top 1U panel thickness"), "2");
+    await click("Use individual acrylic materials for each sheet");
+    assert.equal(rowMaterialSelect("Top 1U panel color").value, "blue", "1U materials remain available regardless of enclosure material mode");
+    await click("Edit top panel holes, cutouts & material");
     assert.equal(document.querySelector('select[aria-label="Panel format"]'), null);
     assert.ok(![...document.querySelectorAll("label")].some(label => label.textContent.startsWith("Mounting openings")), "Attached panels have no rail mounting controls");
     await click("Jack");
@@ -915,6 +921,11 @@ test("mode switching preserves independent designs and routes material choices a
     await click("Export case design JSON");
     const rowExport = JSON.parse(await downloads.at(-1).blob.text());
     assert.equal(rowExport.configuration.rowUnits[0], 1);
+    for (const material of [rowExport.configuration.rowPanels[0], rowExport.rowPanels[0].configuration]) {
+      assert.equal(material.tint.id, "blue");
+      assert.equal(material.transparency, "opaque");
+      assert.equal(material.thickness, 2);
+    }
     assert.equal(rowExport.rowPanels[0].mounting.length, 0);
     assert.match(rowExport.rowPanels[0].attachment.method, /closed side-panel slots/);
     assert.equal(rowExport.panelAssembly.railCount, (rowExport.configuration.rows - 1) * 2);
@@ -924,23 +935,35 @@ test("mode switching preserves independent designs and routes material choices a
     assert.equal(rowExport.rowPanels[0].components[0].x, 25);
     assert.equal(rowExport.rowPanels[0].configuration.hp, rowExport.configuration.hp);
     await click("Export all case sheets as SVG");
-    assert.match(await downloads.at(-1).blob.text(), /id="panel-row-1"/);
+    const rowSvg = new dom.window.DOMParser().parseFromString(await downloads.at(-1).blob.text(), "image/svg+xml").getElementById("panel-row-1");
+    assert.equal(rowSvg.getAttribute("data-thickness-mm"), "2");
+    assert.equal(rowSvg.getAttribute("data-color"), "Blue");
+    assert.equal(rowSvg.getAttribute("data-transparency"), "opaque");
     assert.match(await downloads.at(-1).blob.text(), /id="engrave-row-1"/);
     await click("← Back to case");
     await click("Cutting layout");
     assert.ok(document.querySelector('[data-part="row-1"]'));
-    await click("Edit top panel holes & cutouts");
+    await click("Edit top panel holes, cutouts & material");
     assert.ok(document.querySelector('button[aria-label="Remove Jack"]'), "Reopening the attached editor retains openings");
     await click("← Back to case");
     await click("Add bottom 1U panel");
-    await click("Edit bottom panel holes & cutouts");
+    await selectValue(rowMaterialSelect("Bottom 1U panel color"), "green");
+    await selectValue(rowMaterialSelect("Bottom 1U panel transparency"), "opal");
+    assert.equal(rowMaterialSelect("Top 1U panel color").value, "blue", "Bottom edits preserve the top panel material");
+    await click("Edit bottom panel holes, cutouts & material");
     await click("Display");
+    await click("White");
     await click("Export case design JSON");
     const bothRows = JSON.parse(await downloads.at(-1).blob.text());
     assert.equal(bothRows.rowPanels.length, 2);
+    assert.equal(bothRows.configuration.rowPanels[0].tint.id, "blue");
+    assert.equal(bothRows.configuration.rowPanels.at(-1).tint.id, "white");
+    assert.equal(bothRows.configuration.rowPanels.at(-1).transparency, "opal");
     assert.equal(bothRows.configuration.rowPanels[0].components[0].kind, "jack");
     assert.equal(bothRows.configuration.rowPanels.at(-1).components[0].kind, "display");
     await click("← Back to case");
+    assert.equal(rowMaterialSelect("Bottom 1U panel color").value, "white", "Panel editor changes appear in case materials");
+    assert.equal(rowMaterialSelect("Top 1U panel color").value, "blue");
 
   } finally {
     await actAndPreview(async () => root.unmount());

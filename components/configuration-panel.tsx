@@ -1,4 +1,5 @@
 import { caseRowPanelConfiguration } from "@/lib/case-row-panels";
+import type { PanelConfiguration } from "@/lib/panel-designer";
 import { ArrowDown, ArrowUp, ChevronDown, Minus, Plus, Trash2 } from "lucide-react";
 import { useId, useState, type CSSProperties } from "react";
 import { accessoryBendAngles, acrylicTints, busboards, footShapes, handleCount, handleSides, handleDimensions, handleSizeLimits, sledWebThickness, maxRackUnits, maxSideMarginRatio, minSideMarginRatio, panelSides, panelThickness, panelThicknessesFrom, caseThicknessLabel, jointThickness, panelTint, panelTintsFrom, panelTransparency, panelTransparenciesFrom, rackFormatLabel, rackRows, rackRowAngles, rackRowLayout, maxRowAngle, maxTotalRowAngle, ventStyles, sidePanelMargin, totalRackUnits, type CaseConfiguration, type PanelSide, type RackUnit } from "@/lib/configurator";
@@ -82,6 +83,10 @@ export function ConfigurationPanel({ config, panels, onChange, onCutoutAction, o
     const tint = acrylicTints.find(option => option.id === tintId) ?? config.tint;
     onChange({ panelTints: { ...panelTintsFrom(config.tint), ...config.panelTints, [side]: tint } });
   }
+  function updateRowPanelMaterial(index: number, patch: Pick<Partial<PanelConfiguration>, "tint" | "transparency" | "thickness">) {
+    onChange({ rowPanels: rows.map((_, i) => i === index
+      ? { ...caseRowPanelConfiguration(config, index), ...patch } : config.rowPanels?.[i] ?? null) });
+  }
   const accessoriesSummary = [config.handle && `${handleCount(config)} ${handleCount(config) === 1 ? "handle" : "handles"}`, config.cableHolder && !config.backHook && "Cable holder", config.backHook && `${hook.count} ${hook.count === 1 ? "back hook" : "back hooks"}`, config.patchBoard && "Patch cable board"].filter(Boolean).join(" · ") || "No accessories";
   const powerSummary = config.busboard !== "none" && !panels.powerBoard?.fits ? `${busboards[config.busboard]} · Does not fit` : `${busboards[config.busboard]}${panels.mountingConflicts > 0 ? " · Mount conflicts" : ""}`;
   return <aside className="control-panel accordion-control-panel case-control-panel" aria-label="Case controls">
@@ -114,7 +119,7 @@ export function ConfigurationPanel({ config, panels, onChange, onCutoutAction, o
         <p className="control-note">Cover a top (rear) or bottom (front) 1U row with a full-width acrylic sheet. Add holes, cutouts and artwork in the panel editor. Tabs fit closed slots in the side sheets, like the front and rear panels. No rails or panel screws. Custom panels stay at the outer rows; switch one to an open row before inserting a row beyond it.</p>
         {rows.map((units, index) => units === 1 && (index === 0 || index === rows.length - 1) ? <div key={index} className="cutout-editor">
           <label className="cutout-field">{index === 0 ? "Top / rear" : "Bottom / front"} 1U row<select aria-label={`Row ${index + 1} surface`} value={config.rowPanels?.[index] ? "panel" : "open"} onChange={event => onChange({ rowPanels: rows.map((_, i) => i === index ? event.target.value === "panel" ? caseRowPanelConfiguration(config, index) : null : config.rowPanels?.[i] ?? null) })}><option value="open">Open module row</option><option value="panel">Custom acrylic panel</option></select></label>
-          {config.rowPanels?.[index] && <button className="cutout-button" onClick={() => onEditRowPanel?.(index)}>Edit {index === 0 ? "top" : "bottom"} panel holes & cutouts</button>}
+          {config.rowPanels?.[index] && <button className="cutout-button" onClick={() => onEditRowPanel?.(index)}>Edit {index === 0 ? "top" : "bottom"} panel holes, cutouts & material</button>}
         </div> : null)}
         <div className="cutout-actions">{(["top", "bottom"] as const).map(position => <button key={position} className="cutout-button" disabled={rackUnits + 1 > maxRackUnits || (rows.length > 1 && !!config.rowPanels?.[position === "top" ? 0 : rows.length - 1])} onClick={() => {
           const index = position === "top" ? 0 : rows.length;
@@ -175,6 +180,19 @@ export function ConfigurationPanel({ config, panels, onChange, onCutoutAction, o
       })}</div>}
       <div className="inline-field"><label htmlFor="thickness">{config.individualPanelTints ? "Apply thickness to all sheets" : "Sheet thickness"}</label><div className="select-wrap"><select id="thickness" value={config.individualPanelTints ? caseThicknessLabel(config) : config.thickness} onChange={event => onChange({ thickness: Number(event.target.value), ...(config.individualPanelTints ? { panelThicknesses: panelThicknessesFrom(Number(event.target.value)) } : {}) })}>{caseThicknessLabel(config).includes("–") && <option value={caseThicknessLabel(config)} disabled>Mixed</option>}{[...new Set([3, 4, 5, 6, config.thickness, panelThickness(config, "front")])].sort((a, b) => a - b).map(value => <option key={value} value={value}>{value} mm</option>)}</select><ChevronDown size={12} /></div></div>
       </div>
+      {rows.some((_, index) => !!config.rowPanels?.[index]) && <div className="config-group">
+        <h4 className="config-group-title">Custom 1U panel materials</h4>
+        <p className="control-note">Each custom 1U panel has its own material. These settings also appear in its panel editor; side slots adapt to the panel thickness.</p>
+        <div className="panel-tint-list" aria-label="Custom 1U panel materials">{rows.map((units, index) => {
+          if (units !== 1 || !config.rowPanels?.[index]) return null;
+          const panel = caseRowPanelConfiguration(config, index), label = `${index === 0 ? "Top" : "Bottom"} 1U panel`;
+          return <div className="panel-material" key={index}>
+            <label className="inline-field" htmlFor={`row-panel-tint-${index}`}><span><i style={{ background: panel.tint.color }} />{label}</span><span className="select-wrap"><select id={`row-panel-tint-${index}`} aria-label={`${label} color`} value={panel.tint.id} onChange={event => updateRowPanelMaterial(index, { tint: acrylicTints.find(tint => tint.id === event.target.value) ?? panel.tint })}>{acrylicTints.map(tint => <option key={tint.id} value={tint.id}>{tint.label}</option>)}</select><ChevronDown size={12} /></span></label>
+            <TransparencyChooser compact label={`${label} transparency`} value={panel.transparency} onChange={transparency => updateRowPanelMaterial(index, { transparency })} />
+            <div className="inline-field"><label htmlFor={`row-panel-thickness-${index}`}>{label} thickness</label><span className="select-wrap"><select id={`row-panel-thickness-${index}`} value={panel.thickness} onChange={event => updateRowPanelMaterial(index, { thickness: Number(event.target.value) })}>{[...new Set([1.5, 2, 3, 4, 5, 6, panel.thickness])].sort((a, b) => a - b).map(value => <option key={value} value={value}>{value} mm</option>)}</select><ChevronDown size={12} /></span></div>
+          </div>;
+        })}</div>
+      </div>}
       <div className="config-group">
       <SideMarginField config={config} onChange={sideMarginRatio => onChange({ sideMarginRatio })} />
       </div>
