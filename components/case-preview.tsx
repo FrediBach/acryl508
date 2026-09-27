@@ -21,6 +21,7 @@ import { SinusodaPreview } from "@/components/sinusoda-preview";
 import { CompactPwrPreview } from "@/components/compactpwr-preview";
 import { CompactPwrInletPreview } from "@/components/compactpwr-inlet-preview";
 import { ExampleModules } from "@/components/example-modules";
+import { PanelComponentHardware } from "@/components/panel-component-hardware";
 
 import { EngravingSurface, LedStripPreview } from "./engraving-preview";
 import { mapPolygons, polygonsToShapes, type CutoutSide } from "@/lib/custom-cutouts";
@@ -85,7 +86,7 @@ function RailFastener({ side, width, thickness, y, z, explode }: { side: number;
     <Screw side position={[side * (face + 0.024), 0, 0]} />
   </group>;
 }
-function RowPanelSheet({ rowPanel, explode }: { rowPanel: CasePanels["rowPanels"][number]; explode: number }) {
+function RowPanelSheet({ rowPanel, explode, modules }: { rowPanel: CasePanels["rowPanels"][number]; explode: number; modules: boolean }) {
   const { panel, attachment } = rowPanel;
   const { config } = panel, thickness = config.thickness / 100;
   const shapes = useMemo(() => polygonsToShapes(mapPolygons(panel.polygons, (x, y) => [x / 100, y / 100])), [panel.polygons]);
@@ -94,6 +95,7 @@ function RowPanelSheet({ rowPanel, explode }: { rowPanel: CasePanels["rowPanels"
   return <group position={[0, attachment.normal / 100 + explode * 2, 0]}>
     <mesh rotation={[-Math.PI / 2, 0, 0]}><meshPhysicalMaterial {...acrylicMaterial(config.tint, thickness, config.transparency)} /><PanelSheet args={args} color={config.tint.color} opacity={acrylicEdgeOpacity(config.transparency)} />
       <EngravingSurface polygons={panel.engraving.polygons} thickness={config.thickness} tint={config.tint.color} transparency={config.transparency} led={panel.led} /><LedStripPreview led={panel.led} thickness={config.thickness} />
+      <PanelComponentHardware components={panel.components} thickness={config.thickness} visible={modules && !panel.report.empty} />
     </mesh>
   </group>;
 }
@@ -122,7 +124,7 @@ function AcrylicCase({ config, panels, exploded, modules }: Pick<Props, "config"
       {rackRowLayout(config).map(row => {
         const customPanel = panels.rowPanels.find(panel => panel.index === row.index);
         const z = row.center * unit, railOffset = row.railOffset * unit;
-        return <group key={row.index} position={[0, h + row.rise * unit, z]} rotation={[row.angle * Math.PI / 180, 0, 0]}>{!customPanel && [-1, 1].map(end => <group key={end}><Rail width={innerWidth} y={-0.07 + explode} z={end * railOffset} />{[-1, 1].map(side => <RailFastener key={side} side={side} width={innerWidth + 2 * (side === -1 ? t.left : t.right)} thickness={side === -1 ? t.left : t.right} y={-0.07} z={end * railOffset} explode={explode} />)}</group>)}{customPanel ? <RowPanelSheet rowPanel={customPanel} explode={explode} /> : modules && <ExampleModules hp={config.hp} y={explode * 2} units={row.units} rowIndex={row.index} />}</group>;
+        return <group key={row.index} position={[0, h + row.rise * unit, z]} rotation={[row.angle * Math.PI / 180, 0, 0]}>{!customPanel && [-1, 1].map(end => <group key={end}><Rail width={innerWidth} y={-0.07 + explode} z={end * railOffset} />{[-1, 1].map(side => <RailFastener key={side} side={side} width={innerWidth + 2 * (side === -1 ? t.left : t.right)} thickness={side === -1 ? t.left : t.right} y={-0.07} z={end * railOffset} explode={explode} />)}</group>)}{customPanel ? <RowPanelSheet rowPanel={customPanel} explode={explode} modules={modules} /> : modules && <ExampleModules hp={config.hp} y={explode * 2} units={row.units} rowIndex={row.index} />}</group>;
       })}
       {config.busboard === "sinusoda" && panels.powerBoard?.fits && <SinusodaPreview baseTop={baseTop - explode} />}
       {config.busboard === "trolley" && panels.powerBoard?.fits && <TrolleyPreview baseTop={baseTop - explode} offsetX={panels.powerBoard.x} />}
