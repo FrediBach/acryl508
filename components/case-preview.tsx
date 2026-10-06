@@ -36,7 +36,7 @@ function SheetEngraving({ side, panels, config }: { side: CutoutSide; panels: Ca
   </>;
 }
 
-export type CameraView = "perspective" | "front" | "top";
+export type CameraView = "perspective" | "front" | "side" | "top";
 type Props = { presentation: boolean; panels: CasePanels; config: CaseConfiguration; dark: boolean; view: CameraView; resetKey: number; exploded: boolean; modules: boolean };
 const unit = 0.01;
 
@@ -99,13 +99,29 @@ function RowPanelSheet({ rowPanel, explode, modules }: { rowPanel: CasePanels["r
     </mesh>
   </group>;
 }
+function MountSheet({ part, config, explode }: { part: CasePanels["mount"]["parts"][number]; config: CaseConfiguration; explode: number }) {
+  const thickness = part.thickness * unit;
+  const tint = panelTint(config, "rear"), transparency = panelTransparency(config, "rear");
+  const args = useMemo(() => [part.shapes, { depth: thickness }] as const, [part.shapes, thickness]);
+  const offset = part.id === "mount-rear" ? -explode : explode;
+  return <mesh position={[part.position[0], part.position[1] + Math.sin(config.angle * Math.PI / 180) * offset, part.position[2] + Math.cos(config.angle * Math.PI / 180) * offset]} rotation={part.rotation}>
+    <meshPhysicalMaterial {...acrylicMaterial(tint, thickness, transparency)} /><PanelSheet args={args} color={tint.color} opacity={acrylicEdgeOpacity(transparency)} />
+  </mesh>;
+}
+// Reference board height is illustrative; only its thickness determines the fit.
+function mountedPreview(panels: CasePanels) {
+  const { layout } = panels.mount;
+  const boardHeight = Math.max(140, layout.engagement + 40, 40 - layout.elevation) * unit;
+  return { boardHeight, lift: boardHeight - layout.boardTop, boardZ: -(layout.frontInner + layout.rearInner) / 2 };
+}
 function AcrylicCase({ config, panels, exploded, modules }: Pick<Props, "config" | "panels" | "exploded" | "modules">) {
   const { length } = caseDimensions(config);
   const l = length * unit, h = (config.depth + panelThickness(config, "bottom") + sidePanelMargin(config)) * unit;
   const { thicknesses: t, innerWidth, innerLength } = panels.layout;
   const a = config.angle * Math.PI / 180;
   const feet = flatFeetLayout(config);
-  const lift = caseLift(l, config.angle, rackEnvelope(config).angled, feet.enabled ? feet.height * unit : 0);
+  const mounted = mountedPreview(panels);
+  const lift = panels.mount.enabled ? mounted.lift : caseLift(l, config.angle, rackEnvelope(config).angled, feet.enabled ? feet.height * unit : 0);
   const explode = exploded ? 0.4 : 0;
   const { baseBottom, baseTop } = panels.layout;
   const tints = { bottom: panelTint(config, "bottom"), left: panelTint(config, "left"), right: panelTint(config, "right"), rear: panelTint(config, "rear"), front: panelTint(config, "front") };
@@ -115,7 +131,11 @@ function AcrylicCase({ config, panels, exploded, modules }: Pick<Props, "config"
   const rearArgs = useMemo(() => [panels.faces.rear.shapes, { depth: t.rear, bevelEnabled: false, curveSegments: 12 }] as const, [panels, t.rear]);
   const frontArgs = useMemo(() => [panels.faces.front.shapes, { depth: t.front, bevelEnabled: false }] as const, [panels, t.front]);
   return <group>
+    {panels.mount.enabled && <mesh position={[0, mounted.boardHeight / 2, mounted.boardZ]} receiveShadow>
+      <boxGeometry args={[caseDimensions(config).width * unit + 0.6, mounted.boardHeight, panels.mount.layout.thickness * unit]} /><meshStandardMaterial color="#696d70" roughness={0.85} />
+    </mesh>}
     <group rotation={[a, 0, 0]} position={[0, lift, 0]}>
+      {panels.mount.parts.map(part => <MountSheet key={part.id} part={part} config={config} explode={explode} />)}
       <mesh position={[0, baseBottom - explode, 0]} rotation={[-Math.PI / 2, 0, 0]}><meshPhysicalMaterial {...acrylicMaterial(tints.bottom, t.bottom, panelTransparency(config, "bottom"))} /><PanelSheet args={baseArgs} color={tints.bottom.color} opacity={acrylicEdgeOpacity(panelTransparency(config, "bottom"))} threshold={35} /><SheetEngraving side="bottom" panels={panels} config={config} /></mesh>
       {[-1, 1].map(side => <group key={side}>
         <mesh position={[side === -1 ? -innerWidth / 2 - t.left - explode : innerWidth / 2 + explode, 0, 0]} rotation={[0, Math.PI / 2, 0]}><meshPhysicalMaterial {...acrylicMaterial(side === -1 ? tints.left : tints.right, side === -1 ? t.left : t.right, panelTransparency(config, side === -1 ? "left" : "right"))} /><PanelSheet args={side === -1 ? leftArgs : rightArgs} bends={side === -1 ? panels.bends.left : panels.bends.right} direction={side} color={side === -1 ? tints.left.color : tints.right.color} opacity={acrylicEdgeOpacity(panelTransparency(config, side === -1 ? "left" : "right"))} threshold={35} /><SheetEngraving side={side === -1 ? "left" : "right"} panels={panels} config={config} /></mesh>
@@ -133,7 +153,7 @@ function AcrylicCase({ config, panels, exploded, modules }: Pick<Props, "config"
     </group>
   </group>;
 }
-function CameraRig({ presentation, config, view, resetKey, exploded }: Pick<Props, "config" | "view" | "resetKey" | "exploded" | "presentation">) {
+function CameraRig({ presentation, config, panels, view, resetKey, exploded }: Pick<Props, "config" | "panels" | "view" | "resetKey" | "exploded" | "presentation">) {
   const controls = useRef<OrbitControlsImpl>(null);
   const { camera, size, invalidate } = useThree();
   const dimensions = caseDimensions(config);
@@ -152,19 +172,33 @@ function CameraRig({ presentation, config, view, resetKey, exploded }: Pick<Prop
   const hasRearBend = bendSpecs.some(bend => bend.side === "rear");
   const gripRise = bendExtra + Math.max(...(["left", "right"] as const).map(side =>
     (grips.includes(side) ? handleSize.height * unit : 0) + (boards.includes(side) ? board.height * unit : 0)),
-    config.backHook ? (hook.rise + hook.reach + hook.drop) * unit : config.cableHolder ? cableHolderLayout(config).height * unit : 0);
+    hook.enabled ? (hook.rise + hook.reach + hook.drop) * unit : config.cableHolder && !config.backboardMount ? cableHolderLayout(config).height * unit : 0);
+  const mounted = mountedPreview(panels);
+  const mountEnabled = panels.mount.enabled;
+  const mountedLift = mounted.lift, mountedBoardZ = mounted.boardZ;
+  const mountBounds = useMemo(() => {
+    if (!panels.mount.enabled) return { minZ: 0, maxZ: 0, maxY: 0 };
+    const a = config.angle * Math.PI / 180, cos = Math.cos(a), sin = Math.sin(a);
+    const points = [...panels.faces.left.shapes, ...panels.faces.right.shapes].flatMap(shape => shape.getPoints(16));
+    return { minZ: Math.min(...points.map(point => -point.x * cos + point.y * sin)), maxZ: Math.max(...points.map(point => -point.x * cos + point.y * sin)), maxY: Math.max(...points.map(point => point.x * sin + point.y * cos)) };
+  }, [panels, config.angle]);
+  const mountMinZ = mountBounds.minZ, mountMaxZ = mountBounds.maxZ, mountMaxY = mountBounds.maxY;
   useEffect(() => {
     const aspect = size.width / size.height;
     const radians = config.angle * Math.PI / 180;
-    const totalHeight = caseLift(length, config.angle, automaticFeet, flatFeetRise) + Math.sin(radians) * Math.max(length, gripWidth) / 2 + Math.cos(radians) * (height + gripRise);
-    const fit = Math.max((width + (hasSideBend ? gripRise * 2 : 0)) / aspect, (Math.max(length, gripWidth) + (hasRearBend ? gripRise : 0)) * 0.85, totalHeight * 1.3, 1.85) * (exploded ? 2.8 : 2.35);
-    const target = new Vector3(0, totalHeight / 2, 0);
-    const direction = view === "top" ? new Vector3(0, 1, 0.001) : view === "front" ? new Vector3(0, 0.1, 1) : new Vector3(0.65, 0.72, 1).normalize();
+    const lift = mountEnabled ? mountedLift : caseLift(length, config.angle, automaticFeet, flatFeetRise);
+    const totalHeight = lift + Math.max(mountEnabled ? mountMaxY : 0, Math.sin(radians) * Math.max(length, gripWidth) / 2 + Math.cos(radians) * (height + gripRise));
+    const minZ = Math.min(mountMinZ, mountedBoardZ - 0.3), maxZ = Math.max(mountMaxZ, length / 2 + gripRise);
+    const depthSpan = mountEnabled ? maxZ - minZ : Math.max(length, gripWidth) * Math.cos(radians) + (height + gripRise) * Math.sin(radians) + (hasRearBend ? gripRise : 0);
+    const horizontalSpan = view === "side" ? depthSpan : width + (mountEnabled ? 0.6 : 0) + (hasSideBend ? gripRise * 2 : 0);
+    const fit = Math.max(horizontalSpan / aspect, depthSpan * 0.85, totalHeight * 1.3, 1.85) * (exploded ? 2.8 : 2.35);
+    const target = new Vector3(0, totalHeight / 2, mountEnabled ? (minZ + maxZ) / 2 : 0);
+    const direction = view === "top" ? new Vector3(0, 1, 0.001) : view === "side" ? new Vector3(1, 0, 0) : view === "front" ? new Vector3(0, 0.1, 1) : new Vector3(0.65, 0.72, 1).normalize();
     camera.position.copy(target).addScaledVector(direction, fit);
     camera.lookAt(target);
     if (controls.current) { controls.current.target.copy(target); controls.current.update(); }
     invalidate();
-  }, [camera, size.width, size.height, width, length, height, config.angle, automaticFeet, flatFeetRise, gripWidth, gripRise, hasSideBend, hasRearBend, view, resetKey, exploded, invalidate]);
+  }, [camera, size.width, size.height, width, length, height, config.angle, automaticFeet, flatFeetRise, gripWidth, gripRise, hasSideBend, hasRearBend, mountEnabled, mountedLift, mountedBoardZ, mountMinZ, mountMaxZ, mountMaxY, view, resetKey, exploded, invalidate]);
   usePresentationCamera(controls, presentation);
   return <OrbitControls ref={controls} enabled={!presentation} enableDamping={!presentation} makeDefault enablePan={false} minDistance={1.3} maxDistance={28} maxPolarAngle={Math.PI / 2 - 0.03} />;
 }

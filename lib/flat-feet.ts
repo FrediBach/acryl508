@@ -9,10 +9,10 @@ export const flatFootStyles: { value: FlatFootStyle; label: string; description:
 ];
 export const flatFootHeightLimits = { min: 8, max: 30 };
 
-export function flatFeetLayout(config: Pick<CaseConfiguration, "angle" | "flatFeet" | "flatFootStyle" | "flatFootHeight">) {
+export function flatFeetLayout(config: Pick<CaseConfiguration, "angle" | "flatFeet" | "flatFootStyle" | "flatFootHeight"> & Partial<Pick<CaseConfiguration, "backboardMount">>) {
   const height = Math.min(flatFootHeightLimits.max, Math.max(flatFootHeightLimits.min, Number.isFinite(config.flatFootHeight) ? config.flatFootHeight! : 15));
   const style = flatFootStyles.find(style => style.value === config.flatFootStyle)?.value ?? "pads";
-  return { enabled: config.angle === 0 && Boolean(config.flatFeet), height, style };
+  return { enabled: !config.backboardMount && config.angle === 0 && Boolean(config.flatFeet), height, style };
 }
 
 // Trace the bottom edge in scene units (1 = 100 mm). All new material stays

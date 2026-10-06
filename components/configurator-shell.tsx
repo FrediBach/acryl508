@@ -22,7 +22,7 @@ import { configurationExport, panelTintsFrom, panelTransparenciesFrom, rackRows,
 
 import { ColorChooser, TransparencyChooser, MaterialPreviewNote } from "@/components/material-controls";
 import { caseCanExport, createCasePanels } from "@/lib/case-panels";
-import { maxCutouts, type CutoutAction } from "@/lib/custom-cutouts";
+import { mapPolygons, shapesToPolygons, maxCutouts, type CutoutAction } from "@/lib/custom-cutouts";
 import { configurationSvg } from "@/lib/svg-export";
 import { useDesignHistory } from "./use-design-history";
 import { useGeometryInput } from "./use-geometry-input";
@@ -140,8 +140,8 @@ export function ConfiguratorShell() {
       showExported("JSON");
       return;
     }
-    const resolvedPanels = Object.fromEntries(Object.entries(panels.faces).filter(([side]) => config.cutouts.some(cutout => cutout.side === side) || config.ledStrips[side as keyof typeof config.ledStrips]?.enabled).map(([side, face]) => [side, face.polygons]));
-    download(JSON.stringify({ ...configurationExport(config, panels.reports, resolvedPanels), rowPanels: panels.rowPanels.map(({ id, index, label, panel, attachment }) => ({ id, index, label, ...panelExport(panel), attachment: { method: "Tabs captured in closed side-panel slots; no rails or panel screws", ...attachment } })) }, null, 2), "application/json", `acryl508-${rackRows(config).map(units => `${units}u`).join("-")}-${config.hp}hp.json`);
+    const resolvedPanels = Object.fromEntries(Object.entries(panels.faces).filter(([side]) => (config.backboardMount && (side === "left" || side === "right")) || config.cutouts.some(cutout => cutout.side === side) || config.ledStrips[side as keyof typeof config.ledStrips]?.enabled).map(([side, face]) => [side, face.polygons]));
+    download(JSON.stringify({ ...configurationExport(config, panels.reports, resolvedPanels), mountPanels: panels.mount.parts.map(({ id, label, shapes, thickness, position, rotation }) => ({ id, label, thicknessMm: thickness, outlinesMm: mapPolygons(shapesToPolygons(shapes), (x, y) => [x * 100, y * 100]), positionMm: position.map(value => value * 100), rotationRadians: rotation, coordinates: "Case-local assembly coordinates before the overall patching tilt; sheet outlines X right and Y up" })), rowPanels: panels.rowPanels.map(({ id, index, label, panel, attachment }) => ({ id, index, label, ...panelExport(panel), attachment: { method: "Tabs captured in closed side-panel slots; no rails or panel screws", ...attachment } })) }, null, 2), "application/json", `acryl508-${rackRows(config).map(units => `${units}u`).join("-")}-${config.hp}hp.json`);
     showExported("JSON");
   }
   function exportSheets() {

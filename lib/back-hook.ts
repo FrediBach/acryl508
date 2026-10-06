@@ -30,7 +30,7 @@ export function backHookLayout(config: CaseConfiguration) {
   const shoulder = bendAllowance(90, thickness / 100);
   const turn = bendAllowance(90, thickness / 100, 0);
   const flatHeight = rise + reach + drop + (shoulder.extra + turn.extra) * 100;
-  return { enabled: Boolean(config.backHook), mode, thickness, inset, availableWidth, count, maxCount, width, maxWidth, gap, centers,
+  return { enabled: Boolean(config.backHook && !config.backboardMount), mode, thickness, inset, availableWidth, count, maxCount, width, maxWidth, gap, centers,
     rise, reach, drop, shoulder, turn, flatHeight };
 }
 

@@ -9,6 +9,7 @@ import { geometryArea, polygonBounds, type CustomCutout } from "./custom-cutouts
 import { validateObjectVertices, type StandObject } from "./stand-object";
 import { normalizeVentDesign } from "./vent-design";
 import { backHookLimits } from "./back-hook";
+import { backboardMountLimits } from "./backboard-mount";
 import { type FontAsset } from "./project-fonts";
 import type { SheetMaterialConfiguration } from "./sheet-materials";
 
@@ -121,7 +122,7 @@ export function readCase(input: unknown): CaseConfiguration {
   });
   config.rowAngles = data.rowAngles === undefined ? [] : list(data.rowAngles, "row angles", 9).map(value => number(value, "Row angle", 0, 60));
   for (const key of ["handleBendAngle", "patchBoardBendAngle", "cableHolderBendAngle"] as const) config[key] = number(config[key] ?? 0, key, 0, 90);
-  config.angle = number(config.angle, "Stance angle", 0, 30);
+  config.angle = number(config.angle, config.backboardMount ? "Patching angle" : "Stance angle", 0, config.backboardMount ? backboardMountLimits.angle.max : 30);
   config.sideMarginRatio = number(config.sideMarginRatio, "Side margin", 1, 2);
   config.busboard = choice(config.busboard, ["none", "sinusoda", "trolley", "compactpwr"], "busboard");
   config.compactPwrInletSide = choice(config.compactPwrInletSide, ["left", "rear"], "CompactPWR inlet panel");
@@ -135,7 +136,12 @@ export function readCase(input: unknown): CaseConfiguration {
     ["backHookRise", backHookLimits.rise], ["backHookReach", backHookLimits.reach], ["backHookDrop", backHookLimits.drop],
   ] as const) config[key] = number(config[key], key, limits.min, limits.max);
   if (!Number.isInteger(config.backHookCount)) throw new Error("Hook count must be a whole number.");
-  if (config.backHook) config.cableHolder = false;
+  for (const [key, limits] of [
+    ["backboardThickness", backboardMountLimits.thickness], ["backboardClearance", backboardMountLimits.clearance],
+    ["backboardEngagement", backboardMountLimits.engagement], ["backboardElevation", backboardMountLimits.elevation],
+  ] as const) config[key] = number(config[key], key, limits.min, limits.max);
+  if (config.backboardMount) { config.backHook = false; config.cableHolder = false; }
+  else if (config.backHook) config.cableHolder = false;
   config.ventStyle = choice(config.ventStyle, ["long-slits", "short-slits", "round", "hexagonal", "mixed"], "vent shape");
   config.ventDensity = choice(config.ventDensity, ["low", "medium", "high"], "vent density");
   config.ventLayout = choice(config.ventLayout, ["aligned", "staggered"], "vent layout");
@@ -233,6 +239,6 @@ export function parseProject(source: string, current: Designs = initialDesigns, 
   // Existing single-designer JSON exports remain useful: import only that mode.
   const mode = data.mode === "speaker" ? "speaker" : data.mode === "art" ? "art" : data.mode === "synth-stand" ? "stand" : data.mode === "synth-protector" ? "protector" : data.mode === "panel-designer" ? "panel" : data.product === "Acryl508" && !data.mode ? "case" : undefined;
   if (!mode || data.units !== "mm") throw new Error("Choose an Acryl508 project or configuration JSON file.");
-  number(data.version, "Export version", 1, { case: 13, stand: 7, protector: 2, panel: 1, art: 1, speaker: 1 }[mode]);
+  number(data.version, "Export version", 1, { case: 14, stand: 7, protector: 2, panel: 1, art: 1, speaker: 1 }[mode]);
   return makeProject("Imported design", mode, { ...current, [mode]: readers[mode](data.configuration) }, currentFonts);
 }

@@ -7,7 +7,8 @@ import { trolleyBus } from "./trolley";
 import { compactPwr, compactPwrInlet } from "./compactpwr";
 
 type SvgPart = {
-  id: PanelSide | `row-${number}`;
+  id: PanelSide | `row-${number}` | "mount-front" | "mount-rear";
+  materialSide?: PanelSide;
   panel?: CasePanels["rowPanels"][number]["panel"];
   label: string;
   polygons: MultiPolygon;
@@ -42,7 +43,7 @@ function part(id: PanelSide, label: string, shapes: Shape[], fallback?: MultiPol
   return { id, label, polygons: shapes.length ? polygons : [], bounds: polygonBounds(polygons) };
 }
 
-function caseParts(panels: CasePanels) {
+function caseParts(panels: CasePanels): SvgPart[] {
   const parts = [
     part("bottom", "Bottom", panels.faces.bottom.shapes, panels.faces.bottom.original),
     part("front", "Front", panels.faces.front.shapes, panels.faces.front.original),
@@ -59,14 +60,18 @@ function caseParts(panels: CasePanels) {
     const engraving = mapPolygons(face.engraving.polygons, (x, y) => [x, -y - face.centerY * 100]);
     return { ...item, polygons, engraving, bounds: polygonBounds(polygons) };
   });
-  return [...sheets, ...panels.rowPanels.map(({ id, label, panel }) => {
+  return [...sheets, ...panels.mount.parts.map(({ id, label, shapes }) => {
+    const polygons = svgPolygons(shapes);
+    return { id, label, materialSide: "rear" as const, polygons, bounds: polygonBounds(polygons) };
+  }), ...panels.rowPanels.map(({ id, label, panel }) => {
     const polygons = mapPolygons(panel.polygons, (x, y) => [x, -y]);
     return { id, label, panel, polygons, engraving: mapPolygons(panel.engraving.polygons, (x, y) => [x, -y]), bounds: polygonBounds(polygons) };
   })];
 }
 
 export function caseSheetMaterial(config: CaseConfiguration, item: SvgPart) {
-  return item.panel?.config ?? { thickness: panelThickness(config, item.id as PanelSide), tint: panelTint(config, item.id as PanelSide), transparency: panelTransparency(config, item.id as PanelSide) };
+  const side = item.materialSide ?? item.id as PanelSide;
+  return item.panel?.config ?? { thickness: panelThickness(config, side), tint: panelTint(config, side), transparency: panelTransparency(config, side) };
 }
 
 export function caseSheetLayout(panels: CasePanels) {
@@ -99,6 +104,7 @@ export function configurationSvg(config: CaseConfiguration, panels: CasePanels) 
     : config.busboard === "sinusoda" ? " Sinusoda Juice: 226 x 86 x 19 mm envelope from data sheet. All 28 mounting centres are photo-derived estimates; diameter 3.2 mm assumed. Verify on hardware before drilling." : "";
   const mountingNote = config.busboard === "none" ? "" : `${panels.powerBoard?.fits ? "" : " Board does not fit; no mounting holes exported."}${panels.mountingConflicts ? ` WARNING: custom cutouts approach or overlap ${panels.mountingConflicts} mounting points.` : ""}`;
   const bendNote = accessoryBendSpecification(config).map(bend => ` ${bend.side} ${bend.accessory}: bend ${bend.angleDegrees} degrees outward, inside radius ${number(bend.innerRadiusMm)} mm; flat allowance ${number(bend.allowanceMm)} mm plus ${bend.clearanceMm} mm clearance.`).join("");
+  const mountNote = config.backboardMount ? ` Backboard mount: ${number(panels.mount.layout.thickness + panels.mount.layout.clearance)} mm clear slot, ${panels.mount.layout.engagement} mm engagement, ${panels.mount.layout.elevation} mm elevation and ${config.angle} degree case angle. Capture both contact sheets in the side slots before securing the rail-end screws. Lower over the board from above. Prototype fit and loaded stability; no validated load rating.` : "";
   const { parts: placed, width, height } = caseSheetLayout(panels);
   const groups = placed.map(({ item, x: translateX, y: translateY }) => {
     const material = caseSheetMaterial(config, item);
@@ -109,7 +115,7 @@ export function configurationSvg(config: CaseConfiguration, panels: CasePanels) 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${number(width)}mm" height="${number(height)}mm" viewBox="0 0 ${number(width)} ${number(height)}" fill="none" stroke="#000000" stroke-width="0.2" stroke-linecap="round" stroke-linejoin="round" data-units="mm">
   <title>Acryl508 ${escapeXml(rackFormatLabel(config))} / ${config.hp}HP panel layout</title>
-  <desc>Full-size concept vectors in millimetres. Black outlines: cut through, including LED slots. Blue filled paths: surface engrave. Engraved sheets are laid outside-face up. Assign operations separately in CAM. Verify kerf, tolerances, corner relief, rail fit and hardware clearances before fabrication.${escapeXml(boardNote + mountingNote + (bendNote ? " Flat, unbent cutting profiles. Bend allowance uses the mid-sheet neutral axis; validate on a sample." + bendNote : ""))}</desc>
+  <desc>Full-size concept vectors in millimetres. Black outlines: cut through, including LED slots. Blue filled paths: surface engrave. Engraved sheets are laid outside-face up. Assign operations separately in CAM. Verify kerf, tolerances, corner relief, rail fit and hardware clearances before fabrication.${escapeXml(boardNote + mountingNote + mountNote + (bendNote ? " Flat, unbent cutting profiles. Bend allowance uses the mid-sheet neutral axis; validate on a sample." + bendNote : ""))}</desc>
 ${groups}
 </svg>
 `;

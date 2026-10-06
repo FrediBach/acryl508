@@ -31,7 +31,7 @@ export function compactPwrInletPlate() {
 
 // Side-local coordinates in scene units (100 mm). Reserve the entire plate
 // plus a sheet-thickness web, including around pre-existing joint/rail holes.
-export function addCompactPwrInlet(shape: Shape, innerLength: number, baseTop: number, height: number, thickness: number, side: "left" | "rear" = "left") {
+export function addCompactPwrInlet(shape: Shape, innerLength: number, baseTop: number, height: number, thickness: number, side: "left" | "rear" = "left", exclusions: MultiPolygon = []) {
   const web = Math.max(0.03, thickness);
   const width = inlet.plateWidth / 100 + 2 * web, plateHeight = inlet.plateHeight / 100 + 2 * web;
   const original = shapesToPolygons([shape], 32);
@@ -45,6 +45,7 @@ export function addCompactPwrInlet(shape: Shape, innerLength: number, baseTop: n
     for (const x of columns) {
       const reserved = rectangle(x, y, width, plateHeight);
       if (geometryArea(clipping.difference(reserved, original)) > 1e-9) continue;
+      if (exclusions.length && clipping.intersection(reserved, exclusions).length) continue;
       const window = rectangle(x, y, inlet.cutoutWidth / 100, inlet.cutoutHeight / 100)[0][0];
       const cut = new Path();
       cut.moveTo(...window[0]);

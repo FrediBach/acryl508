@@ -4,6 +4,7 @@ import { ArrowDownToLine, ChevronDown } from "lucide-react";
 import { flatFeetLayout, flatFootStyles } from "@/lib/flat-feet";
 import { patchBoardLayout, patchBoardSides } from "@/lib/patch-board";
 import { backHookLayout } from "@/lib/back-hook";
+import { backboardMountLayout } from "@/lib/backboard-mount";
 import { cableHolderLayout } from "@/lib/cable-holder";
 import { caseDimensions, caseThicknessLabel, panelThickness, footShapes, handleCount, handleSides, handleDimensions, panelCount, panelSides, panelTint, panelTransparency, rackFormatLabel, rackRowLayout, sidePanelMargin, ventStyles, type CaseConfiguration } from "@/lib/configurator";
 
@@ -12,6 +13,7 @@ export function BuildSummary({ config, canExportSvg = true, onExportJson, onExpo
   const rows = rackRowLayout(config);
   const holder = cableHolderLayout(config);
   const hook = backHookLayout(config);
+  const mount = backboardMountLayout(config, dimensions);
   const board = patchBoardLayout(config);
   const feet = flatFeetLayout(config);
   return (
@@ -40,11 +42,19 @@ export function BuildSummary({ config, canExportSvg = true, onExportJson, onExpo
             <dl>
               <div><dt>Transparency</dt><dd>{config.individualPanelTints ? "Per sheet" : transparencyOption(config.transparency).label}</dd></div>
               <div><dt>Side margin</dt><dd>{sidePanelMargin(config).toFixed(1)} mm</dd></div>
-              <div><dt>Stance</dt><dd>{config.angle ? `${footShapes.find(shape => shape.value === config.footShape)?.label} · ${config.angle}°` : "Flat"}</dd></div>
-              {feet.enabled && <div><dt>Flat-case feet</dt><dd>{flatFootStyles.find(style => style.value === feet.style)?.label} · {feet.height} mm</dd></div>}
+              <div><dt>Placement</dt><dd>{mount.enabled ? "Slide-on backboard mount" : "Desktop"}</dd></div>
+              <div><dt>{mount.enabled ? "Patching angle" : "Stance"}</dt><dd>{mount.enabled ? `${config.angle}°` : config.angle ? `${footShapes.find(shape => shape.value === config.footShape)?.label} · ${config.angle}°` : "Flat"}</dd></div>
+              {mount.enabled && <>
+                <div><dt>Board fit</dt><dd>{mount.thickness} mm + {mount.clearance} mm total clearance</dd></div>
+                <div><dt>Slot gap</dt><dd>{mount.gap.toFixed(1)} mm</dd></div>
+                <div><dt>Engagement</dt><dd>{mount.engagement} mm below board top</dd></div>
+                <div><dt>Case elevation</dt><dd>{Math.abs(mount.elevation)} mm {mount.elevation < 0 ? "below" : "above"} board top</dd></div>
+                <div><dt>Minimum elevation</dt><dd>{mount.minimumElevation} mm</dd></div>
+              </>}
+              {!mount.enabled && feet.enabled && <div><dt>Flat-case feet</dt><dd>{flatFootStyles.find(style => style.value === feet.style)?.label} · {feet.height} mm</dd></div>}
               {rows.some(row => row.angle > 0) && <>
                 <div><dt>Row angles</dt><dd>{rows.map(row => `${config.angle + row.angle}°`).join(" / ")} <small>rear → front</small></dd></div>
-                <div><dt>Support feet</dt><dd>Integral to side panels</dd></div>
+                {!mount.enabled && <div><dt>Support feet</dt><dd>Integral to side panels</dd></div>}
               </>}
             </dl>
           </div>
@@ -56,7 +66,7 @@ export function BuildSummary({ config, canExportSvg = true, onExportJson, onExpo
                 <div><dt>Handle size</dt><dd>{handleDimensions(config).width} × {handleDimensions(config).height} <small>mm</small></dd></div>
               </> : <div><dt>Handles</dt><dd>None</dd></div>}
               <div><dt>Patch cable board</dt><dd>{config.patchBoard ? `${board.width} × ${board.height} mm · ${board.holeCount * patchBoardSides(config).length} holes · ${patchBoardSides(config).join(" + ")}` : "None"}</dd></div>
-              <div><dt>Cable holder</dt><dd>{config.cableHolder && !config.backHook ? `${holder.slitCount} × ${holder.slitWidth} mm slits · ${holder.height} mm rise` : "None"}</dd></div>
+              <div><dt>Cable holder</dt><dd>{config.cableHolder && !config.backHook && !mount.enabled ? `${holder.slitCount} × ${holder.slitWidth} mm slits · ${holder.height} mm rise` : "None"}</dd></div>
               <div><dt>Back sheet hook</dt><dd>{hook.enabled ? `${hook.count} × ${hook.width.toFixed(1)} mm · ${hook.rise} mm rise · ${hook.reach} mm reach · ${hook.drop} mm return` : "None"}</dd></div>
             </dl>
           </div>

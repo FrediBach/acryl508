@@ -77,7 +77,7 @@ test("export retains the complete configuration and marks unverified board fit",
   for (const [key, value] of Object.entries(config)) assert.deepEqual(exported.configuration[key], value);
   assert.deepEqual(exported.outerDimensions, caseDimensions(config));
   assert.equal(exported.status, "design-concept");
-  assert.equal(exported.version, 13);
+  assert.equal(exported.version, 14);
   assert.equal(exported.units, "mm");
   assert.equal(exported.configuration.material, "GS cast acrylic");
   assert.match(exported.notes.join(" "), /not a cutting template/);
@@ -108,7 +108,7 @@ test("integral stance and grips keep five sheets and need no attachment hardware
     const exported = JSON.parse(JSON.stringify(configurationExport(config)));
     const expectedPanels = 5;
     assert.equal(panelCount(), expectedPanels);
-    assert.deepEqual(exported.acrylicParts, { enclosurePanels: 5, footPanels: 0, handlePanels: 0, totalPanels: expectedPanels });
+    assert.deepEqual(exported.acrylicParts, { enclosurePanels: 5, mountPanels: 0, footPanels: 0, handlePanels: 0, totalPanels: expectedPanels });
     assert.equal(exported.configuration.footShape, footShape);
     assert.equal(exported.configuration.handle, handle);
     assert.deepEqual(exported.outerDimensions, caseDimensions(defaultConfiguration));

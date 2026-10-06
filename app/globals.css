@@ -212,6 +212,7 @@
 .view-control button { display: inline-flex; gap: 6px; align-items: center; padding: 7px 9px; font-size: 12px; color: var(--muted-foreground); border-radius: 2px; line-height: 14.4px; }
 .view-control button:hover { color: var(--foreground); }
 .view-control .view-active { color: var(--selection-text); background: var(--selection); }
+.case-preview-stage .view-control { flex-wrap: wrap; max-width: 100%; }
 .stage-hint { display: flex; gap: 9px; align-items: center; font-size: 11px; color: var(--muted-foreground); line-height: 13.5px; }
 .stage-hint i { width: 2px; height: 2px; border-radius: 50%; background: var(--muted-foreground); }
 .stage-dimensions { font-family: var(--font-geist-mono), monospace; font-size: 11px; color: var(--muted-foreground); line-height: 13.5px; }

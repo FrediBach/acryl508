@@ -2,7 +2,7 @@ import { caseRowPanelConfiguration } from "@/lib/case-row-panels";
 import type { PanelConfiguration } from "@/lib/panel-designer";
 import { ArrowDown, ArrowUp, ChevronDown, Minus, Plus, Trash2 } from "lucide-react";
 import { useId, useState, type CSSProperties } from "react";
-import { accessoryBendAngles, acrylicTints, busboards, footShapes, handleCount, handleSides, handleDimensions, handleSizeLimits, sledWebThickness, maxRackUnits, maxSideMarginRatio, minSideMarginRatio, panelSides, panelThickness, panelThicknessesFrom, caseThicknessLabel, jointThickness, panelTint, panelTintsFrom, panelTransparency, panelTransparenciesFrom, rackFormatLabel, rackRows, rackRowAngles, rackRowLayout, maxRowAngle, maxTotalRowAngle, ventStyles, sidePanelMargin, totalRackUnits, type CaseConfiguration, type PanelSide, type RackUnit } from "@/lib/configurator";
+import { accessoryBendAngles, acrylicTints, busboards, caseDimensions, footShapes, handleCount, handleSides, handleDimensions, handleSizeLimits, sledWebThickness, maxRackUnits, maxSideMarginRatio, minSideMarginRatio, panelSides, panelThickness, panelThicknessesFrom, caseThicknessLabel, jointThickness, panelTint, panelTintsFrom, panelTransparency, panelTransparenciesFrom, rackFormatLabel, rackRows, rackRowAngles, rackRowLayout, maxRowAngle, maxTotalRowAngle, ventStyles, sidePanelMargin, totalRackUnits, type CaseConfiguration, type PanelSide, type RackUnit } from "@/lib/configurator";
 
 import { materialLabel, type AcrylicTransparency } from "@/lib/acrylic-material";
 import { ColorChooser, TransparencyChooser, MaterialPreviewNote } from "@/components/material-controls";
@@ -15,21 +15,22 @@ import { VentControls } from "@/components/vent-controls";
 import { flatFeetLayout, flatFootStyles, flatFootHeightLimits } from "@/lib/flat-feet";
 import { patchBoardLayout, patchBoardLimits, patchBoardSides } from "@/lib/patch-board";
 import { backHookLayout, backHookLimits } from "@/lib/back-hook";
+import { backboardMountLayout, backboardMountLimits } from "@/lib/backboard-mount";
 import { cableHolderLayout, cableHolderLimits } from "@/lib/cable-holder";
 import type { CasePanels } from "@/lib/case-panels";
 import type { CutoutAction } from "@/lib/custom-cutouts";
 
 type Props = { onEditRowPanel?: (index: number) => void; panels: CasePanels; onCutoutAction: (action: CutoutAction) => void; config: CaseConfiguration; onChange: (update: Partial<CaseConfiguration>) => void };
-function RangeField({ label, value, min, max, unit, onChange }: { label: string; value: number; min: number; max: number; unit: string; onChange: (value: number) => void }) {
+function RangeField({ label, value, min, max, unit, step = 1, onChange }: { label: string; value: number; min: number; max: number; unit: string; step?: number; onChange: (value: number) => void }) {
   const id = useId();
   const [draft, setDraft] = useState(String(value));
   const [editing, setEditing] = useState(false);
   function commitDraft() {
     const number = Number(draft);
-    if (draft.trim() && Number.isFinite(number)) onChange(Math.min(max, Math.max(min, Math.round(number))));
+    if (draft.trim() && Number.isFinite(number)) onChange(Math.min(max, Math.max(min, Number((Math.round(number / step) * step).toFixed(6)))));
     setEditing(false);
   }
-  return <div className="range-field"><div className="field-heading"><label htmlFor={id}>{label}</label><div className="number-field"><input type="number" aria-label={`${label} in ${unit}`} min={min} max={max} step={1} value={editing ? draft : value} inputMode="numeric" onFocus={() => { setDraft(String(value)); setEditing(true); }} onBlur={commitDraft} onKeyDown={event => { if (event.key === "Enter") event.currentTarget.blur(); }} onChange={event => { setDraft(event.target.value); const number = Number(event.target.value); if (event.target.value && Number.isInteger(number) && number >= min && number <= max) onChange(number); }} /><span>{unit}</span></div></div><input id={id} className="range-input" type="range" min={min} max={max} step={1} value={value} style={{ "--range-progress": `${(value - min) / Math.max(1, max - min) * 100}%` } as CSSProperties} onChange={event => onChange(event.currentTarget.valueAsNumber)} /><div className="range-labels"><span>{min} {unit}</span><span>{max} {unit}</span></div></div>;
+  return <div className="range-field"><div className="field-heading"><label htmlFor={id}>{label}</label><div className="number-field"><input type="number" aria-label={`${label} in ${unit}`} min={min} max={max} step={step} value={editing ? draft : value} inputMode={step < 1 ? "decimal" : "numeric"} onFocus={() => { setDraft(String(value)); setEditing(true); }} onBlur={commitDraft} onKeyDown={event => { if (event.key === "Enter") event.currentTarget.blur(); }} onChange={event => { setDraft(event.target.value); const number = Number(event.target.value); if (event.target.value && Number.isFinite(number) && Math.abs(number / step - Math.round(number / step)) < 1e-6 && number >= min && number <= max) onChange(number); }} /><span>{unit}</span></div></div><input id={id} className="range-input" type="range" min={min} max={max} step={step} value={value} style={{ "--range-progress": `${(value - min) / Math.max(1, max - min) * 100}%` } as CSSProperties} onChange={event => onChange(event.currentTarget.valueAsNumber)} /><div className="range-labels"><span>{min} {unit}</span><span>{max} {unit}</span></div></div>;
 }
 function SideMarginField({ config, onChange }: { config: CaseConfiguration; onChange: (value: number) => void }) {
   const value = Math.min(maxSideMarginRatio, Math.max(minSideMarginRatio, config.sideMarginRatio ?? maxSideMarginRatio));
@@ -46,9 +47,14 @@ export function ConfigurationPanel({ config, panels, onChange, onCutoutAction, o
   const board = patchBoardLayout(config);
   const holder = cableHolderLayout(config);
   const hook = backHookLayout(config);
+  const mount = backboardMountLayout(config, caseDimensions(config));
   const bends = accessoryBendAngles(config);
   const feet = flatFeetLayout(config);
   const rackUnits = totalRackUnits(config);
+  function desktopPlacement(): Partial<CaseConfiguration> {
+    const angle = Math.min(30, config.angle);
+    return { backboardMount: false, angle, rowAngles: rackRowAngles({ ...config, angle }) };
+  }
   function updateRows(nextRows: RackUnit[], nextAngles = rowAngles, nextPanels = config.rowPanels ?? []) {
     const update = { rows: nextRows.length, rowUnits: nextRows, rowAngles: nextAngles, rowPanels: nextRows.map((units, index) => units === 1 && (index === 0 || index === nextRows.length - 1) ? nextPanels[index] ?? null : null) };
     onChange({ ...update, rowAngles: rackRowAngles({ ...config, ...update }) });
@@ -97,7 +103,7 @@ export function ConfigurationPanel({ config, panels, onChange, onCutoutAction, o
       <div className="preset-row"><span>Quick set</span>{[42, 62, 84, 104, 126].map(hp => <button key={hp} onClick={() => onChange({ hp })} aria-pressed={config.hp === hp} className={config.hp === hp ? "preset-active" : ""}>{hp}</button>)}</div>
       <RangeField label="Internal depth" value={config.depth} min={50} max={180} unit="mm" onChange={depth => onChange({ depth })} />
     </ConfigSection>
-    <ConfigSection number="02" title="Rows & stance" summary={`${rackFormatLabel(config)} · ${config.angle === 0 ? feet.enabled ? `Flat · ${flatFootStyles.find(style => style.value === feet.style)?.label} feet` : "Flat stance" : `${config.angle}° stance`}${angledRows ? " · Angled rows" : ""}`}>
+    <ConfigSection number="02" title="Rows & stance" summary={`${rackFormatLabel(config)} · ${config.backboardMount ? `Backboard mount · ${config.angle}°` : config.angle === 0 ? feet.enabled ? `Flat · ${flatFootStyles.find(style => style.value === feet.style)?.label} feet` : "Flat stance" : `${config.angle}° stance`}${angledRows ? " · Angled rows" : ""}`}>
       <div className="config-group">
       <div className="field-heading"><span>Rack rows</span><span className="field-note">{rackFormatLabel(config)} · {rackUnits}U total</span></div>
       <div className="rack-layout" aria-label="Rack row layout">
@@ -130,9 +136,27 @@ export function ConfigurationPanel({ config, panels, onChange, onCutoutAction, o
       </div>
       </div>
       <div className="config-group">
-        <h4 className="config-group-title">Stance</h4>
-      <div className="segmented-control stance-control" role="group" aria-label="Stance angle">{[0, 10, 20, 30].map(angle => <button key={angle} className={`segment ${config.angle === angle ? "segment-active" : ""}`} aria-pressed={config.angle === angle} onClick={() => onChange({ angle, rowAngles: rackRowAngles({ ...config, angle }) })}>{angle === 0 ? "Flat" : `${angle}°`}</button>)}</div>
-      {config.angle > 0 ? <>
+        <h4 className="config-group-title">Placement</h4>
+        <div className="segmented-control" role="group" aria-label="Case placement">
+          <button className={`segment ${!config.backboardMount ? "segment-active" : ""}`} aria-pressed={!config.backboardMount} onClick={() => onChange(desktopPlacement())}>Desktop</button>
+          <button className={`segment ${config.backboardMount ? "segment-active" : ""}`} aria-pressed={Boolean(config.backboardMount)} onClick={() => { if (config.backboardMount) return; const angle = config.angle || 20; onChange({ backboardMount: true, backHook: false, cableHolder: false, angle, rowAngles: rackRowAngles({ ...config, angle }) }); }}>Backboard mount</button>
+        </div>
+        {config.backboardMount && <>
+          <p className="control-note">Slide the case down over the top of a vertical backboard. Two parallel acrylic sheets form a downward-opening slot, supporting the case at your chosen height and patching angle.</p>
+          <RangeField label="Board thickness" value={mount.thickness} min={backboardMountLimits.thickness.min} max={backboardMountLimits.thickness.max} step={0.1} unit="mm" onChange={backboardThickness => onChange({ backboardThickness })} />
+          <RangeField label="Total fit clearance" value={mount.clearance} min={backboardMountLimits.clearance.min} max={backboardMountLimits.clearance.max} step={0.1} unit="mm" onChange={backboardClearance => onChange({ backboardClearance })} />
+          <p className="control-note">Slot gap: {mount.gap.toFixed(1)} mm, including the total clearance across both board faces.</p>
+          <RangeField label="Engagement depth" value={mount.engagement} min={backboardMountLimits.engagement.min} max={backboardMountLimits.engagement.max} unit="mm" onChange={backboardEngagement => onChange({ backboardEngagement })} />
+          <p className="control-note">Contact depth below the board top. Deeper engagement spreads contact over more of the board.</p>
+          <RangeField label="Case elevation" value={mount.elevation} min={mount.minimumElevation} max={backboardMountLimits.elevation.max} unit="mm" onChange={backboardElevation => onChange({ backboardElevation })} />
+          <p className="control-note">Negative elevation lowers the case’s front edge below the board top. The minimum for this case is {mount.minimumElevation} mm, leaving room for the mounting sheets and their joints. It follows the case length, angle and sheet thickness.</p>
+          {mount.elevationLimited && <p className="control-note" role="status">Elevation limited to {mount.elevation} mm; the saved {mount.requestedElevation} mm setting needs more room for the joints.</p>}
+          <p className="control-note">Elevation is measured to the case’s lowest edge. The mount adjusts its reach to keep the joints clear. Measure the board, including any pads. Prototype the fit and loaded stability; this design has no validated load rating.</p>
+          {panels.mount.error && <p className="cutout-warning" role="alert">{panels.mount.error}</p>}
+        </>}
+        <h4 className="config-group-title">{config.backboardMount ? "Patching angle" : "Stance"}</h4>
+      <div className="segmented-control stance-control" role="group" aria-label={config.backboardMount ? "Patching angle" : "Stance angle"}>{(config.backboardMount ? [0, 10, 20, 30, 40] : [0, 10, 20, 30]).map(angle => <button key={angle} className={`segment ${config.angle === angle ? "segment-active" : ""}`} aria-pressed={config.angle === angle} onClick={() => onChange({ angle, rowAngles: rackRowAngles({ ...config, angle }) })}>{angle === 0 && !config.backboardMount ? "Flat" : `${angle}°`}</button>)}</div>
+      {!config.backboardMount && (config.angle > 0 ? <>
       <fieldset className="foot-shape-field" aria-describedby="foot-shape-note">
         <legend>Side profile <span className="field-note">One continuous sheet</span></legend>
         <div className="segmented-control foot-shape-control">{footShapes.map(shape => <button key={shape.value} className={`segment ${config.footShape === shape.value ? "segment-active" : ""}`} aria-pressed={config.footShape === shape.value} title={shape.description} onClick={() => onChange({ footShape: shape.value })}>{shape.label}</button>)}</div>
@@ -149,13 +173,13 @@ export function ConfigurationPanel({ config, panels, onChange, onCutoutAction, o
         <RangeField label="Foot height" value={feet.height} min={flatFootHeightLimits.min} max={flatFootHeightLimits.max} unit="mm" onChange={flatFootHeight => onChange({ flatFootHeight })} />
         <p className="control-note">Height below the enclosure. All profiles use simple cuts in the existing sheets, with no extra parts or hardware.</p>
       </>}
-      </>}
+      </>)}
       </div>
       {rows.length > 1 && <details className="config-disclosure" aria-label="Additional row angles">
         <summary><span>Additional row angles</span><span>{angledRows ? "Custom tilt" : "All flat"}</span><ChevronDown size={12} aria-hidden="true" /></summary>
         <div className="config-disclosure-body">
         <div className="field-heading"><span>Angle additional rows</span><span className="field-note">FRONT → REAR</span></div>
-        <p className="control-note">Each row adds tilt to the row in front of it. The front row follows the stance above. Set all to 0° for a flat layout.</p>
+        <p className="control-note">Each row adds tilt to the row in front of it. The front row follows the {config.backboardMount ? "patching angle" : "stance"} above. Set all to 0° for a flat layout.</p>
         {rowLayout.slice(0, -1).reverse().map(row => {
           const available = maxTotalRowAngle - config.angle - rowAngles.reduce((sum, angle, index) => sum + (index === row.index ? 0 : angle), 0);
           return <div key={row.index}>
@@ -163,7 +187,7 @@ export function ConfigurationPanel({ config, panels, onChange, onCutoutAction, o
             <p className="control-note">{row.units}U · {config.angle + row.angle}° from the table{row.gap > 0 ? ` · ${row.gap.toFixed(1)} mm extra spacing at this bend` : ""}</p>
           </div>;
         })}
-        <p className="control-note">{angledRows ? "Rail spacing expands at each bend and support feet are included in the side panels." : "Angled rows automatically add rail clearance and support feet."} Total tilt is limited to {maxTotalRowAngle}°.</p>
+        <p className="control-note">{config.backboardMount ? "Rail spacing expands at each bend. The backboard mount supports the case." : angledRows ? "Rail spacing expands at each bend and support feet are included in the side panels." : "Angled rows automatically add rail clearance and support feet."} Total tilt is limited to {maxTotalRowAngle}°.</p>
         </div>
       </details>}
     </ConfigSection>
@@ -173,7 +197,7 @@ export function ConfigurationPanel({ config, panels, onChange, onCutoutAction, o
       <TransparencyChooser value={config.transparency} onChange={selectTransparency} label={config.individualPanelTints ? "All sheets’ transparency" : "Transparency"} />
       <MaterialPreviewNote />
       <div className="inline-field"><label htmlFor="individual-panel-tints">Individual sheet materials</label><button id="individual-panel-tints" role="switch" aria-checked={Boolean(config.individualPanelTints)} aria-label="Use individual acrylic materials for each sheet" aria-describedby="individual-panel-tints-note" className={`toggle ${config.individualPanelTints ? "toggle-on" : ""}`} onClick={toggleIndividualTints}><span>{config.individualPanelTints ? <Plus size={10} /> : <Minus size={10} />}</span></button></div>
-      <p className="control-note" id="individual-panel-tints-note">{config.individualPanelTints ? "Choose a color, transparency and thickness for each sheet. Slots and tabs adapt to the adjoining sheets." : "All five sheets use the same color, transparency and thickness."}</p>
+      <p className="control-note" id="individual-panel-tints-note">{config.individualPanelTints ? `Choose a color, transparency and thickness for each sheet. Slots and tabs adapt to the adjoining sheets.${config.backboardMount ? " Mount contact sheets use the rear sheet’s material." : ""}` : "All sheets use the same color, transparency and thickness."}</p>
       {config.individualPanelTints && <div className="panel-tint-list" aria-label="Individual sheet materials">{panelSides.map(side => {
         const selected = panelTint(config, side.value);
         return <div className="panel-material" key={side.value}><label className="inline-field" htmlFor={`panel-tint-${side.value}`}><span><i style={{ background: selected.color }} />{side.label}</span><span className="select-wrap"><select id={`panel-tint-${side.value}`} aria-label={`${side.label} color`} value={selected.id} onChange={event => selectPanelTint(side.value, event.target.value)}>{acrylicTints.map(tint => <option key={tint.id} value={tint.id}>{tint.label}</option>)}</select><ChevronDown size={12} /></span></label><TransparencyChooser compact label={`${side.label} transparency`} value={panelTransparency(config, side.value)} onChange={transparency => onChange({ panelTransparencies: { ...config.panelTransparencies, [side.value]: transparency } })} /><div className="inline-field"><label htmlFor={`panel-thickness-${side.value}`}>{side.label} thickness</label><div className="select-wrap"><select id={`panel-thickness-${side.value}`} value={panelThickness(config, side.value)} onChange={event => onChange({ panelThicknesses: { ...config.panelThicknesses, [side.value]: Number(event.target.value) } })}>{[...new Set([3, 4, 5, 6, panelThickness(config, side.value)])].sort((a, b) => a - b).map(value => <option key={value} value={value}>{value} mm</option>)}</select><ChevronDown size={12} /></div></div></div>;
@@ -224,8 +248,8 @@ export function ConfigurationPanel({ config, panels, onChange, onCutoutAction, o
       </>}
       </div>
       <div className="config-group">
-      <div className="inline-field"><label htmlFor="cable-holder">Patch cable holder</label><button id="cable-holder" role="switch" aria-checked={Boolean(config.cableHolder)} aria-label="Patch cable holder" aria-describedby="cable-holder-note" className={`toggle ${config.cableHolder ? "toggle-on" : ""}`} onClick={() => onChange({ cableHolder: !config.cableHolder, ...(!config.cableHolder ? { backHook: false } : {}) })}><span>{config.cableHolder ? <Plus size={10} /> : <Minus size={10} />}</span></button></div>
-      <p className="control-note" id="cable-holder-note">{config.cableHolder ? `${holder.slitCount} evenly spaced slits between rounded fingers on the back plate. Slits stay open at the top for dropping cables in.` : "Extend the back plate with evenly spaced fingers to hold patch cables. Replaces the back hook when enabled."}</p>
+      <div className="inline-field"><label htmlFor="cable-holder">Patch cable holder</label><button id="cable-holder" role="switch" aria-checked={Boolean(config.cableHolder)} aria-label="Patch cable holder" aria-describedby="cable-holder-note" className={`toggle ${config.cableHolder ? "toggle-on" : ""}`} onClick={() => onChange({ cableHolder: !config.cableHolder, ...(!config.cableHolder ? { backHook: false, ...desktopPlacement() } : {}) })}><span>{config.cableHolder ? <Plus size={10} /> : <Minus size={10} />}</span></button></div>
+      <p className="control-note" id="cable-holder-note">{config.cableHolder ? `${holder.slitCount} evenly spaced slits between rounded fingers on the back plate. Slits stay open at the top for dropping cables in.` : "Extend the back plate with evenly spaced fingers to hold patch cables. Replaces the back hook or backboard mount when enabled."}</p>
       {config.cableHolder && <>
         <RangeField label="Finger height" value={holder.height} min={cableHolderLimits.height.min} max={cableHolderLimits.height.max} unit="mm" onChange={cableHolderHeight => onChange({ cableHolderHeight })} />
         <RangeField label="Holder bend angle" value={bends.holder} min={0} max={90} unit="°" onChange={cableHolderBendAngle => onChange({ cableHolderBendAngle })} />
@@ -235,8 +259,8 @@ export function ConfigurationPanel({ config, panels, onChange, onCutoutAction, o
       </>}
       </div>
       <div className="config-group">
-      <div className="inline-field"><label htmlFor="back-hook">Back sheet hook</label><button id="back-hook" role="switch" aria-checked={Boolean(config.backHook)} aria-label="Back sheet hook" aria-describedby="back-hook-note" className={`toggle ${config.backHook ? "toggle-on" : ""}`} onClick={() => onChange({ backHook: !config.backHook, ...(!config.backHook ? { cableHolder: false } : {}) })}><span>{config.backHook ? <Plus size={10} /> : <Minus size={10} />}</span></button></div>
-      <p className="control-note" id="back-hook-note">Extend the back sheet upward, then bend it backward and down with two 90° bends. Replaces the patch cable holder on the same edge.</p>
+      <div className="inline-field"><label htmlFor="back-hook">Back sheet hook</label><button id="back-hook" role="switch" aria-checked={Boolean(config.backHook)} aria-label="Back sheet hook" aria-describedby="back-hook-note" className={`toggle ${config.backHook ? "toggle-on" : ""}`} onClick={() => onChange({ backHook: !config.backHook, ...(!config.backHook ? { cableHolder: false, ...desktopPlacement() } : {}) })}><span>{config.backHook ? <Plus size={10} /> : <Minus size={10} />}</span></button></div>
+      <p className="control-note" id="back-hook-note">Extend the back sheet upward, then bend it backward and down with two 90° bends. Replaces the patch cable holder or backboard mount.</p>
       {config.backHook && <>
         <div className="segmented-control" role="group" aria-label="Back hook layout">{([{ value: "full", label: "Full width" }, { value: "segments", label: "Narrow parts" }] as const).map(option => <button key={option.value} className={`segment ${hook.mode === option.value ? "segment-active" : ""}`} aria-pressed={hook.mode === option.value} onClick={() => onChange({ backHookMode: option.value })}>{option.label}</button>)}</div>
         {hook.mode === "segments" && <>

@@ -284,8 +284,8 @@ flat mode keeps the rectangular lower edge. Slots and rail holes remain in the
 same enclosure coordinates. Sled openings have tangent circular inner corners
 and retain at least 12 mm or 2.5× the sheet thickness on all sides, including the
 perpendicular distance to the sloping floor edge. Short, shallow stances stay
-solid when this opening cannot fit. No separate feet, grip sheets or attachment bolts
-are needed: every configuration has five acrylic panels.
+solid when this opening cannot fit. Desktop stance and handles need no separate
+feet, grip sheets or attachment bolts; the basic enclosure has five acrylic panels.
 
 Enable integrated handles to extend one or both sides above the rim. Auto
 uses one left-side grip up to 84 HP and below 6U, and a pair for wider or taller
@@ -299,6 +299,49 @@ outlines. JSON version 7 records the resolved grip count, size and integral stan
 legacy `handle` and `footShape` settings remain supported. Grip strength,
 loaded stability and fabrication tolerances still require prototype validation.
 
+### Slide-on backboard mount
+
+Choose **Rows & stance → Placement → Backboard mount** to lower the case onto
+the top of a vertical desk backboard. Two additional parallel contact sheets
+form a downward-opening slot, and extensions of the case sides support the
+enclosure at the chosen height. Set board thickness (6–50 mm), total fit clearance
+(0–3 mm), engagement depth below the top (40–180 mm), and case elevation
+(up to 150 mm above the board top, measured to the enclosure’s lowest edge).
+Negative elevation puts that edge below the board top. The minimum is calculated
+from the case length, angle and acrylic thickness, leaving a retaining web
+between the mount’s connecting parts and the enclosure. A default 3U case at
+30° can reach −24 mm; short or nearly level cases may stop at zero.
+The control shows the current minimum. If a change to the case makes the saved
+elevation too low, the preview and fabrication use the limit and show an
+explanation. The saved value is retained for when the geometry allows it again;
+design JSON records both the requested and effective elevation and the limit.
+The slot gap is board thickness plus the total clearance across both faces.
+The saddle tucks beneath the rear support root where the angle and elevation
+allow, shortening the reach to the backboard while keeping its sheets and
+joint slots clear of the enclosure. Lower **Case elevation** to reduce the
+vertical gap; the saddle moves outward automatically if its joints need room.
+Measure the board including any protective pads; its vertical contact faces
+must be clear for the full engagement depth.
+
+The patching angle offers 0°, 10°, 20°, 30° and 40° presets and starts at
+20° when switching from a flat desktop case. Row angles remain adjustable.
+Desktop feet are suppressed while mounted, with their settings retained for
+switching back. The back sheet hook and cable holder share the mounting area;
+enabling either returns the case to desktop placement. The option defaults to
+off for new and older projects.
+
+The mount’s front and rear contact sheets use the rear panel’s material and fit
+closed slots in the side extensions. Remove a side panel to insert their tabs,
+then refit the side and its rail-end screws to retain both sheets. They are included in the 3D preview,
+exploded and cutting views, SVG, design JSON, fabrication layouts and project
+saves. The inside corners where the case underside joins the supports have
+tangent curves that add acrylic around the connection. Their target radius is
+three times the thicker side sheet (15 mm with 5 mm sides), reduced where short
+edges need it. Board seating faces and joint slots keep their exact fit, and
+custom cutouts cannot remove the added reinforcement.
+Prototype the fit and loaded stability, including the desk backboard and
+its fixings; this design has no validated load rating.
+
 ## Back sheet hook
 
 Enable **Back sheet hook** in **Accessories** to extend the rear sheet upward,
@@ -310,8 +353,8 @@ bend curves. Rounded roots and tips stay integral to the same rear sheet.
 
 The formed preview preserves sheet thickness; SVG and stock layouts include
 both developed bend allowances. Project files and design JSON retain the hook
-settings. Hooks and patch cable fingers share the same rear edge, so enabling
-one disables the other. Custom cuts through either heating strip block cutting
+settings. Hooks, patch cable fingers and the backboard mount share the rear
+mounting area, so enabling one disables the others. Custom cuts through either heating strip block cutting
 exports until resolved.
 
 ## Patch cable holder
@@ -556,9 +599,10 @@ one-third of the combined base clearance (8 mm or two sheet thicknesses) and
 rotation allowance; the rear panel
 also reserves space for the tilted rail. The shared geometry reshapes the side
 rims and rear panel, places matching rail holes and end-panel slots, and updates
-case dimensions, board fit, the 3D preview, and JSON/SVG exports. Integral feet
-are automatic for angled layouts, with four contact pads at a flat stance.
-The enclosure remains five acrylic sheets. As elsewhere in the designer, actual
+case dimensions, board fit, the 3D preview, and JSON/SVG exports. In desktop
+placement, integral feet are automatic for angled layouts, with four contact
+pads at a flat stance. The basic enclosure remains five acrylic sheets, with
+two additional contact sheets for a backboard mount. As elsewhere in the designer, actual
 module depth, rail profiles, joint fit and loaded stability need prototype checks.
 
 ## Acrylic colors and transparency

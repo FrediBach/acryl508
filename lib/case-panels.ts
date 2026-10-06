@@ -2,11 +2,12 @@ import { createCaseRowPanels } from "./case-row-panels";
 import { ledSlot, resolveEngravings } from "./engravings";
 import { Path, type Shape } from "three";
 import clipping, { type MultiPolygon } from "polygon-clipping";
-import { accessoryBendAngles, caseDimensions, caseThicknesses, handleSides, handleDimensions, rackEnvelope, rackRowLayout, rackRowPoint, sidePanelMargin, type CaseConfiguration } from "./configurator";
+import { accessoryBendAngles, caseDimensions, caseThicknesses, handleSides, handleDimensions, rackEnvelope, rackRowLayout, rackRowPoint, railRowCount, sidePanelMargin, type CaseConfiguration } from "./configurator";
 import { bendAllowance, type AccessoryBend } from "./accessory-bends";
 import { flatFeetLayout } from "./flat-feet";
 import { patchBoardLayout, patchBoardSides } from "./patch-board";
 import { createSideProfile } from "./acrylic-profiles";
+import { backboardMountSideProfile, createBackboardMount } from "./backboard-mount";
 import { createPanelProfiles } from "./panel-joints";
 import { createBottomVentLayout, type VentBounds } from "./bottom-vents";
 import { cableHolderLayout, cableHolderTopEdge } from "./cable-holder";
@@ -23,6 +24,8 @@ function hole(shape: Shape, x: number, y: number, radius: number) {
 
 export function createCasePanels(config: CaseConfiguration) {
   const dimensions = caseDimensions(config);
+  const mount = createBackboardMount(config, dimensions);
+  if (mount.enabled && railRowCount(config) === 0) mount.error = "Add a row with rails to retain the backboard mount contact sheets before exporting.";
   const mm = caseThicknesses(config);
   const thicknesses = { bottom: mm.bottom / 100, front: mm.front / 100, rear: mm.rear / 100, left: mm.left / 100, right: mm.right / 100 };
   const w = dimensions.width / 100, l = dimensions.length / 100, h = dimensions.height / 100, t = thicknesses.bottom;
@@ -38,7 +41,7 @@ export function createCasePanels(config: CaseConfiguration) {
   if (hook.enabled) bends.rear.push(...backHookBends(h, hook));
   else if (rearBend.angle) bends.rear.push({ start: h + rearBend.clearance, length: rearBend.length, angle: rearBend.angle, clearance: rearBend.clearance });
   const rearTopEdge = hook.enabled ? (shape: Shape) => backHookTopEdge(shape, h, hook)
-    : config.cableHolder ? (shape: Shape) => cableHolderTopEdge(shape, h, holder, rearBend.extra) : undefined;
+    : config.cableHolder && !mount.enabled ? (shape: Shape) => cableHolderTopEdge(shape, h, holder, rearBend.extra) : undefined;
   const panels = createPanelProfiles(w, l, frontHeight, t, edgeMargin, rearTopEdge, h, thicknesses);
   const { innerLength } = panels.layout;
   const base = panels.base;
@@ -64,9 +67,12 @@ export function createCasePanels(config: CaseConfiguration) {
   if (config.vents) base.holes.push(...ventilation.paths);
   for (const { x, y } of mountingHoles) hole(base, x / 100, y / 100, mountingRadius);
   const side = panels.side;
+  const railFasteners: { x: number; y: number }[] = [];
   for (const row of rows.filter(row => !rowPanels.some(panel => panel.index === row.index))) for (const end of [-1, 1]) {
     const point = rackRowPoint(row, end * row.railOffset, -7);
-    hole(side, -point.z / 100, frontHeight + point.y / 100, 0.019);
+    const x = -point.z / 100, y = frontHeight + point.y / 100;
+    railFasteners.push({ x, y });
+    hole(side, x, y, 0.019);
   }
   for (const { index, attachment } of rowPanels) for (const tab of attachment.tabs) {
     const slot = new Path();
@@ -95,19 +101,26 @@ export function createCasePanels(config: CaseConfiguration) {
     const hasBoard = boardSides.includes(name), hasHandle = grips.includes(name);
     const boardBend = bendAllowance(hasBoard ? angles.board : 0, thicknesses[name]);
     const handleBend = bendAllowance(hasHandle ? angles.handle : 0, thicknesses[name]);
-    const shape = createSideProfile(side, l, h, thicknesses[name], config.angle, config.footShape, hasHandle, handleSize, rim, rack.angled, hasBoard ? board : undefined, feet, { board: boardBend.extra, handle: handleBend.extra });
+    const shape = createSideProfile(side, l, h, thicknesses[name], mount.enabled ? 0 : config.angle, config.footShape, hasHandle, handleSize, rim, !mount.enabled && rack.angled, hasBoard ? board : undefined, feet, { board: boardBend.extra, handle: handleBend.extra });
     // Bent profiles seat at the highest rim; shortening the handle must not
     // shift this datum or move the heating strip into the grip opening.
     if (boardBend.angle) bends[name].push({ start: h + boardBend.clearance, length: boardBend.length, angle: boardBend.angle, clearance: boardBend.clearance });
     if (handleBend.angle) bends[name].push({ start: h + (hasBoard ? board.height / 100 : 0) + boardBend.extra + handleBend.clearance, length: handleBend.length, angle: handleBend.angle, clearance: handleBend.clearance });
-    return shape;
+    return backboardMountSideProfile(shape, mount);
   };
   const left = sideProfile("left"), right = sideProfile("right");
+  if (mount.enabled) for (const name of ["left", "right"] as const) for (const bend of bends[name]) {
+    const bottom = bend.start - (bend.clearance ?? 0);
+    const foldedRegion: MultiPolygon = [[[[-10000, bottom], [10000, bottom], [10000, 10000], [-10000, 10000], [-10000, bottom]]]];
+    if (clipping.intersection(mount.extension, foldedRegion).length) {
+      mount.error = "Increase the backboard elevation or remove the side accessory bend so the mounting supports remain flat before exporting.";
+    }
+  }
   const inletSide = config.compactPwrInletSide ?? "left";
   const inlet = config.busboard === "compactpwr"
     ? addCompactPwrInlet(inletSide === "left" ? left : panels.rear,
       inletSide === "left" ? innerLength : panels.layout.innerWidth,
-      panels.layout.baseTop, inletSide === "left" ? h : h - 0.14, thicknesses[inletSide], inletSide)
+      panels.layout.baseTop, inletSide === "left" ? h : h - 0.14, thicknesses[inletSide], inletSide, mount.enabled && inletSide === "left" ? mount.reserved : [])
     : null;
   const originals = { front: panels.end, rear: panels.rear, left, right, bottom: base };
   const faces = Object.fromEntries(cutoutSides.map(({ value }) => {
@@ -126,6 +139,14 @@ export function createCasePanels(config: CaseConfiguration) {
       const reserved = mapPolygons(inlet.reserved, (x, y) => [-x * 100, (y - centerY) * 100]);
       if (cuts.some(cut => clipping.intersection(reserved, placedCutout(cut)).length)) {
         result.report.error = "Move custom cutouts clear of the CompactPWR inlet plate and mounting holes before exporting.";
+      }
+    }
+    if (mount.enabled && (value === "left" || value === "right") && cuts.length) {
+      const margin = 0.019 + Math.max(0.05, thicknesses[value]);
+      const fasteners: MultiPolygon = railFasteners.map(({ x, y }) => [[[x - margin, y - margin], [x + margin, y - margin], [x + margin, y + margin], [x - margin, y + margin], [x - margin, y - margin]]]);
+      const reserved = mapPolygons(clipping.union(mount.reserved, fasteners), (x, y) => [direction * x * 100, (y - centerY) * 100]);
+      if (cuts.some(cut => clipping.intersection(reserved, placedCutout(cut)).length)) {
+        result.report.error = "Move custom cutouts and LED channels clear of the backboard mount supports, roots, joint slots and retaining rail screws before exporting.";
       }
     }
     const shapes = cuts.length && !result.report.error
@@ -150,10 +171,10 @@ export function createCasePanels(config: CaseConfiguration) {
     if (led && result.report.error) led.error ||= result.report.error;
     return [value, { ...result, original, shapes, engraving, led, direction, centerY }];
   })) as Record<CutoutSide, ReturnType<typeof subtractCutouts> & { original: ReturnType<typeof shapesToPolygons>; shapes: Shape[]; engraving: ReturnType<typeof resolveEngravings>; led: ReturnType<typeof ledSlot>; direction: number; centerY: number }>;
-  return { rowPanels, faces, bends, layout: panels.layout, ventilation, powerBoard, inlet, mountingHoles, mountingConflicts, reports: cutoutSides.map(({ value }) => faces[value].report) };
+  return { rowPanels, faces, bends, mount, layout: panels.layout, ventilation, powerBoard, inlet, mountingHoles, mountingConflicts, reports: cutoutSides.map(({ value }) => faces[value].report) };
 }
 export type CasePanels = ReturnType<typeof createCasePanels>;
 
 export function caseCanExport(panels: CasePanels) {
-  return panels.rowPanels.every(({ panel }) => panel.canExport) && panels.reports.every(report => !report.empty && !report.error);
+  return !panels.mount.error && panels.rowPanels.every(({ panel }) => panel.canExport) && panels.reports.every(report => !report.empty && !report.error);
 }

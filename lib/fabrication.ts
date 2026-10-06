@@ -1,4 +1,5 @@
 import { bentStandNotes } from "./bent-stand";
+import { backboardMountNotes } from "./backboard-mount";
 import { speakerBuildNotes, speakerHardware, myndSource, myndRevision, type Speaker } from "./speaker";
 import { speakerDampingMaterial } from "./speaker-damping";
 import { speakerBendNotes } from "./speaker-bends";
@@ -37,6 +38,8 @@ export function caseFabrication(config: CaseConfiguration, panels: CasePanels): 
   if (config.vents && panels.ventilation.omitted) warnings.push(`${panels.ventilation.omitted} vents omitted near cutouts or mounting points.`);
   if (config.vents && panels.ventilation.limited) warnings.push("Vent sizes or density were limited to preserve material between openings.");
   warnings.push(...panels.rowPanels.flatMap(({ label, panel }) => panel.warnings.map(warning => `${label}: ${warning}`)));
+  if (config.backboardMount) warnings.push(...backboardMountNotes, ...(panels.mount.error ? [panels.mount.error] : []));
+  if (config.backboardMount && panels.mount.layout.elevationLimited) warnings.push(`Case elevation limited from ${panels.mount.layout.requestedElevation} mm to ${panels.mount.layout.elevation} mm to retain clearance around the mounting joints.`);
   return { parts: caseSheetLayout(panels).parts.map(({ item }) => {
     const material = caseSheetMaterial(config, item);
     return { id: item.id, label: item.label, polygons: item.polygons, engraving: item.engraving, thickness: material.thickness, material: materialLabel(material.tint, material.transparency) };
